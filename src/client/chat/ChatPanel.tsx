@@ -234,7 +234,9 @@ export const ChatPanel = ({ accessCode, sessionId, runTool, prefs, onPrefs, onFo
         nextHeartInMs={waitMs}
         admin={admin}
         context={context}
+        base={baseContext.current}
         memory={memory}
+        actionsBelow={full || memoryHint}
       />
       <div className="scrollbar-soft min-h-0 flex-1 overflow-y-auto px-3 py-1" data-testid="messages">
         {messages.length === 0 && (

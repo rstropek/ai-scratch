@@ -31,13 +31,30 @@ export const Bubble = ({
       'relative max-w-[90%] rounded-2xl border px-3.5 py-2 whitespace-pre-wrap [overflow-wrap:anywhere]',
       from === 'user'
         ? 'border-primary/35 bg-primary-light text-primary-ink'
-        : 'mb-1.5 bg-white shadow-[0_1px_2px_hsla(0,0%,0%,0.08)] after:absolute after:-bottom-[6.5px] after:left-5 after:size-3 after:rotate-45 after:border-r after:border-b after:bg-white',
+        : 'mb-2 bg-white shadow-[0_1px_2px_hsla(0,0%,0%,0.08)]',
       className,
     )}
     data-testid={testId}
   >
     {children}
+    {from === 'assistant' && <BubbleTail />}
   </div>
+);
+
+/**
+ * The assistant bubble's tail. Drawn as SVG with the bubble's own 1px border colour: a rotated CSS square's
+ * borders antialiase into a heavier line than the bubble's. Its white top row covers the bubble's bottom
+ * border where the tail attaches.
+ */
+const BubbleTail = () => (
+  <svg
+    aria-hidden
+    viewBox="0 0 14 8"
+    className="absolute top-[calc(100%-1px)] left-5 h-2 w-3.5 overflow-visible drop-shadow-[0_1px_1px_hsla(0,0%,0%,0.08)]"
+  >
+    <path d="M0 0H14L7 7Z" fill="white" />
+    <path d="M0 0.5L7 7L14 0.5" fill="none" stroke="var(--border)" strokeWidth="1" strokeLinejoin="round" />
+  </svg>
 );
 
 /** The assistant's Markdown answer, styled by `.markdown` in index.css. */

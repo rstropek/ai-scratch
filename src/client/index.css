@@ -32,6 +32,7 @@
   /* KI-Energie: hearts and the Gedächtnis gauge */
   --heart: #e6335f;
   --gauge-warn: #ffab19; /* control-primary */
+  --base-knowledge: #4c97ff; /* motion-primary: the part of the memory that is always there */
 }
 
 @theme inline {
@@ -64,6 +65,7 @@
   --color-ring: var(--ring);
   --color-heart: var(--heart);
   --color-gauge-warn: var(--gauge-warn);
+  --color-base-knowledge: var(--base-knowledge);
 }
 
 @theme {

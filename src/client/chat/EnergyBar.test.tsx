@@ -13,7 +13,17 @@ const renderBar = (props: Partial<EnergyBarProps> = {}, memoryProps: Partial<Mem
     ...memoryProps,
   };
   render(
-    <EnergyBar hearts={3} refill={0} nextHeartInMs={0} admin={false} context={undefined} memory={memory} {...props} />,
+    <EnergyBar
+      hearts={3}
+      refill={0}
+      nextHeartInMs={0}
+      admin={false}
+      context={undefined}
+      base={undefined}
+      memory={memory}
+      actionsBelow={false}
+      {...props}
+    />,
   );
   return memory;
 };
@@ -35,11 +45,16 @@ describe('EnergyBar', () => {
   });
 
   test('the gauge shows the share of the limit and opens the ways to free the memory', () => {
-    const memory = renderBar({ context: 30_000 });
+    const memory = renderBar({ context: 30_000, base: 10_000 });
     const gauge = screen.getByRole('button', { name: 'Gedächtnis: 38 % voll' });
     expect(gauge).toHaveAttribute('aria-expanded', 'false');
     fireEvent.click(gauge);
-    expect(screen.getByText(/^30\s000 von 80\s000 Tokens$/)).toBeInTheDocument();
+    expect(screen.getByText(/^zusammen 30\s000 von 80\s000 Tokens$/)).toBeInTheDocument();
+    // the always-there part has its own colour and line
+    expect(screen.getByTestId('gauge-base')).toHaveStyle({ width: '13%' });
+    expect(screen.getByTestId('gauge-conversation')).toHaveStyle({ width: '25%' });
+    expect(screen.getByTestId('tokens-base')).toHaveTextContent(/^10\s000$/);
+    expect(screen.getByTestId('tokens-conversation')).toHaveTextContent(/^20\s000$/);
     fireEvent.click(screen.getByRole('button', { name: 'Zusammenfassen' }));
     expect(memory.onCompact).toHaveBeenCalledOnce();
 
