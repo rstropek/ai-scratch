@@ -4,25 +4,30 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  /* Scratch 3 GUI palette (scratch-gui/src/css/colors.css), so the chat reads as part of the editor */
+  --radius: 0.5rem;
+  --background: #ffffff;
+  --foreground: #575e75; /* text-primary */
+  --card: #ffffff;
+  --card-foreground: #575e75;
+  --popover: #ffffff;
+  --popover-foreground: #575e75;
+  --primary: #855cd6; /* looks-secondary: the menu bar */
+  --primary-hover: #714eb6; /* looks-secondary-dark */
+  --primary-foreground: #ffffff;
+  --primary-light: #ede7f9; /* looks-light-transparent on white */
+  --secondary: #e9f1fc; /* ui-secondary: panel ground */
+  --secondary-foreground: #575e75;
+  --muted: #e9f1fc;
+  --muted-foreground: #5e6479;
+  --accent: #d9e3f2; /* ui-tertiary */
+  --accent-foreground: #575e75;
+  --destructive: #e64d00; /* red-tertiary */
+  --alert: #fff0df; /* ui-alert-orange */
+  --alert-border: #ff8c1a; /* error-primary */
+  --border: hsla(0, 0%, 0%, 0.15); /* ui-black-transparent */
+  --input: hsla(0, 0%, 0%, 0.15);
+  --ring: hsla(260, 60%, 60%, 0.35); /* looks-transparent */
 }
 
 @theme inline {
@@ -38,6 +43,10 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-light: var(--primary-light);
+  --color-alert: var(--alert);
+  --color-alert-border: var(--alert-border);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -50,9 +59,19 @@
   --color-ring: var(--ring);
 }
 
+@theme {
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+  ::selection {
+    background: var(--ring);
+  }
+  textarea {
+    caret-color: var(--primary);
   }
   html,
   body,
@@ -60,6 +79,33 @@
     height: 100%;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-secondary font-sans text-foreground antialiased;
   }
+}
+
+@keyframes hammer {
+  0%,
+  60%,
+  100% {
+    transform: rotate(0deg);
+  }
+  20% {
+    transform: rotate(-35deg);
+  }
+  40% {
+    transform: rotate(12deg);
+  }
+}
+
+@utility animate-hammer {
+  transform-origin: 80% 80%;
+  animation: hammer 0.9s ease-out infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@utility scrollbar-soft {
+  scrollbar-width: thin;
+  scrollbar-color: hsla(225, 15%, 40%, 0.35) transparent;
 }

@@ -30,3 +30,10 @@ export const send = async (page: Page, text: string): Promise<void> => {
   await page.getByPlaceholder(/Was soll ich bauen/).fill(text);
   await page.getByRole('button', { name: 'Senden', exact: true }).click();
 };
+
+/** Tool calls are hidden by default (kids see a friendly status line instead). */
+export const showToolCalls = async (page: Page): Promise<void> => {
+  const toggle = page.getByRole('button', { name: 'Werkzeuge anzeigen' });
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+};

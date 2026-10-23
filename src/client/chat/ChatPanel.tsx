@@ -2,38 +2,41 @@
 // the turn is sent automatically once all tool results are in.
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, isToolUIPart, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
-import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type FormEvent, type RefObject, useEffect, useMemo, useRef, useState } from 'react';
+import { Splitter } from '@/components/Splitter';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ACCESS_CODE_HEADER, type ChatMessage, SESSION_HEADER } from '../../shared/chat-types.ts';
 import type { ToolRunner } from '../scratch/tool-runner.ts';
+import { INPUT_HEIGHT, type UiPrefs } from '../ui-prefs.ts';
+import { ChatTopBar } from './ChatTopBar.tsx';
 import { kidFriendlyError } from './errors.ts';
-import { MessageView } from './MessageView.tsx';
-
-// Example prompts as buttons: handy for trying the assistant; the tutorial will replace them.
-const EXAMPLES = [
-  'Wo finde ich den Block "wiederhole fortlaufend"? Ich will ihn selbst einbauen!',
-  'Bau: 3 mal 50 Schritte gehen und 1 Sekunde warten. Zeig mir dann, wo im Skript gewartet wird.',
-  'Füge eine Fledermaus hinzu, die mit den Flügeln schlägt.',
-  'Ich mache ein Weltraumspiel. Gib mir einen passenden Hintergrund.',
-  'Zeichne mir einen grünen Drachen als neue Figur.',
-  'Wo kann ich mein Projekt speichern?',
-];
+import { Bubble, MessageView, Thinking } from './MessageView.tsx';
 
 export interface ChatPanelProps {
   accessCode: string;
   sessionId: string;
   /** undefined while Scratch is still loading */
   runTool: ToolRunner | undefined;
+  prefs: UiPrefs;
+  onPrefs: (change: Partial<UiPrefs>) => void;
+  onFold: () => void;
+  /** a turn is in progress (the folded rail shows it) */
+  onBusyChange: (busy: boolean) => void;
 }
+
+const WELCOME =
+  'Hallo! Ich bin dein KI-Helfer. Sag mir, was ich in deinem Scratch-Projekt bauen soll – oder frag mich, wo du etwas findest.';
 
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
-export const ChatPanel = ({ accessCode, sessionId, runTool }: ChatPanelProps) => {
+export const ChatPanel = ({ accessCode, sessionId, runTool, prefs, onPrefs, onFold, onBusyChange }: ChatPanelProps) => {
   const [input, setInput] = useState('');
   const runToolRef = useRef(runTool);
   runToolRef.current = runTool;
   const bottom = useRef<HTMLDivElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  const panelHeight = useElementHeight(panel);
 
   const transport = useMemo(
     () =>
@@ -72,6 +75,7 @@ export const ChatPanel = ({ accessCode, sessionId, runTool }: ChatPanelProps) =>
     lastMessage?.role === 'assistant' &&
     lastMessage.parts.some((p) => isToolUIPart(p) && (p.state === 'input-streaming' || p.state === 'input-available'));
   const busy = status === 'submitted' || status === 'streaming' || toolsRunning;
+  useEffect(() => onBusyChange(busy), [busy, onBusyChange]);
 
   const sendText = async (text: string) => {
     if (!text.trim() || busy || !runTool) return;
@@ -86,33 +90,57 @@ export const ChatPanel = ({ accessCode, sessionId, runTool }: ChatPanelProps) =>
     void sendText(text);
   };
 
+  // the input may take at most half of the panel
+  const maxInput = Math.max(INPUT_HEIGHT.min, Math.floor(panelHeight / 2));
+  const inputHeight = Math.min(prefs.inputHeight, maxInput);
+
   return (
-    <div className="flex min-h-0 flex-col border-r">
-      <div className="flex-1 overflow-auto p-2" data-testid="messages">
+    <div ref={panel} className="flex h-full min-h-0 flex-col" style={{ fontSize: prefs.fontSize }}>
+      <ChatTopBar
+        fontSize={prefs.fontSize}
+        onFontSize={(fontSize) => onPrefs({ fontSize })}
+        showTools={prefs.showTools}
+        onShowTools={(showTools) => onPrefs({ showTools })}
+        onFold={onFold}
+      />
+      <div className="scrollbar-soft min-h-0 flex-1 overflow-y-auto px-3 py-1" data-testid="messages">
+        {messages.length === 0 && (
+          <div className="my-2.5 flex flex-col items-start">
+            <Bubble from="assistant" testId="welcome">
+              {WELCOME}
+            </Bubble>
+          </div>
+        )}
         {messages.map((m) => (
-          <MessageView key={m.id} message={m} />
+          <MessageView key={m.id} message={m} showTools={prefs.showTools} />
         ))}
+        {status === 'submitted' && (
+          <div className="my-2.5">
+            <Thinking />
+          </div>
+        )}
         {error && (
-          <div className="my-2 rounded-md bg-red-50 px-3 py-2 text-sm text-destructive" role="alert">
+          <div
+            className="my-2.5 rounded-lg border border-alert-border bg-alert px-3.5 py-2 text-[0.9em] text-foreground"
+            role="alert"
+          >
             {kidFriendlyError(error)}
           </div>
         )}
         <div ref={bottom} />
       </div>
-      <div className="flex flex-wrap gap-1 px-2">
-        {EXAMPLES.map((t) => (
-          <button
-            key={t}
-            type="button"
-            disabled={!ready || busy}
-            onClick={() => void sendText(t)}
-            className="rounded-full border bg-muted/50 px-2 py-0.5 text-left text-[11px] hover:bg-muted disabled:opacity-50"
-          >
-            {t}
-          </button>
-        ))}
-      </div>
-      <form onSubmit={onSubmit} className="flex items-end gap-2 p-2">
+      <Splitter
+        axis="y"
+        invert
+        value={inputHeight}
+        min={INPUT_HEIGHT.min}
+        max={maxInput}
+        onChange={(height) => onPrefs({ inputHeight: height })}
+        onReset={() => onPrefs({ inputHeight: INPUT_HEIGHT.default })}
+        label="Eingabefeld-Höhe ändern"
+        className="border-t bg-secondary"
+      />
+      <form onSubmit={onSubmit} className="flex flex-none items-end gap-2 bg-secondary px-3 pb-3">
         <Textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -120,20 +148,44 @@ export const ChatPanel = ({ accessCode, sessionId, runTool }: ChatPanelProps) =>
             if (e.key === 'Enter' && !e.shiftKey) onSubmit(e);
           }}
           disabled={!ready}
-          rows={2}
-          className="min-h-0 resize-none"
+          style={{ height: inputHeight, fontSize: 'inherit' }}
+          className="min-h-0 resize-none rounded-lg bg-white [field-sizing:fixed] placeholder:text-muted-foreground"
           placeholder={ready ? 'Was soll ich bauen?' : 'Scratch lädt…'}
         />
         {busy ? (
-          <Button type="button" variant="outline" onClick={() => void stop()}>
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="text-[length:inherit]"
+            onClick={() => void stop()}
+          >
             Stopp
           </Button>
         ) : (
-          <Button type="submit" disabled={!ready || !input.trim()}>
+          <Button
+            type="submit"
+            size="lg"
+            className="text-[length:inherit] font-bold"
+            disabled={!ready || !input.trim()}
+          >
             Senden
           </Button>
         )}
       </form>
     </div>
   );
+};
+
+/** Tracks an element's height (0 until it is laid out, and in jsdom). */
+const useElementHeight = (ref: RefObject<HTMLElement | null>) => {
+  const [height, setHeight] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(([entry]) => setHeight(entry?.contentRect.height ?? 0));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref]);
+  return height;
 };

@@ -6,6 +6,29 @@ editor, adds library sprites and backdrops, and draws new sprites as SVG.
 
 Background, requirements and decisions: [AGENTS.md](AGENTS.md).
 
+## What kids see
+
+- **Left:** the chat ("KI-Helfer"). Its purple top bar continues Scratch's menu bar and holds:
+  - font size buttons;
+  - a toggle for the tool calls, off by default (kids see "baut an deinem Projekt…" instead);
+  - a fold button that shrinks the chat to a slim rail.
+
+  The chat width and the input height can be dragged. These settings are remembered in the browser.
+- **Right:** the official Scratch 3 editor, unmodified. Projects are saved and loaded via its *Datei* menu (.sb3).
+
+## Sample prompts
+
+Handy for trying the assistant by hand; each one exercises a different tool family.
+
+| Prompt | Exercises |
+|---|---|
+| Wo finde ich den Block "wiederhole fortlaufend"? Ich will ihn selbst einbauen! | pointing at the palette (ui tools) |
+| Bau: 3 mal 50 Schritte gehen und 1 Sekunde warten. Zeig mir dann, wo im Skript gewartet wird. | building scripts, then pointing at a block |
+| Füge eine Fledermaus hinzu, die mit den Flügeln schlägt. | library sprite + animation script |
+| Ich mache ein Weltraumspiel. Gib mir einen passenden Hintergrund. | library backdrop |
+| Zeichne mir einen grünen Drachen als neue Figur. | drawing an SVG sprite |
+| Wo kann ich mein Projekt speichern? | explaining the editor (file menu) |
+
 ## Setup
 
 Requires Node.js 24 or later.
