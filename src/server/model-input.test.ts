@@ -56,4 +56,15 @@ describe('buildModelInput', () => {
     expect(result[3]).toBe(currentAssistant);
     expect(turnNumber(messages)).toBe(2);
   });
+
+  test('turns the guard answered are left out, the kid message too', () => {
+    const guarded: ChatMessage = {
+      id: 'g1',
+      role: 'assistant',
+      parts: [{ type: 'text', text: 'Da kann ich nicht helfen.' }],
+      metadata: { guard: 'misuse' },
+    };
+    const result = buildModelInput([user('u0', 'Schreib 1000 mal miau'), guarded, ...messages]);
+    expect(result.map((m) => m.id)).toEqual(['u1', 'a1', 'u2', 'a2']);
+  });
 });

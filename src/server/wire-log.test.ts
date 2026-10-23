@@ -14,6 +14,7 @@ const memorySink = () => {
       return hash;
     },
     append: (r) => records.push(r),
+    appendGuard: () => {},
   };
   return { sink, prefixes, records };
 };
@@ -80,5 +81,33 @@ describe('createLoggingFetch', () => {
     });
     expect(records[0]?.request).not.toHaveProperty('system');
     expect(calls).toEqual([{ ok: true }, { ok: true }]);
+  });
+
+  test('an aborted call is logged with what arrived until then', async () => {
+    const { sink, records } = memorySink();
+    const sse = anthropicSse({ text: 'Miau miau miau' });
+    // the text arrives, then the connection is cut in the middle of the next line
+    const chunks = [sse.slice(0, sse.indexOf('event: message_delta') + 30)];
+    const body = new ReadableStream<Uint8Array>({
+      async pull(controller) {
+        const chunk = chunks.shift();
+        if (chunk) return controller.enqueue(new TextEncoder().encode(chunk));
+        await new Promise((resolve) => setTimeout(resolve, 10)); // the abort comes later than the data
+        controller.error(new DOMException('aborted', 'AbortError'));
+      },
+    });
+    const loggingFetch = createLoggingFetch(
+      sink,
+      { accessCode: 'test', session: 's1', turn: 1 },
+      () => {},
+      async () => new Response(body, { headers: { 'content-type': 'text/event-stream' } }),
+    );
+    const res = await loggingFetch('https://api.anthropic.com/v1/messages', { method: 'POST', body: '{}' });
+    await expect(res.text()).rejects.toThrow();
+    await expect.poll(() => records.length).toBe(1);
+    expect(records[0]).toMatchObject({
+      aborted: true,
+      response: { content: [{ type: 'text', text: 'Miau miau miau' }] },
+    });
   });
 });

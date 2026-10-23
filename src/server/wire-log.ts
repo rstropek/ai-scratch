@@ -4,6 +4,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import type { GuardCategory } from '../shared/chat-types.ts';
 import { type AnthropicUsage, costOf } from './cost.ts';
 
 /** Who made the call; goes into every log record. */
@@ -21,17 +22,32 @@ export interface CallRecord extends CallContext {
   request: Record<string, unknown>;
   response: unknown;
   cost: number;
+  /** the call was cut off (output guard or a closed connection): the response is what arrived until then */
+  aborted?: true;
+}
+
+/** One screening of a kid message by the kids-protection guard (guard.ts). */
+export interface GuardRecord extends CallContext {
+  ts: string;
+  ms: number;
+  /** the kid's message; replaced by a placeholder when it held personal data */
+  text: string;
+  category?: GuardCategory;
+  nouls: Record<string, number>;
+  model?: string;
+  error?: string;
 }
 
 export interface LogSink {
   /** stores system + tools once; returns the hash that call records reference */
   storePrefix(prefix: string): string;
   append(record: CallRecord): void;
+  appendGuard(record: GuardRecord): void;
 }
 
 const sha = (s: string) => crypto.createHash('sha256').update(s).digest('hex').slice(0, 16);
 
-/** JSONL file + prefix-<hash>.json files in a directory. */
+/** calls.jsonl + guard.jsonl + prefix-<hash>.json files in a directory. */
 export const createFileLogSink = (dir: string): LogSink => {
   fs.mkdirSync(dir, { recursive: true });
   const stored = new Set<string>();
@@ -45,6 +61,7 @@ export const createFileLogSink = (dir: string): LogSink => {
       return hash;
     },
     append: (record) => fs.appendFileSync(path.join(dir, 'calls.jsonl'), `${JSON.stringify(record)}\n`),
+    appendGuard: (record) => fs.appendFileSync(path.join(dir, 'guard.jsonl'), `${JSON.stringify(record)}\n`),
   };
 };
 
@@ -70,7 +87,12 @@ export const assembleSse = (sse: string): AssembledMessage | undefined => {
   for (const line of sse.split('\n')) {
     if (!line.startsWith('data: ')) continue;
     // biome-ignore lint/suspicious/noExplicitAny: Anthropic stream events, shapes per event type
-    const e: any = JSON.parse(line.slice(6));
+    let e: any;
+    try {
+      e = JSON.parse(line.slice(6));
+    } catch {
+      continue; // the last line of an aborted call may be cut off
+    }
     if (e.type === 'message_start') message = { ...e.message, content: [], usage: { ...e.message.usage } };
     else if (e.type === 'error') message = { content: [], usage: {}, error: e.error };
     if (!message) continue;
@@ -122,6 +144,20 @@ const dedupePrefix = (sink: LogSink, body: string | undefined): Record<string, u
   return { prefix: sink.storePrefix(JSON.stringify({ system, tools })), ...rest };
 };
 
+/** Reads a body to the end; an aborted call keeps what arrived until then. */
+const readAll = async (body: ReadableStream<Uint8Array>): Promise<{ raw: string; aborted?: true }> => {
+  const decoder = new TextDecoder();
+  const reader = body.getReader();
+  let raw = '';
+  try {
+    for (let r = await reader.read(); !r.done; r = await reader.read())
+      raw += decoder.decode(r.value, { stream: true });
+    return { raw: raw + decoder.decode() };
+  } catch {
+    return { raw, aborted: true };
+  }
+};
+
 export type OnCall = (record: CallRecord, usage: AnthropicUsage, ok: boolean) => void;
 
 /**
@@ -135,9 +171,8 @@ export const createLoggingFetch =
     const res = await baseFetch(input, init);
     if (!res.body) return res;
     const [forSdk, forLog] = res.body.tee();
-    new Response(forLog)
-      .text()
-      .then((raw) => {
+    readAll(forLog)
+      .then(({ raw, aborted }) => {
         const response = parseResponse(raw, res.headers.get('content-type'));
         const usage = response?.usage ?? {};
         const record: CallRecord = {
@@ -148,6 +183,7 @@ export const createLoggingFetch =
           request: dedupePrefix(sink, typeof init?.body === 'string' ? init.body : undefined),
           response,
           cost: costOf(usage),
+          ...(aborted ? { aborted } : {}),
         };
         sink.append(record);
         onCall(record, usage, res.ok);

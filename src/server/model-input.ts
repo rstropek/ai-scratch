@@ -6,6 +6,8 @@
 //   the turn has an identical (cacheable) prefix.
 // - the current turn after that message: verbatim, because signed thinking blocks and tool results
 //   must be passed back.
+// - turns the kids-protection guard answered (metadata.guard) are left out, the kid's message too:
+//   blocked content never reaches the model.
 import type { ChatMessage } from '../shared/chat-types.ts';
 
 const toolNote = (m: ChatMessage): string | undefined => {
@@ -23,7 +25,12 @@ const textOnly = (m: ChatMessage): ChatMessage => {
   return { ...m, parts: note ? [{ type: 'text', text: note }, ...texts] : texts };
 };
 
-export const buildModelInput = (messages: ChatMessage[]): ChatMessage[] => {
+/** Drops each guard answer and the kid message it answered. */
+const withoutGuarded = (messages: ChatMessage[]): ChatMessage[] =>
+  messages.filter((m, i) => !m.metadata?.guard && !messages[i + 1]?.metadata?.guard);
+
+export const buildModelInput = (all: ChatMessage[]): ChatMessage[] => {
+  const messages = withoutGuarded(all);
   const current = messages.findLastIndex((m) => m.role === 'user');
   const user = messages[current];
   if (!user) return messages;

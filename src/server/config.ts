@@ -7,6 +7,10 @@ export interface Config {
   /** the product owner's key is identity-linked and needs this header on every request */
   anthropicWorkspaceId: string | undefined;
   model: string;
+  /** TypeSafe key for the kids-protection guard (Jev) */
+  jevApiKey: string;
+  /** pinned: the guard thresholds are tuned against this version */
+  jevModel: string;
   accessCodes: Set<string>;
   logDir: string;
   /** built client + precompressed Scratch bundle (npm run build) */
@@ -31,6 +35,8 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): Config => {
     anthropicApiKey: required(env, 'ANTHROPIC_API_KEY'),
     anthropicWorkspaceId: env.ANTHROPIC_WORKSPACE_ID?.trim() || undefined,
     model: env.MODEL?.trim() || 'claude-haiku-5-5',
+    jevApiKey: required(env, 'JEV_API_KEY'),
+    jevModel: env.JEV_MODEL?.trim() || 'jev-1.13.0',
     accessCodes,
     logDir: env.LOG_DIR?.trim() || 'logs',
     distDir: env.DIST_DIR?.trim() || 'dist',

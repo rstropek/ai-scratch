@@ -14,7 +14,7 @@ export default defineConfig({
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 1600, height: 900 } } }],
   // The production build, served like in production. /api/chat is mocked per test (page.route); the
-  // dummy key makes sure a test without a mock can never call (and pay for) the real model.
+  // dummy keys make sure a test without a mock can never call (and pay for) the real model.
   webServer: {
     command: 'npm run build && node src/server/main.ts',
     url: `http://localhost:${PORT}`,
@@ -24,6 +24,7 @@ export default defineConfig({
       PORT: String(PORT),
       ACCESS_CODES: 'e2e',
       ANTHROPIC_API_KEY: 'e2e-no-real-calls',
+      JEV_API_KEY: 'e2e-no-real-calls',
       LOG_DIR: 'test-results/logs',
     },
   },

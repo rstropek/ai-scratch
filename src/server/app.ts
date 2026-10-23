@@ -12,7 +12,7 @@ import type { LogSink } from './wire-log.ts';
 export interface AppDeps {
   config: Config;
   sink: LogSink;
-  /** the fetch the Anthropic provider uses (tests pass a fake) */
+  /** the fetch for Anthropic and Jev (tests pass a fake) */
   fetch?: typeof fetch;
 }
 

@@ -91,6 +91,7 @@ Commands and folder overview: [README.md](README.md).
   - throttling beyond the health bar;
   - polished design.
 - **Teaching mode:** the kid designs the game (idea, rules, points, levels); the assistant leads with questions, step by step, and builds only small, clearly defined parts (usually one script), never a whole game or large parts of it. Answers are short. A stricter **"AI supports"** mode, where it only guides and points and the kid builds, may come later. Keep the prompt and tool selection open for that.
+- **Kids protection** (`src/server/guard.ts`): TypeSafe's Jev screens every new kid message; flagged ones get a fixed German answer and never reach Claude. Kept lean, because adults supervise the kids: no screening of the replies, and if Jev fails the message goes through. **Output limits** (`src/server/output-guard.ts`): visible text per answer and model calls per turn. After changing questions or thresholds, run `npm run eval:guard`; it rewrites `docs/kids-protection.md`, the record of what was tested.
 - **Owned by Rainer, don't design:** the video tutorial.
 
 ## Working agreements
