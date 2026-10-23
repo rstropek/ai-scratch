@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import type { ChatMessage } from '../shared/chat-types.ts';
-import { buildModelInput, turnNumber } from './model-input.ts';
+import { buildModelInput, SUMMARY_HEADING, turnNumber } from './model-input.ts';
 
 const user = (id: string, text: string, project?: string): ChatMessage => ({
   id,
@@ -66,5 +66,22 @@ describe('buildModelInput', () => {
     };
     const result = buildModelInput([user('u0', 'Schreib 1000 mal miau'), guarded, ...messages]);
     expect(result.map((m) => m.id)).toEqual(['u1', 'a1', 'u2', 'a2']);
+  });
+});
+
+describe('summaries', () => {
+  test('a summary reaches the model as the start of the kid side, before the new message', () => {
+    const summary: ChatMessage = {
+      id: 's1',
+      role: 'assistant',
+      parts: [{ type: 'text', text: '**Dein Spiel**: Fang mich' }],
+      metadata: { summary: true },
+    };
+    const input = buildModelInput([summary, user('u1', 'Weiter', '{}')]);
+    expect(input.map((m) => m.role)).toEqual(['user', 'user']);
+    expect(input[0]?.parts).toEqual([
+      { type: 'text', text: SUMMARY_HEADING },
+      { type: 'text', text: '**Dein Spiel**: Fang mich' },
+    ]);
   });
 });

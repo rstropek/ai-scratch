@@ -2,7 +2,7 @@
 // plain in a light purple bubble. Tool calls and token usage only show when the tool toggle is on; otherwise a
 // single friendly status line says that the AI is working on the project.
 import { type DynamicToolUIPart, getToolName, isToolUIPart, type ToolUIPart } from 'ai';
-import { Brain, Check, Hammer, LoaderCircle, Wrench, X } from 'lucide-react';
+import { Brain, Check, Hammer, LoaderCircle, NotebookPen, Wrench, X } from 'lucide-react';
 import { type ReactNode, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import type { ChatMessage } from '../../shared/chat-types.ts';
@@ -48,6 +48,24 @@ const AssistantText = ({ text }: { text: string }) => {
       {/* biome-ignore lint/security/noDangerouslySetInnerHtml: renderMarkdown sanitizes with DOMPurify */}
       <div dangerouslySetInnerHTML={{ __html: html }} />
     </Bubble>
+  );
+};
+
+/** The AI's summary that replaced the conversation before it ("Zusammenfassen"): what it still remembers. */
+const SummaryCard = ({ text }: { text: string }) => {
+  const html = useMemo(() => renderMarkdown(text), [text]);
+  return (
+    <div
+      className="markdown w-full rounded-xl border border-dashed border-primary/60 bg-white px-3.5 py-2"
+      data-testid="summary"
+    >
+      <div className="mb-1 flex items-center gap-1.5 text-[0.85em] font-bold text-primary-ink [&_svg]:size-[1.1em]">
+        <NotebookPen aria-hidden />
+        Das habe ich mir von unserem Gespräch gemerkt:
+      </div>
+      {/* biome-ignore lint/security/noDangerouslySetInnerHtml: renderMarkdown sanitizes with DOMPurify */}
+      <div dangerouslySetInnerHTML={{ __html: html }} />
+    </div>
   );
 };
 
@@ -107,6 +125,14 @@ const ToolLine = ({ part }: { part: ToolPart }) => {
 };
 
 export const MessageView = ({ message, showTools }: { message: ChatMessage; showTools: boolean }) => {
+  if (message.metadata?.summary) {
+    const text = message.parts.flatMap((p) => (p.type === 'text' ? [p.text] : [])).join('\n');
+    return (
+      <div className="my-2.5" data-role="summary">
+        <SummaryCard text={text} />
+      </div>
+    );
+  }
   const fromUser = message.role === 'user';
   const usage = message.metadata?.usage;
   const working = !showTools && message.parts.some((p) => isToolUIPart(p) && isPending(p));

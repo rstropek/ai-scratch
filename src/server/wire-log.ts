@@ -12,6 +12,8 @@ export interface CallContext {
   accessCode: string;
   session: string | undefined;
   turn: number;
+  /** set for calls that are not a chat step */
+  purpose?: 'compact';
 }
 
 export interface CallRecord extends CallContext {

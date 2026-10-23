@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'vitest';
-import { anthropicSse, sseResponse } from '../../test/support/anthropic-sse.ts';
+import { anthropicMessage, anthropicSse, sseResponse } from '../../test/support/anthropic-sse.ts';
+import type { ChatMessage } from '../shared/chat-types.ts';
+import { CONTEXT_LIMIT } from '../shared/energy.ts';
 import { createApp } from './app.ts';
 import type { Config } from './config.ts';
 import { JEV_URL, type Nouls, QUESTIONS } from './guard.ts';
@@ -13,7 +15,7 @@ const config: Config = {
   model: 'claude-haiku-5-5',
   jevApiKey: 'jev-key',
   jevModel: 'jev-1.13.0',
-  accessCodes: new Set(['schule1']),
+  accessCodes: new Set(['schule1', 'admin_test']),
   logDir: 'unused',
   distDir: 'does-not-exist',
 };
@@ -43,7 +45,10 @@ const setup = (reply: string, nouls?: Nouls) => {
       jevRequests.push(JSON.parse(String(init?.body)));
       return jevAnswer(nouls);
     }
-    requests.push({ url: String(url), headers: new Headers(init?.headers), body: JSON.parse(String(init?.body)) });
+    const body = JSON.parse(String(init?.body));
+    requests.push({ url: String(url), headers: new Headers(init?.headers), body });
+    // generateText (compact) asks for a plain JSON message
+    if (!body.stream) return Response.json(anthropicMessage(reply));
     return sseResponse(reply);
   };
   return { app: createApp({ config, sink, fetch: fakeFetch }), records, guardRecords, requests, jevRequests };
@@ -56,8 +61,8 @@ const userMessage = (text: string, id = 'u1') => ({
   metadata: { project: '{}' },
 });
 const chatBody = { messages: [userMessage('Hallo')] };
-const post = (app: ReturnType<typeof setup>['app'], body: unknown, code = 'schule1') =>
-  app.request('/api/chat', {
+const post = (app: ReturnType<typeof setup>['app'], body: unknown, code = 'schule1', route = '/api/chat') =>
+  app.request(route, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Access-Code': code, 'X-Session-Id': 'sess' },
     body: JSON.stringify(body),
@@ -191,5 +196,126 @@ describe('output guard', () => {
     expect(await res.text()).toContain('Das war jetzt sehr viel auf einmal');
     expect(requests).toEqual([]);
     expect(await stats(app)).toMatchObject({ outputCaps: { textCuts: 0, stepLimits: 1 } });
+  });
+});
+
+describe('KI-Energie', () => {
+  const assistant = (id: string, text: string, metadata?: ChatMessage['metadata']) => ({
+    id,
+    role: 'assistant',
+    parts: [{ type: 'step-start' }, { type: 'text', text }],
+    ...(metadata ? { metadata } : {}),
+  });
+
+  test('a kid gets three messages, the fourth waits for the next heart without calling Jev or the model', async () => {
+    const { app, requests, jevRequests } = setup(anthropicSse({ text: 'Ok' }));
+    for (const i of [1, 2, 3]) {
+      const ok = await post(app, { messages: [userMessage(`m${i}`)] });
+      expect(ok.status).toBe(200);
+      await ok.text(); // the model is called while the stream is read
+    }
+    const res = await post(app, { messages: [userMessage('m4')] });
+    expect(res.status).toBe(429);
+    const body = await res.json();
+    expect(body.error).toMatch(/^Deine Herzen sind leer\. In (19|20) Sekunden kommt ein neues\.$/);
+    expect(body.retryInMs).toBeGreaterThan(19_000);
+    expect(jevRequests).toHaveLength(3);
+    expect(requests).toHaveLength(3);
+    expect(await stats(app)).toMatchObject({ energy: { heartsEmpty: 1 } });
+  });
+
+  test('tool results within a turn cost no heart, admin codes have no limit', async () => {
+    const { app } = setup(anthropicSse({ text: 'Ok' }));
+    for (const i of [1, 2, 3]) await (await post(app, { messages: [userMessage(`m${i}`)] })).text();
+    const toolStep = {
+      id: 'a1',
+      role: 'assistant',
+      parts: [
+        { type: 'step-start' },
+        { type: 'tool-green_flag', toolCallId: 't1', state: 'output-available', input: {}, output: { ok: true } },
+      ],
+    };
+    expect((await post(app, { messages: [userMessage('m3'), toolStep] })).status).toBe(200);
+    for (const i of [1, 2, 3, 4, 5]) {
+      expect((await post(app, { messages: [userMessage(`a${i}`)] }, 'admin_test')).status).toBe(200);
+    }
+  });
+
+  test('the first request of a turn reports the context, later requests only the usage', async () => {
+    const { app } = setup(
+      anthropicSse({ text: 'Ok', usage: { input_tokens: 200, output_tokens: 5, cache_read_input_tokens: 9000 } }),
+    );
+    const first = await (await post(app, chatBody)).text();
+    expect(first).toMatch(/"type":"finish".*"context":9200/);
+    const toolStep = {
+      id: 'a1',
+      role: 'assistant',
+      parts: [
+        { type: 'step-start' },
+        { type: 'tool-green_flag', toolCallId: 't1', state: 'output-available', input: {}, output: { ok: true } },
+      ],
+    };
+    const later = await (await post(app, { messages: [userMessage('Hallo'), toolStep] })).text();
+    expect(later).toMatch(/"type":"finish".*"usage"/);
+    expect(later).not.toContain('"context"');
+  });
+
+  test('a full memory refuses the next message until the kid compacts or clears', async () => {
+    const { app, requests, jevRequests } = setup(anthropicSse({ text: 'Ok' }));
+    const full = [
+      userMessage('m1', 'u1'),
+      assistant('a1', 'Antwort', { context: CONTEXT_LIMIT }),
+      userMessage('m2', 'u2'),
+    ];
+    const res = await post(app, { messages: full });
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toMatch(/Gedächtnis ist voll/);
+    expect(jevRequests).toEqual([]);
+    expect(requests).toEqual([]);
+
+    // after compacting only the summary is left: nothing more to free, so the message goes through
+    const compacted = [
+      assistant('s1', 'Zusammenfassung', { summary: true, context: CONTEXT_LIMIT }),
+      userMessage('m3'),
+    ];
+    expect(await (await post(app, { messages: compacted })).text()).toContain('"delta":"Ok"');
+    // the summary and the new message reach Anthropic as one user message
+    expect(requests[0]?.body.messages).toEqual([expect.objectContaining({ role: 'user' })]);
+    expect(JSON.stringify(requests[0]?.body.messages)).toMatch(/Zusammenfassung des bisherigen.*Zusammenfassung.*m3/);
+    expect(await stats(app)).toMatchObject({ energy: { memoryFull: 1 } });
+  });
+
+  test('compact summarizes the text of the conversation and logs the call', async () => {
+    const { app, requests, records } = setup('**Dein Spiel**: Fang mich');
+    const messages = [
+      userMessage('Ein Fisch soll vor dem Hai flüchten'),
+      {
+        id: 'a1',
+        role: 'assistant',
+        parts: [
+          { type: 'reasoning', text: 'geheim' },
+          { type: 'tool-add_scripts', toolCallId: 't1', state: 'output-available', input: {}, output: { ok: true } },
+          { type: 'text', text: 'Der Fisch schwimmt jetzt.' },
+        ],
+      },
+    ];
+    const res = await post(app, { messages }, 'schule1', '/api/compact');
+    expect(await res.json()).toEqual({ summary: '**Dein Spiel**: Fang mich', tokens: 50 });
+    const sent = JSON.stringify(requests[0]?.body.messages);
+    expect(sent).toContain('Kind: Ein Fisch soll vor dem Hai flüchten');
+    expect(sent).toContain('KI-Helfer: [Ausgeführte Werkzeuge: add_scripts]');
+    expect(sent).not.toContain('geheim');
+    expect(sent).not.toContain('"project"');
+    await expect.poll(() => records.length).toBe(1);
+    expect(records[0]).toMatchObject({ purpose: 'compact', session: 'sess', turn: 1 });
+    expect(await stats(app)).toMatchObject({ calls: 1, energy: { compacts: 1 } });
+  });
+
+  test('compact refuses an empty conversation and reports a failed model call in German', async () => {
+    const { app } = setup('');
+    expect((await post(app, { messages: [] }, 'schule1', '/api/compact')).status).toBe(400);
+    const res = await post(app, { messages: [userMessage('Hallo')] }, 'schule1', '/api/compact');
+    expect(res.status).toBe(502);
+    expect((await res.json()).error).toMatch(/Zusammenfassen hat nicht geklappt/);
   });
 });

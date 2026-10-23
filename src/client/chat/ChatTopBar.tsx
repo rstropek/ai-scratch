@@ -1,5 +1,5 @@
 // The chat's top bar: continues Scratch's purple menu bar (same height and colour). It holds the font
-// size buttons, the tool-call toggle, the fold button and an empty slot for the token health bar.
+// size buttons, the tool-call toggle and the fold button. KI-Energie sits in its own strip below (EnergyBar).
 import { AArrowDown, AArrowUp, PanelLeftClose, Wrench } from 'lucide-react';
 import type { ComponentProps } from 'react';
 import { cn } from '@/lib/utils';
@@ -29,9 +29,7 @@ export const BarButton = ({ className, ...props }: ComponentProps<'button'>) => 
 
 export const ChatTopBar = ({ fontSize, onFontSize, showTools, onShowTools, onFold }: ChatTopBarProps) => (
   <div className="flex h-12 flex-none items-center gap-0.5 bg-primary pr-1.5 pl-3 text-primary-foreground">
-    <span className="mr-2 text-sm font-bold whitespace-nowrap">KI-Helfer</span>
-    {/* placeholder for the token health bar (coming sprint) */}
-    <div data-slot="energy" className="min-w-0 flex-1" />
+    <span className="mr-auto pr-2 text-sm font-bold whitespace-nowrap">KI-Helfer</span>
     <BarButton
       aria-label="Schrift kleiner"
       title="Schrift kleiner"

@@ -42,7 +42,7 @@ cp .env.example .env   # then fill in the Anthropic and TypeSafe keys and the ac
 |---|---|
 | `ANTHROPIC_API_KEY` | Anthropic API key (server only) |
 | `ANTHROPIC_WORKSPACE_ID` | sent as `anthropic-workspace-id`; needed for identity-linked keys |
-| `ACCESS_CODES` | comma-separated, one per school |
+| `ACCESS_CODES` | comma-separated, one per school; codes starting with `admin_` have no message limit (testing) |
 | `JEV_API_KEY` | TypeSafe key for the kids-protection guard (server only) |
 | `MODEL` | default `claude-haiku-5-5` |
 | `JEV_MODEL` | default `jev-1.13.0` (the guard thresholds are tuned against it) |

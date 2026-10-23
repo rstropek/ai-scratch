@@ -5,7 +5,9 @@ import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import { requireAccessCode } from './access.ts';
 import { createChatHandler } from './chat.ts';
+import { createCompactHandler } from './compact.ts';
 import type { Config } from './config.ts';
+import { createHearts } from './hearts.ts';
 import { createStats } from './stats.ts';
 import type { LogSink } from './wire-log.ts';
 
@@ -18,10 +20,12 @@ export interface AppDeps {
 
 export const createApp = ({ config, sink, fetch }: AppDeps): Hono => {
   const stats = createStats();
+  const deps = { config, sink, stats, hearts: createHearts(), fetch };
   const app = new Hono();
 
   app.use('/api/*', requireAccessCode(config.accessCodes));
-  app.post('/api/chat', createChatHandler({ config, sink, stats, fetch }));
+  app.post('/api/chat', createChatHandler(deps));
+  app.post('/api/compact', createCompactHandler(deps));
   app.get('/api/stats', (c) => c.json(stats));
   app.all('/api/*', (c) => c.json({ error: 'Nicht gefunden' }, 404));
 

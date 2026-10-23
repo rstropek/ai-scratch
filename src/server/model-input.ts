@@ -8,6 +8,8 @@
 //   must be passed back.
 // - turns the kids-protection guard answered (metadata.guard) are left out, the kid's message too:
 //   blocked content never reaches the model.
+// - a summary ("Zusammenfassen", compact.ts) replaced the conversation before it; the model gets it as
+//   kid-side text, so the conversation still starts with a user message.
 import type { ChatMessage } from '../shared/chat-types.ts';
 
 const toolNote = (m: ChatMessage): string | undefined => {
@@ -19,15 +21,23 @@ const toolNote = (m: ChatMessage): string | undefined => {
   return tools.length ? `[Ausgeführte Werkzeuge: ${tools.join(', ')}]` : undefined;
 };
 
-const textOnly = (m: ChatMessage): ChatMessage => {
+export const textOnly = (m: ChatMessage): ChatMessage => {
   const note = toolNote(m);
   const texts = m.parts.filter((p) => p.type === 'text');
   return { ...m, parts: note ? [{ type: 'text', text: note }, ...texts] : texts };
 };
 
 /** Drops each guard answer and the kid message it answered. */
-const withoutGuarded = (messages: ChatMessage[]): ChatMessage[] =>
+export const withoutGuarded = (messages: ChatMessage[]): ChatMessage[] =>
   messages.filter((m, i) => !m.metadata?.guard && !messages[i + 1]?.metadata?.guard);
+
+export const SUMMARY_HEADING = '[Zusammenfassung des bisherigen Gesprächs]';
+
+const summaryAsUser = (m: ChatMessage): ChatMessage => ({
+  ...m,
+  role: 'user',
+  parts: [{ type: 'text', text: SUMMARY_HEADING }, ...m.parts.filter((p) => p.type === 'text')],
+});
 
 export const buildModelInput = (all: ChatMessage[]): ChatMessage[] => {
   const messages = withoutGuarded(all);
@@ -36,7 +46,7 @@ export const buildModelInput = (all: ChatMessage[]): ChatMessage[] => {
   if (!user) return messages;
   const earlier = messages
     .slice(0, current)
-    .map(textOnly)
+    .map((m) => (m.metadata?.summary ? summaryAsUser(m) : textOnly(m)))
     .filter((m) => m.parts.length);
   const project = user.metadata?.project;
   const userWithProject: ChatMessage = project

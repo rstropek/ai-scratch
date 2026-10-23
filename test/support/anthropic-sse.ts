@@ -71,3 +71,15 @@ export const anthropicSse = ({ thinking, text, toolCall, usage }: FakeTurn): str
 
 export const sseResponse = (body: string): Response =>
   new Response(body, { status: 200, headers: { 'content-type': 'text/event-stream' } });
+
+/** A non-streaming Messages API answer with one text block (generateText). */
+export const anthropicMessage = (text: string, usage = { input_tokens: 1000, output_tokens: 50 }) => ({
+  id: 'msg_test',
+  type: 'message',
+  role: 'assistant',
+  model: 'claude-haiku-5-5',
+  content: text ? [{ type: 'text', text }] : [],
+  stop_reason: 'end_turn',
+  stop_sequence: null,
+  usage,
+});

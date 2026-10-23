@@ -11,6 +11,10 @@ export interface ChatMetadata {
   usage?: LanguageModelUsage;
   /** assistant messages: the guard's fixed answer; this turn is left out of later model input */
   guard?: GuardCategory;
+  /** assistant messages: the context the model read at the start of this turn, in tokens (energy.ts) */
+  context?: number;
+  /** assistant messages: the AI's summary that replaced the conversation before it ("Zusammenfassen") */
+  summary?: true;
 }
 
 export type ChatMessage = UIMessage<ChatMetadata>;

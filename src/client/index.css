@@ -29,6 +29,9 @@
   --border: hsla(0, 0%, 0%, 0.15); /* ui-black-transparent */
   --input: hsla(0, 0%, 0%, 0.15);
   --ring: hsla(260, 60%, 60%, 0.35); /* looks-transparent */
+  /* KI-Energie: hearts and the Gedächtnis gauge */
+  --heart: #e6335f;
+  --gauge-warn: #ffab19; /* control-primary */
 }
 
 @theme inline {
@@ -59,6 +62,8 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-heart: var(--heart);
+  --color-gauge-warn: var(--gauge-warn);
 }
 
 @theme {

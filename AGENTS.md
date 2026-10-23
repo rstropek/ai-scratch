@@ -82,13 +82,13 @@ Commands and folder overview: [README.md](README.md).
   - Warn before closing or reloading the tab. There is no session resume.
 - **Logging and budget:**
   - Store **all** LLM interactions for research, with token stats.
-  - A token **health bar** per kid (a tokens-per-minute budget).
-  - Budget: 200 €/month. Keep the context under 100k tokens.
+  - **KI-Energie** (`src/shared/energy.ts`, shown under the chat's top bar): **3 hearts**, one refills every 20 s (a token bucket per session; `admin_` codes are exempt), and the **Gedächtnis** gauge, the context of the latest turn against an **80k limit**. At the limit the kid frees it by hand ("Zusammenfassen" via `/api/compact`, or "Neu anfangen"); Rainer explains both in the video. The server enforces what the client shows.
+  - Budget: 200 €/month.
 - **Hosting:** everything is deployed to **Microsoft Azure** with the `az` CLI, subscription **"Microsoft Sponsorship"**.
 - **Licence:** AGPL is fine; the code will be published.
 - **Out of scope:**
   - login hardening;
-  - throttling beyond the health bar;
+  - throttling beyond the hearts;
   - polished design.
 - **Teaching mode:** the kid designs the game (idea, rules, points, levels); the assistant leads with questions, step by step, and builds only small, clearly defined parts (usually one script), never a whole game or large parts of it. Answers are short. A stricter **"AI supports"** mode, where it only guides and points and the kid builds, may come later. Keep the prompt and tool selection open for that.
 - **Kids protection** (`src/server/guard.ts`): TypeSafe's Jev screens every new kid message; flagged ones get a fixed German answer and never reach Claude. Kept lean, because adults supervise the kids: no screening of the replies, and if Jev fails the message goes through. **Output limits** (`src/server/output-guard.ts`): visible text per answer and model calls per turn. After changing questions or thresholds, run `npm run eval:guard`; it rewrites `docs/kids-protection.md`, the record of what was tested.

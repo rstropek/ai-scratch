@@ -14,9 +14,11 @@ import {
 } from 'ai';
 import type { Context } from 'hono';
 import { ACCESS_CODE_HEADER, type ChatMessage, type ChatMetadata, SESSION_HEADER } from '../shared/chat-types.ts';
+import { isAdminCode, memoryFull } from '../shared/energy.ts';
 import { buildInstructions, toolDefinitions } from '../shared/tools/index.ts';
 import type { Config } from './config.ts';
 import { FIXED_ANSWERS, screen } from './guard.ts';
+import type { Hearts } from './hearts.ts';
 import { buildModelInput, turnNumber } from './model-input.ts';
 import { capAnswerText, MAX_STEPS_PER_TURN, STEP_LIMIT_ANSWER, stepsInTurn } from './output-guard.ts';
 import { recordCall, recordGuard, type Stats } from './stats.ts';
@@ -39,6 +41,7 @@ export interface ChatDeps {
   config: Config;
   sink: LogSink;
   stats: Stats;
+  hearts: Hearts;
   /** the fetch for Anthropic and Jev (tests pass a fake) */
   fetch?: typeof fetch;
 }
@@ -50,6 +53,10 @@ const isChatMessages = (value: unknown): value is ChatMessage[] =>
 
 const textOf = (m: ChatMessage | undefined): string =>
   (m?.parts ?? []).flatMap((p) => (p.type === 'text' ? [p.text] : [])).join('\n');
+
+export const MEMORY_FULL = 'Mein Gedächtnis ist voll. Klicke auf „Zusammenfassen“ oder „Neu anfangen“.';
+const heartsEmpty = (retryInMs: number) =>
+  `Deine Herzen sind leer. In ${Math.ceil(retryInMs / 1000)} Sekunden kommt ein neues.`;
 
 /** A fixed answer instead of a model call, streamed like one. */
 const fixedAnswer = (messages: ChatMessage[], text: string, metadata?: ChatMetadata): Response =>
@@ -98,7 +105,7 @@ const guardNewMessage = async (
 export const createChatHandler =
   (deps: ChatDeps) =>
   async (c: Context): Promise<Response> => {
-    const { config, sink, stats, fetch: baseFetch } = deps;
+    const { config, sink, stats, hearts, fetch: baseFetch } = deps;
     const body: unknown = await c.req.json().catch(() => undefined);
     const messages = (body as { messages?: unknown } | undefined)?.messages;
     if (!isChatMessages(messages)) return c.json({ error: 'Ungültige Anfrage' }, 400);
@@ -108,8 +115,21 @@ export const createChatHandler =
       session: c.req.header(SESSION_HEADER),
       turn: turnNumber(messages),
     };
-    // a new kid message is screened; the requests that carry tool results within a turn are not
-    if (messages.at(-1)?.role === 'user') {
+    // a new kid message costs a heart and is screened; the requests that carry tool results within a turn
+    // are neither (the client prevents both refusals, these are backstops)
+    const newTurn = messages.at(-1)?.role === 'user';
+    if (newTurn) {
+      if (memoryFull(messages)) {
+        stats.energy.memoryFull += 1;
+        return c.json({ error: MEMORY_FULL }, 409);
+      }
+      if (!isAdminCode(ctx.accessCode)) {
+        const { retryInMs } = hearts.take(ctx.session ?? ctx.accessCode);
+        if (retryInMs !== undefined) {
+          stats.energy.heartsEmpty += 1;
+          return c.json({ error: heartsEmpty(retryInMs), retryInMs }, 429);
+        }
+      }
       const blocked = await guardNewMessage(messages, ctx, deps);
       if (blocked) return blocked;
     } else if (stepsInTurn(messages) >= MAX_STEPS_PER_TURN) {
@@ -146,7 +166,11 @@ export const createChatHandler =
     const stream = toUIMessageStream<typeof TOOLS, ChatMessage>({
       stream: result.stream,
       originalMessages: messages,
-      messageMetadata: ({ part }) => (part.type === 'finish' ? { usage: part.totalUsage } : undefined),
+      // one model call per request: its input is the whole context; the first call of a turn fills the gauge
+      messageMetadata: ({ part }) =>
+        part.type === 'finish'
+          ? { usage: part.totalUsage, ...(newTurn ? { context: part.totalUsage.inputTokens } : {}) }
+          : undefined,
       onError: (e) => (e instanceof Error ? e.message : String(e)),
     });
     return createUIMessageStreamResponse({

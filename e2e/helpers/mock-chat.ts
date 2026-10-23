@@ -2,11 +2,13 @@
 // encoded by the AI SDK itself (createUIMessageStream), so the wire format always matches the SDK.
 import type { Page, Request } from '@playwright/test';
 import { createUIMessageStream, createUIMessageStreamResponse, type UIMessageChunk } from 'ai';
+import type { ChatMetadata } from '../../src/shared/chat-types.ts';
 
-export type Step = { toolCall: { name: string; input: unknown } } | { text: string };
+export type Step = { toolCall: { name: string; input: unknown } } | { text: string; metadata?: ChatMetadata };
 
 export const toolCall = (name: string, input: unknown = {}): Step => ({ toolCall: { name, input } });
-export const answer = (text: string): Step => ({ text });
+/** A text answer; `metadata` goes on its finish chunk (e.g. the context the turn measured). */
+export const answer = (text: string, metadata?: ChatMetadata): Step => ({ text, metadata });
 
 let ids = 0;
 const chunksFor = (step: Step, messageId: string): UIMessageChunk[] => {
@@ -19,7 +21,14 @@ const chunksFor = (step: Step, messageId: string): UIMessageChunk[] => {
           { type: 'text-end', id },
         ]
       : [{ type: 'tool-input-available', toolCallId: id, toolName: step.toolCall.name, input: step.toolCall.input }];
-  return [{ type: 'start', messageId }, { type: 'start-step' }, ...body, { type: 'finish-step' }, { type: 'finish' }];
+  const metadata = 'metadata' in step && step.metadata ? { messageMetadata: step.metadata } : {};
+  return [
+    { type: 'start', messageId },
+    { type: 'start-step' },
+    ...body,
+    { type: 'finish-step' },
+    { type: 'finish', ...metadata },
+  ];
 };
 
 const encode = async (step: Step, messageId: string) => {
