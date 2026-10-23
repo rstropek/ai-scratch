@@ -124,7 +124,22 @@ export const applySb3Blocks = async (vm: VirtualMachine, target: Target, blocks:
   return vmBlocks.length;
 };
 
-export const createProjectTools = (vm: VirtualMachine): ToolHandlers => ({
+export interface ProjectToolOptions {
+  /** tidies the editor after scripts were added (the editor's "Blöcke aufräumen"); none in headless tests */
+  cleanUp?: () => Promise<void> | void;
+  /** the shown sprite's scripts that the editor fails to show (see ui-guide); none in headless tests */
+  scriptsMissingInEditor?: () => string[];
+}
+
+const editorWarning = (sprite: string, missing: string[]): string =>
+  `The editor failed to show ${missing.length} script(s) of ${sprite} (their first blocks: ${missing.join(', ')}). ` +
+  'They are in the project and run, but the kid cannot see them. Do not add them again. Tell the kid that ' +
+  'the editor does not show these scripts right now and ask an adult for help.';
+
+export const createProjectTools = (
+  vm: VirtualMachine,
+  { cleanUp, scriptsMissingInEditor }: ProjectToolOptions = {},
+): ToolHandlers => ({
   get_project: () => projectSnapshot(vm),
   add_scripts: async (args) => {
     const target = findTarget(vm, stringArg(args, 'sprite'));
@@ -132,11 +147,27 @@ export const createProjectTools = (vm: VirtualMachine): ToolHandlers => ({
     if (!Array.isArray(scripts)) return fail(['"scripts" must be a list of scripts (each a list of blocks)']);
     const { blocks, errors } = compileScripts(scripts, { procedures: existingProcedures(target) });
     if (errors.length) fail(errors);
-    return { ok: true, added: await applySb3Blocks(vm, target, blocks) };
+    const added = await applySb3Blocks(vm, target, blocks);
+    try {
+      await cleanUp?.();
+    } catch (e) {
+      // the scripts are in; a failed tidy-up must not make the model add them again
+      console.warn('add_scripts: cleaning up the editor failed', e);
+    }
+    let missing: string[] = [];
+    try {
+      missing = scriptsMissingInEditor?.() ?? [];
+    } catch (e) {
+      console.warn('add_scripts: comparing the editor with the project failed', e);
+    }
+    return missing.length
+      ? { ok: true, added, warning: editorWarning(target.getName(), missing) }
+      : { ok: true, added };
   },
   clear_scripts: (args) => {
     const target = findTarget(vm, stringArg(args, 'sprite'));
-    for (const id of target.blocks.getScripts()) target.blocks.deleteBlock(id);
+    // copy: getScripts() is the VM's live list, and deleteBlock removes from it while we iterate
+    for (const id of [...target.blocks.getScripts()]) target.blocks.deleteBlock(id);
     vm.setEditingTarget(target.id);
     vm.refreshWorkspace();
     return { ok: true };

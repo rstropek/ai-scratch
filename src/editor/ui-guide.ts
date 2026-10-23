@@ -26,6 +26,7 @@ interface BlocklyWorkspace {
   getAllBlocks(ordered: boolean): BlocklyBlock[];
   getBlockById(id: string): BlocklyBlock | null;
   centerOnBlock(id: string): void;
+  cleanUp(): void;
   getFlyout(): { getWorkspace(): BlocklyWorkspace; scrollTo(y: number): void };
   getToolbox(): { getToolboxItemById(id: string): unknown; setSelectedItem(item: unknown): void };
 }
@@ -75,6 +76,31 @@ export const selectTarget = (vm: VirtualMachine, name: string): Target => {
 export const openTab = (store: GuiStore, tab: string): void => {
   if (!Object.hasOwn(TABS, tab)) throw new Error(`Unknown tab ${tab}`);
   store.dispatch({ type: 'scratch-gui/navigation/ACTIVATE_TAB', activeTabIndex: TABS[tab as EditorTab] });
+};
+
+/** Scratch's "Blöcke aufräumen": stacks the shown sprite's scripts in one column, without overlaps.
+ * The moves reach the VM through the editor's own change events, so the .sb3 keeps the layout. */
+export const cleanUpScripts = async (store: GuiStore): Promise<void> => {
+  openTab(store, 'code'); // a hidden workspace has no block sizes to lay out with
+  await nextFrame();
+  workspace().cleanUp();
+};
+
+/** The shown sprite's scripts that run in the VM but are missing in the editor, as opcodes of their
+ * top blocks. When the editor can't load a block it stops and drops every script after it, and the
+ * error only reaches the console; this catches any such cause. */
+export const scriptsMissingInEditor = (vm: VirtualMachine): string[] => {
+  const target = vm.editingTarget;
+  if (!target) return [];
+  const shown = new Set(
+    workspace()
+      .getTopBlocks()
+      .map((b) => b.id),
+  );
+  return target.blocks
+    .getScripts()
+    .filter((id) => !shown.has(id))
+    .map((id) => target.blocks.getBlock(id)?.opcode ?? id);
 };
 
 export const openCategory = (category: string): void => {

@@ -32,6 +32,74 @@ describe('project tools', () => {
     expect(sprite(vm).blocks.getScripts()).toEqual([]);
   });
 
+  test('clear_scripts removes every script, not every other one', async () => {
+    const vm = await createVm();
+    const tools = createProjectTools(vm);
+    const script = [{ op: 'event_whenflagclicked' }, { op: 'looks_say', MESSAGE: 'Hi' }];
+    await runTool(tools, 'add_scripts', { sprite: 'Sprite1', scripts: [script, script, script] });
+    expect(sprite(vm).blocks.getScripts()).toHaveLength(3);
+    await runTool(tools, 'clear_scripts', { sprite: 'Sprite1' });
+    expect(sprite(vm).blocks.getScripts()).toEqual([]);
+  });
+
+  // The editor rebuilds a sprite's workspace from this XML; a field without its variable type makes
+  // it stop loading, and every script after it is missing in the editor while it still runs.
+  test('broadcast and list fields carry their variable type into the editor XML', async () => {
+    const vm = await createVm();
+    vm.runtime.getTargetForStage()?.createVariable('list_punkte', 'Punkte', 'list');
+    const tools = createProjectTools(vm);
+    const scripts = [
+      [
+        { op: 'event_whenbroadcastreceived', BROADCAST_OPTION: 'erwischt' },
+        { op: 'data_addtolist', ITEM: '1', LIST: 'Punkte' },
+      ],
+      [{ op: 'event_whenflagclicked' }, { op: 'event_broadcast', BROADCAST_INPUT: 'erwischt' }],
+    ];
+    await runTool(tools, 'add_scripts', { sprite: 'Sprite1', scripts });
+    const xml = sprite(vm).blocks.toXML();
+    expect(xml).toMatch(/<field name="BROADCAST_OPTION" id="[^"]+" variabletype="broadcast_msg">erwischt</);
+    expect(xml).toMatch(/<field name="LIST" id="[^"]+" variabletype="list">Punkte</);
+  });
+
+  test('add_scripts tidies the editor after adding, and a failed tidy-up still reports the scripts as added', async () => {
+    const vm = await createVm();
+    let cleanUps = 0;
+    const tools = createProjectTools(vm, { cleanUp: () => void cleanUps++ });
+    const script = [{ op: 'event_whenflagclicked' }, { op: 'looks_say', MESSAGE: 'Hi' }];
+    await runTool(tools, 'add_scripts', { sprite: 'Sprite1', scripts: [script] });
+    await expect(runTool(tools, 'add_scripts', { sprite: 'Sprite1', scripts: [[{ op: 'nope' }]] })).rejects.toThrow();
+    expect(cleanUps).toBe(1);
+
+    const failing = createProjectTools(vm, {
+      cleanUp: () => {
+        throw new Error('no workspace');
+      },
+    });
+    expect(await runTool(failing, 'add_scripts', { sprite: 'Sprite1', scripts: [script] })).toEqual({
+      ok: true,
+      added: 3,
+    });
+  });
+
+  test('add_scripts warns the model when the editor does not show scripts the project runs', async () => {
+    const vm = await createVm();
+    const script = [{ op: 'event_whenflagclicked' }, { op: 'looks_say', MESSAGE: 'Hi' }];
+    const shown = createProjectTools(vm, { scriptsMissingInEditor: () => [] });
+    expect(await runTool(shown, 'add_scripts', { sprite: 'Sprite1', scripts: [script] })).toEqual({
+      ok: true,
+      added: 3,
+    });
+
+    const hidden = createProjectTools(vm, { scriptsMissingInEditor: () => ['event_whenbroadcastreceived'] });
+    expect(await runTool(hidden, 'add_scripts', { sprite: 'Sprite1', scripts: [script] })).toEqual({
+      ok: true,
+      added: 3,
+      warning: expect.stringMatching(
+        /editor failed to show 1 script\(s\) of Sprite1 \(their first blocks: event_whenbroadcastreceived\).*Do not add/,
+      ),
+    });
+  });
+
   test('unknown sprites and tools produce messages the model can act on', async () => {
     const vm = await createVm();
     const tools = createProjectTools(vm);

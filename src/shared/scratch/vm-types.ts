@@ -62,6 +62,8 @@ export interface Blocks {
   getBlock(id: string): VmBlock | undefined;
   getScripts(): string[];
   deleteBlock(id: string): void;
+  /** the XML the editor rebuilds the workspace from */
+  toXML(): string;
 }
 
 export interface Variable {
@@ -85,6 +87,7 @@ export interface Target {
   getName(): string;
   getCostumes(): Costume[];
   getSounds(): Sound[];
+  createVariable(id: string, name: string, type: string): void;
   on(event: string, listener: (target: Target) => void): void;
 }
 

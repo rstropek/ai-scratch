@@ -17,6 +17,10 @@ const PRIMITIVES: Record<number, [opcode: string, field: string, variableType?: 
   13: ['data_listcontents', 'LIST', 'list'],
 };
 
+/** Fields that reference a variable, list or broadcast carry its type, like sb3.js#deserializeFields sets it.
+ * Without it the editor fails to load the sprite's workspace and silently drops the remaining scripts. */
+const FIELD_VARIABLE_TYPES: Record<string, string> = { VARIABLE: '', LIST: 'list', BROADCAST_OPTION: 'broadcast_msg' };
+
 let counter = 0;
 const uid = () => `ai_${Date.now().toString(36)}_${(counter++).toString(36)}`;
 
@@ -79,7 +83,13 @@ export const sb3BlocksToVm = (sb3Blocks: Sb3Blocks): VmBlock[] => {
     }
     for (const [name, field] of Object.entries(b.fields ?? {})) {
       const [value, fieldId] = Array.isArray(field) ? field : [field];
-      block.fields[name] = { name, value: String(value), ...(fieldId != null ? { id: fieldId } : {}) };
+      const variableType = FIELD_VARIABLE_TYPES[name];
+      block.fields[name] = {
+        name,
+        value: String(value),
+        ...(fieldId != null ? { id: fieldId } : {}),
+        ...(variableType !== undefined ? { variableType } : {}),
+      };
     }
     // the VM's mutationToXML crashes without tagName/children
     if (b.mutation) block.mutation = { tagName: 'mutation', children: [], ...b.mutation };
