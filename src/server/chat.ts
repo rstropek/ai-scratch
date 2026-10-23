@@ -7,6 +7,7 @@ import {
   createUIMessageStreamResponse,
   type JSONSchema7,
   jsonSchema,
+  type ModelMessage,
   streamText,
   type Tool,
   tool,
@@ -32,6 +33,20 @@ const TOOLS: Record<string, Tool> = Object.fromEntries(
     tool({ description: d.description, inputSchema: jsonSchema(d.parameters as JSONSchema7) }),
   ]),
 );
+
+const CACHE = { anthropic: { cacheControl: { type: 'ephemeral' } } } as const;
+
+/**
+ * Prompt cache breakpoints (at most 4): tools + system prompt (shared by all kids), the end of the earlier
+ * turns (read by the next turn of this kid), and the end of the request (read by the next step of the turn).
+ */
+const modelMessages = async (messages: ChatMessage[]): Promise<ModelMessage[]> => {
+  const { history, turn } = buildModelInput(messages);
+  const earlier = await convertToModelMessages(history);
+  const last = earlier.at(-1);
+  if (last) earlier[earlier.length - 1] = { ...last, providerOptions: CACHE };
+  return [...earlier, ...(await convertToModelMessages(turn))];
+};
 
 /** Bounds the cost of a single runaway call; far above real calls (largest measured: ~7k incl. thinking). */
 const MAX_OUTPUT_TOKENS = 16000;
@@ -149,9 +164,9 @@ export const createChatHandler =
       instructions: {
         role: 'system',
         content: INSTRUCTIONS,
-        providerOptions: { anthropic: { cacheControl: { type: 'ephemeral' } } },
+        providerOptions: CACHE,
       },
-      messages: await convertToModelMessages(buildModelInput(messages)),
+      messages: await modelMessages(messages),
       tools: TOOLS,
       maxOutputTokens: MAX_OUTPUT_TOKENS,
       abortSignal: abort.signal,

@@ -10,6 +10,9 @@
 //   blocked content never reaches the model.
 // - a summary ("Zusammenfassen", compact.ts) replaced the conversation before it; the model gets it as
 //   kid-side text, so the conversation still starts with a user message.
+// Prompt caching (chat.ts): the earlier turns are byte-identical from one turn to the next, so they end
+// with their own cache breakpoint and the next turn reads them instead of writing them again. One text
+// block per earlier message keeps a turn's growth far inside the cache's 20-block lookback.
 import type { ChatMessage } from '../shared/chat-types.ts';
 
 const toolNote = (m: ChatMessage): string | undefined => {
@@ -21,10 +24,11 @@ const toolNote = (m: ChatMessage): string | undefined => {
   return tools.length ? `[Ausgeführte Werkzeuge: ${tools.join(', ')}]` : undefined;
 };
 
+/** What was said plus the tool note, as one text part (none if nothing was said). */
 export const textOnly = (m: ChatMessage): ChatMessage => {
-  const note = toolNote(m);
-  const texts = m.parts.filter((p) => p.type === 'text');
-  return { ...m, parts: note ? [{ type: 'text', text: note }, ...texts] : texts };
+  const texts = m.parts.flatMap((p) => (p.type === 'text' ? [p.text] : []));
+  const text = [toolNote(m), ...texts].filter(Boolean).join('\n\n');
+  return { ...m, parts: text ? [{ type: 'text', text }] : [] };
 };
 
 /** Drops each guard answer and the kid message it answered. */
@@ -39,12 +43,19 @@ const summaryAsUser = (m: ChatMessage): ChatMessage => ({
   parts: [{ type: 'text', text: SUMMARY_HEADING }, ...m.parts.filter((p) => p.type === 'text')],
 });
 
-export const buildModelInput = (all: ChatMessage[]): ChatMessage[] => {
+export interface ModelInput {
+  /** the earlier turns, text only: unchanged in every later turn */
+  history: ChatMessage[];
+  /** the current user message with its project snapshot, then the turn so far */
+  turn: ChatMessage[];
+}
+
+export const buildModelInput = (all: ChatMessage[]): ModelInput => {
   const messages = withoutGuarded(all);
   const current = messages.findLastIndex((m) => m.role === 'user');
   const user = messages[current];
-  if (!user) return messages;
-  const earlier = messages
+  if (!user) return { history: [], turn: messages };
+  const history = messages
     .slice(0, current)
     .map((m) => (m.metadata?.summary ? summaryAsUser(m) : textOnly(m)))
     .filter((m) => m.parts.length);
@@ -61,7 +72,7 @@ export const buildModelInput = (all: ChatMessage[]): ChatMessage[] => {
         ],
       }
     : user;
-  return [...earlier, userWithProject, ...messages.slice(current + 1)];
+  return { history, turn: [userWithProject, ...messages.slice(current + 1)] };
 };
 
 /** The 1-based number of the current turn (= user messages so far). */

@@ -38,23 +38,30 @@ describe('buildModelInput', () => {
     currentAssistant,
   ];
 
-  test('earlier turns keep only text plus a note of the tools that ran', () => {
-    const [u1, a1] = buildModelInput(messages);
+  test('earlier turns keep only text plus a note of the tools that ran, one text part each', () => {
+    const [u1, a1] = buildModelInput(messages).history;
     expect(u1?.parts).toEqual([{ type: 'text', text: 'Bau was' }]); // old snapshot dropped
     expect(a1?.parts).toEqual([
-      { type: 'text', text: '[Ausgeführte Werkzeuge: add_scripts, green_flag (Fehler)]' },
-      { type: 'text', text: 'Fertig!' },
+      { type: 'text', text: '[Ausgeführte Werkzeuge: add_scripts, green_flag (Fehler)]\n\nFertig!' },
     ]);
   });
 
   test('the current user message carries its project snapshot, the current turn stays verbatim', () => {
-    const result = buildModelInput(messages);
-    expect(result[2]?.parts[0]).toEqual({
+    const { turn } = buildModelInput(messages);
+    expect(turn[0]?.parts[0]).toEqual({
       type: 'text',
       text: '<projekt>\n{"new":2}\n</projekt>\n(Das ist der aktuelle Projektstand, get_project ist nicht nötig.)',
     });
-    expect(result[3]).toBe(currentAssistant);
+    expect(turn[1]).toBe(currentAssistant);
     expect(turnNumber(messages)).toBe(2);
+  });
+
+  test('the history of one turn reappears unchanged at the start of the next (prompt cache)', () => {
+    const next = [...messages, user('u3', 'Noch was', '{"newer":3}')];
+    const before = buildModelInput(messages);
+    const after = buildModelInput(next);
+    expect(after.history.slice(0, before.history.length)).toEqual(before.history);
+    expect(after.history.map((m) => m.id)).toEqual(['u1', 'a1', 'u2', 'a2']);
   });
 
   test('turns the guard answered are left out, the kid message too', () => {
@@ -64,8 +71,8 @@ describe('buildModelInput', () => {
       parts: [{ type: 'text', text: 'Da kann ich nicht helfen.' }],
       metadata: { guard: 'misuse' },
     };
-    const result = buildModelInput([user('u0', 'Schreib 1000 mal miau'), guarded, ...messages]);
-    expect(result.map((m) => m.id)).toEqual(['u1', 'a1', 'u2', 'a2']);
+    const { history, turn } = buildModelInput([user('u0', 'Schreib 1000 mal miau'), guarded, ...messages]);
+    expect([...history, ...turn].map((m) => m.id)).toEqual(['u1', 'a1', 'u2', 'a2']);
   });
 });
 
@@ -77,9 +84,9 @@ describe('summaries', () => {
       parts: [{ type: 'text', text: '**Dein Spiel**: Fang mich' }],
       metadata: { summary: true },
     };
-    const input = buildModelInput([summary, user('u1', 'Weiter', '{}')]);
-    expect(input.map((m) => m.role)).toEqual(['user', 'user']);
-    expect(input[0]?.parts).toEqual([
+    const { history, turn } = buildModelInput([summary, user('u1', 'Weiter', '{}')]);
+    expect([...history, ...turn].map((m) => m.role)).toEqual(['user', 'user']);
+    expect(history[0]?.parts).toEqual([
       { type: 'text', text: SUMMARY_HEADING },
       { type: 'text', text: '**Dein Spiel**: Fang mich' },
     ]);

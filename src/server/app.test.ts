@@ -115,6 +115,23 @@ describe('api', () => {
     expect(records[0]).toMatchObject({ accessCode: 'schule1', session: 'sess', turn: 1, status: 200 });
     expect(await stats(app)).toMatchObject({ calls: 1, errors: 0, inputTokens: 1000, outputTokens: 50 });
   });
+
+  test('cache breakpoints: system prompt, end of the earlier turns, end of the request', async () => {
+    const { app, requests } = setup(anthropicSse({ text: 'Ok' }));
+    const earlier = { id: 'a1', role: 'assistant', parts: [{ type: 'text', text: 'Hi!' }] };
+    await (await post(app, { messages: [userMessage('Hallo'), earlier, userMessage('Weiter', 'u2')] })).text();
+    const body = requests[0]?.body as {
+      system: { cache_control?: unknown }[];
+      messages: { role: string; content: { text: string; cache_control?: unknown }[] }[];
+      cache_control?: unknown;
+    };
+    const ephemeral = { type: 'ephemeral' };
+    expect(body.system.at(-1)?.cache_control).toEqual(ephemeral);
+    expect(body.cache_control).toEqual(ephemeral); // automatic: moves along with the turn
+    expect(body.messages.map((m) => m.role)).toEqual(['user', 'assistant', 'user']);
+    expect(body.messages[1]?.content.at(-1)).toEqual({ type: 'text', text: 'Hi!', cache_control: ephemeral });
+    expect(body.messages[2]?.content.some((b) => b.cache_control)).toBe(false);
+  });
 });
 
 describe('kids protection', () => {
