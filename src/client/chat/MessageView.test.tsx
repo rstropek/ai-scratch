@@ -52,6 +52,17 @@ describe('MessageView', () => {
     rerender(<MessageView message={done} showTools={false} />);
     expect(screen.queryByTestId('working')).not.toBeInTheDocument();
   });
+
+  test("assistant text is rendered as Markdown, the kid's text stays as typed", () => {
+    const chat = (role: 'user' | 'assistant', text: string) =>
+      ({ id: role, role, parts: [{ type: 'text', text }] }) as ChatMessage;
+    const { rerender } = render(<MessageView message={chat('assistant', '**Datei**\n\n- eins')} showTools={false} />);
+    expect(screen.getByText('Datei').tagName).toBe('STRONG');
+    expect(screen.getByRole('listitem')).toHaveTextContent('eins');
+
+    rerender(<MessageView message={chat('user', '**Datei**')} showTools={false} />);
+    expect(screen.getByTestId('user-text')).toHaveTextContent('**Datei**');
+  });
 });
 
 describe('kidFriendlyError', () => {

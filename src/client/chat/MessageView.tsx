@@ -1,11 +1,12 @@
-// One chat message. Assistant text is drawn as a Scratch "say" speech bubble, the kid's text as a
-// light purple bubble. Tool calls and token usage only show when the tool toggle is on; otherwise a
+// One chat message. Assistant text is Markdown in a Scratch "say" speech bubble, the kid's text
+// plain in a light purple bubble. Tool calls and token usage only show when the tool toggle is on; otherwise a
 // single friendly status line says that the AI is working on the project.
 import { type DynamicToolUIPart, getToolName, isToolUIPart, type ToolUIPart } from 'ai';
 import { Brain, Check, Hammer, LoaderCircle, Wrench, X } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { type ReactNode, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import type { ChatMessage } from '../../shared/chat-types.ts';
+import { renderMarkdown } from './markdown.ts';
 
 // Arguments of these tools are long (scripts, SVG): show only the tool name.
 const LONG_ARGS = new Set(['add_scripts', 'draw_sprite', 'draw_costume']);
@@ -18,10 +19,12 @@ export const Bubble = ({
   from,
   children,
   testId,
+  className,
 }: {
   from: 'user' | 'assistant';
   children: ReactNode;
   testId?: string;
+  className?: string;
 }) => (
   <div
     className={cn(
@@ -29,12 +32,24 @@ export const Bubble = ({
       from === 'user'
         ? 'border-primary/35 bg-primary-light'
         : 'mb-1.5 bg-white shadow-[0_1px_2px_hsla(0,0%,0%,0.08)] after:absolute after:-bottom-[6.5px] after:left-5 after:size-3 after:rotate-45 after:border-r after:border-b after:bg-white',
+      className,
     )}
     data-testid={testId}
   >
     {children}
   </div>
 );
+
+/** The assistant's Markdown answer, styled by `.markdown` in index.css. */
+const AssistantText = ({ text }: { text: string }) => {
+  const html = useMemo(() => renderMarkdown(text), [text]);
+  return (
+    <Bubble from="assistant" testId="assistant-text" className="markdown whitespace-normal">
+      {/* biome-ignore lint/security/noDangerouslySetInnerHtml: renderMarkdown sanitizes with DOMPurify */}
+      <div dangerouslySetInnerHTML={{ __html: html }} />
+    </Bubble>
+  );
+};
 
 /** A small grey line under the bubbles: thinking, working, tool calls, usage. */
 const StatusLine = ({
@@ -104,10 +119,13 @@ export const MessageView = ({ message, showTools }: { message: ChatMessage; show
         const key = `${message.id}-${i}`;
         if (part.type === 'text') {
           if (!part.text) return null;
-          return (
-            <Bubble key={key} from={fromUser ? 'user' : 'assistant'} testId={fromUser ? 'user-text' : 'assistant-text'}>
+          // the kid's text stays plain: a typed * or # means just that
+          return fromUser ? (
+            <Bubble key={key} from="user" testId="user-text">
               {part.text}
             </Bubble>
+          ) : (
+            <AssistantText key={key} text={part.text} />
           );
         }
         // without the tool view, "thinking" only shows while it happens

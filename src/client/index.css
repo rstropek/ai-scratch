@@ -109,3 +109,120 @@
   scrollbar-width: thin;
   scrollbar-color: hsla(225, 15%, 40%, 0.35) transparent;
 }
+
+/* Assistant answers (Markdown, see chat/markdown.ts). In em, so they follow the chat font size. */
+@layer components {
+  .markdown {
+    line-height: 1.45;
+    & > div > :first-child {
+      margin-top: 0;
+    }
+    & > div > :last-child {
+      margin-bottom: 0;
+    }
+    & :is(p, ul, ol, pre, blockquote, table) {
+      margin-block: 0.5em;
+    }
+    & :is(h1, h2, h3, h4, h5, h6) {
+      margin: 0.8em 0 0.3em;
+      font-size: 1em;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+    & h1 {
+      font-size: 1.2em;
+    }
+    & h2 {
+      font-size: 1.1em;
+    }
+    & strong {
+      font-weight: 700;
+    }
+    & :is(ul, ol) {
+      padding-left: 1.4em;
+    }
+    & ul {
+      list-style: disc;
+    }
+    & ul ul {
+      list-style: circle;
+    }
+    & ol {
+      list-style: decimal;
+    }
+    & li {
+      margin-block: 0.2em;
+      & > :is(ul, ol) {
+        margin-block: 0.2em;
+      }
+    }
+    & li::marker {
+      color: var(--primary);
+    }
+    & ol > li::marker {
+      font-weight: 700;
+    }
+    & a {
+      color: var(--primary);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      &:hover {
+        color: var(--primary-hover);
+      }
+    }
+    & code {
+      border-radius: 0.25rem;
+      background: var(--secondary);
+      padding: 0.1em 0.35em;
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 0.875em;
+      box-decoration-break: clone; /* padding and corners on every line of a wrapped block name */
+    }
+    & pre {
+      overflow-x: auto;
+      border-radius: 0.375rem;
+      background: var(--secondary);
+      padding: 0.5em 0.75em;
+      overflow-wrap: normal;
+      & code {
+        background: none;
+        padding: 0;
+        white-space: pre;
+      }
+    }
+    & blockquote {
+      border-radius: 0.375rem;
+      background: var(--primary-light);
+      padding: 0.4em 0.75em;
+    }
+    & hr {
+      margin-block: 0.75em;
+      border-top-width: 1px;
+    }
+    /* wide tables scroll inside the bubble instead of squeezing the columns */
+    & table {
+      display: block;
+      max-width: 100%;
+      overflow-x: auto;
+      border-collapse: collapse;
+      font-size: 0.9em;
+      overflow-wrap: normal;
+    }
+    & :is(th, td) {
+      border: 1px solid var(--border);
+      padding: 0.3em 0.6em;
+      text-align: left;
+      vertical-align: top;
+    }
+    & th {
+      background: var(--secondary);
+      font-weight: 700;
+    }
+    & :is(th, td)[align="center"] {
+      text-align: center;
+    }
+    & :is(th, td)[align="right"] {
+      text-align: right;
+    }
+  }
+}
