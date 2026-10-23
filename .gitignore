@@ -4,3 +4,6 @@ dist/
 logs/
 test-results/
 playwright-report/
+
+# impeccable skill engine: the wrapper downloads a version-pinned, checksum-verified copy on first use
+.claude/skills/impeccable/scripts/bin/
