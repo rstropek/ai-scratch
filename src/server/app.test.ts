@@ -18,6 +18,7 @@ const config: Config = {
   accessCodes: new Set(['schule1', 'admin_test']),
   logDir: 'unused',
   distDir: 'does-not-exist',
+  version: 'abc123',
 };
 
 /** Jev's answer: every question 0.01 unless given */
@@ -71,6 +72,13 @@ const stats = async (app: ReturnType<typeof setup>['app']) =>
   (await app.request('/api/stats', { headers: { 'X-Access-Code': 'schule1' } })).json();
 
 describe('api', () => {
+  test('/healthz shows the deployed version without an access code', async () => {
+    const { app } = setup('');
+    const res = await app.request('/healthz');
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ version: 'abc123' });
+  });
+
   test('rejects requests without a valid access code', async () => {
     const { app, requests } = setup('');
     const res = await post(app, chatBody, 'falsch');

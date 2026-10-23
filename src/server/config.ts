@@ -17,6 +17,8 @@ export interface Config {
   logDir: string;
   /** built client + precompressed Scratch bundle (npm run build) */
   distDir: string;
+  /** the deployed git commit (the Docker build sets APP_VERSION); shown by /healthz */
+  version: string;
 }
 
 const required = (env: NodeJS.ProcessEnv, name: string): string => {
@@ -37,6 +39,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): Config => {
     accessCodes,
     logDir: env.LOG_DIR?.trim() || 'logs',
     distDir: env.DIST_DIR?.trim() || 'dist',
+    version: env.APP_VERSION?.trim() || 'dev',
   };
 };
 

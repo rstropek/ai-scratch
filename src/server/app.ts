@@ -23,6 +23,8 @@ export const createApp = ({ config, sink, fetch }: AppDeps): Hono => {
   const deps = { config, sink, stats, hearts: createHearts(), fetch };
   const app = new Hono();
 
+  // for the deploy workflow and App Service: which commit is running, no access code needed
+  app.get('/healthz', (c) => c.json({ version: config.version }));
   app.use('/api/*', requireAccessCode(config.accessCodes));
   // the gate's check of a typed-in code: the middleware above does the work
   app.get('/api/access', (c) => c.body(null, 204));
