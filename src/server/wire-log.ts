@@ -47,7 +47,9 @@ export interface LogSink {
   appendGuard(record: GuardRecord): void;
 }
 
-const sha = (s: string) => crypto.createHash('sha256').update(s).digest('hex').slice(0, 16);
+/** the name a stored prefix gets, the same in every sink */
+export const prefixHash = (prefix: string): string =>
+  crypto.createHash('sha256').update(prefix).digest('hex').slice(0, 16);
 
 /** calls.jsonl + guard.jsonl + prefix-<hash>.json files in a directory. */
 export const createFileLogSink = (dir: string): LogSink => {
@@ -55,7 +57,7 @@ export const createFileLogSink = (dir: string): LogSink => {
   const stored = new Set<string>();
   return {
     storePrefix: (prefix) => {
-      const hash = sha(prefix);
+      const hash = prefixHash(prefix);
       if (!stored.has(hash)) {
         stored.add(hash);
         fs.writeFileSync(path.join(dir, `prefix-${hash}.json`), prefix);

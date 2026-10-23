@@ -17,6 +17,7 @@ const config: Config = {
   jevModel: 'jev-1.13.0',
   accessCodes: new Set(['schule1', 'admin_test']),
   logDir: 'unused',
+  logBlobUrl: undefined,
   distDir: 'does-not-exist',
   version: 'abc123',
 };

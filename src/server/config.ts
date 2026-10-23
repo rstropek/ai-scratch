@@ -15,6 +15,8 @@ export interface Config {
   /** normalized (lowercase), so kids can type them in any case */
   accessCodes: Set<string>;
   logDir: string;
+  /** Blob container for the research log (Azure); without it the log goes to logDir */
+  logBlobUrl: string | undefined;
   /** built client + precompressed Scratch bundle (npm run build) */
   distDir: string;
   /** the deployed git commit (the Docker build sets APP_VERSION); shown by /healthz */
@@ -24,6 +26,9 @@ export interface Config {
 const required = (env: NodeJS.ProcessEnv, name: string): string => {
   const value = env[name]?.trim();
   if (!value) throw new Error(`Missing environment variable ${name}`);
+  // App Service passes a Key Vault reference through unchanged when it can't resolve it
+  if (value.startsWith('@Microsoft.KeyVault('))
+    throw new Error(`${name} is an unresolved Key Vault reference: check the vault and the app's access to it`);
   return value;
 };
 
@@ -38,6 +43,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): Config => {
     jevModel: env.JEV_MODEL?.trim() || 'jev-1.13.0',
     accessCodes,
     logDir: env.LOG_DIR?.trim() || 'logs',
+    logBlobUrl: env.LOG_BLOB_URL?.trim() || undefined,
     distDir: env.DIST_DIR?.trim() || 'dist',
     version: env.APP_VERSION?.trim() || 'dev',
   };

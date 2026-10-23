@@ -47,6 +47,7 @@ cp .env.example .env   # then fill in the Anthropic and TypeSafe keys and the ac
 | `MODEL` | default `claude-haiku-5-5` |
 | `JEV_MODEL` | default `jev-1.13.0` (the guard thresholds are tuned against it) |
 | `PORT`, `LOG_DIR`, `DIST_DIR` | default `3000`, `logs`, `dist` |
+| `LOG_BLOB_URL` | Blob container for the research log (Azure, managed identity); without it the log goes to `LOG_DIR` |
 
 ## Commands
 
@@ -82,12 +83,13 @@ scripts/                  postinstall workaround, Scratch bundle preparation, Az
 |---|---|
 | Web app | `ai-scratch` in RG `2026-digitalferien`, on the existing P0v3 plan `ts-web-playground`: https://ai-scratch.azurewebsites.net, staging slot https://ai-scratch-staging.azurewebsites.net |
 | Secrets | Key Vault `kv-digiferien`; the app settings reference it, the app reads it with its managed identity |
-| Research logs | storage account `stdigiferien`, container `logs` (Entra ID only, no keys) |
+| Research logs | storage account `stdigiferien`, container `logs` (Entra ID only, no keys): one JSON blob per Anthropic call (`calls/<code>/<session>/…`) and per guard check (`guard/…`), system prompt + tools once per hash (`prefixes/…`). If an upload fails, the record goes to the container's `logs/` directory. No retention rule: Rainer deletes them by hand |
 | Image | `acrars2025.azurecr.io/ai-scratch:<commit>`, pulled with the app's managed identity |
 
 - **Every push to `main`** runs `npm run check` and the unit tests, builds the [Dockerfile](Dockerfile) and runs the new image in the **staging** slot ([deploy.yml](.github/workflows/deploy.yml)). `GET /healthz` shows which commit runs.
 - **Production** changes only through the manual **Swap to production** workflow ([swap.yml](.github/workflows/swap.yml)). Running it again rolls back. Never during the event: a swap restarts production and cuts running chats.
 - GitHub logs in to Azure with OIDC (Entra app `gh-ai-scratch-deploy`, main branch only; roles AcrPush + Website Contributor on the web app).
+- Download the logs: `az storage blob download-batch --auth-mode login --account-name stdigiferien -s logs -d <dir>`.
 - Both scripts are safe to re-run (`az login` with Owner on the subscription):
   - `scripts/azure/provision.sh` creates the resources and uploads the secrets from `.env`. Re-run it after changing the keys or access codes, then restart the app.
   - `scripts/azure/github-identity.sh` creates the GitHub login and the repository variables.
