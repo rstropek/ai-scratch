@@ -2,10 +2,11 @@
 // the turn is sent automatically once all tool results are in.
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, isToolUIPart, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
-import { type FormEvent, type RefObject, useEffect, useMemo, useRef, useState } from 'react';
+import { SendHorizontal, Square } from 'lucide-react';
+import { type FormEvent, type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from 'react';
 import { Splitter } from '@/components/Splitter';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 import { ACCESS_CODE_HEADER, type ChatMessage, SESSION_HEADER } from '../../shared/chat-types.ts';
 import type { ToolRunner } from '../scratch/tool-runner.ts';
 import { INPUT_HEIGHT, type UiPrefs } from '../ui-prefs.ts';
@@ -27,6 +28,15 @@ export interface ChatPanelProps {
 
 const WELCOME =
   'Hallo! Ich bin dein KI-Helfer. Sag mir, was ich in deinem Scratch-Projekt bauen soll – oder frag mich, wo du etwas findest.';
+
+// the send/stop button: scales with the chat font (the row is 0.875em), with a clearer focus ring
+const SEND_BUTTON = 'h-auto py-1.5 text-[length:inherit] focus-visible:ring-ring [&_svg]:size-[1em]';
+
+const Kbd = ({ children }: { children: ReactNode }) => (
+  <kbd className="rounded border bg-secondary px-1 shadow-[0_1px_0_var(--border)] font-sans text-[0.9em]">
+    {children}
+  </kbd>
+);
 
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -140,38 +150,45 @@ export const ChatPanel = ({ accessCode, sessionId, runTool, prefs, onPrefs, onFo
         label="Eingabefeld-Höhe ändern"
         className="border-t bg-secondary"
       />
-      <form onSubmit={onSubmit} className="flex flex-none items-end gap-2 bg-secondary px-3 pb-3">
-        <Textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) onSubmit(e);
-          }}
-          disabled={!ready}
-          style={{ height: inputHeight, fontSize: 'inherit' }}
-          className="min-h-0 resize-none rounded-lg bg-white [field-sizing:fixed] placeholder:text-muted-foreground"
-          placeholder={ready ? 'Was soll ich bauen?' : 'Scratch lädt…'}
-        />
-        {busy ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
-            className="text-[length:inherit]"
-            onClick={() => void stop()}
-          >
-            Stopp
-          </Button>
-        ) : (
-          <Button
-            type="submit"
-            size="lg"
-            className="text-[length:inherit] font-bold"
-            disabled={!ready || !input.trim()}
-          >
-            Senden
-          </Button>
-        )}
+      {/* Scratch's text-input look: one white box, purple border and halo on focus. The textarea takes the
+          full width; the send button sits in a slim row below it, so a taller input wastes no space. */}
+      <form onSubmit={onSubmit} className="flex-none bg-secondary px-3 pb-3">
+        <div className="rounded-lg border bg-white transition-[border-color,box-shadow] duration-150 focus-within:border-primary focus-within:ring-4 focus-within:ring-ring has-[textarea:disabled]:opacity-60">
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) onSubmit(e);
+            }}
+            disabled={!ready}
+            aria-label="Nachricht an den KI-Helfer"
+            style={{ height: inputHeight }}
+            className="scrollbar-soft block w-full resize-none bg-transparent px-3 pt-2 outline-none [field-sizing:fixed] placeholder:text-muted-foreground disabled:cursor-not-allowed"
+            placeholder={ready ? 'Was soll ich bauen?' : 'Scratch lädt…'}
+          />
+          <div className="@container flex items-center justify-end gap-2 pr-1.5 pb-1.5 pl-3 text-[0.875em]">
+            {/* the hint only shows when it fits next to the button (narrow chat or large font: hidden) */}
+            <span className="mr-auto hidden text-[0.85em] whitespace-nowrap text-muted-foreground @min-[18em]:inline">
+              <Kbd>Shift</Kbd> + <Kbd>Enter</Kbd>: neue Zeile
+            </span>
+            {busy ? (
+              <Button type="button" variant="outline" size="sm" className={SEND_BUTTON} onClick={() => void stop()}>
+                <Square aria-hidden className="fill-current" />
+                Stopp
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                size="sm"
+                className={cn(SEND_BUTTON, 'font-bold')}
+                disabled={!ready || !input.trim()}
+              >
+                Senden
+                <SendHorizontal aria-hidden />
+              </Button>
+            )}
+          </div>
+        </div>
       </form>
     </div>
   );

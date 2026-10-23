@@ -94,6 +94,16 @@ test('font size buttons scale the chat text', async ({ page }) => {
   await expect(smaller).toBeDisabled();
 });
 
+test('the input takes the full chat width and the send button sits below it', async ({ page }) => {
+  await openApp(page);
+  const input = await page.getByPlaceholder(/Was soll ich bauen/).boundingBox();
+  const send = await page.getByRole('button', { name: 'Senden', exact: true }).boundingBox();
+  if (!input || !send) throw new Error('composer not visible');
+  // 380px panel minus the padding and the border
+  expect(input.width).toBeGreaterThan(350);
+  expect(send.y).toBeGreaterThanOrEqual(input.y + input.height);
+});
+
 test('the input grows when its splitter is dragged up', async ({ page }) => {
   await openApp(page);
   const input = page.getByPlaceholder(/Was soll ich bauen/);

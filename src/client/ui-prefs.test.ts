@@ -6,7 +6,7 @@ describe('ui prefs', () => {
     expect(clampPrefs({ chatWidth: 5000, fontSize: 99, inputHeight: 10, folded: 'yes', showTools: true })).toEqual({
       chatWidth: 640,
       fontSize: 24,
-      inputHeight: 64,
+      inputHeight: 56,
       folded: false,
       showTools: true,
     });

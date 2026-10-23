@@ -12,7 +12,7 @@ export interface UiPrefs {
 }
 
 export const CHAT_WIDTH = { min: 300, max: 640, default: 380 } as const;
-export const INPUT_HEIGHT = { min: 64, default: 96 } as const;
+export const INPUT_HEIGHT = { min: 56, default: 80 } as const;
 export const FONT_SIZE = { min: 14, max: 24, step: 2, default: 16 } as const;
 
 export const DEFAULT_PREFS: UiPrefs = {
