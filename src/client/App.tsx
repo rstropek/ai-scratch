@@ -4,6 +4,7 @@
 // so a running turn keeps going. Until the school's access code is in, the chat shows the access gate.
 import { MessageCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createProjectBackups } from '../shared/scratch/project-backup.ts';
 import { checkCode, forgetCode, storeCode, storedCode, takeLinkCode } from './access.ts';
 import { AccessGate } from './chat/AccessGate.tsx';
 import { ChatPanel } from './chat/ChatPanel.tsx';
@@ -106,6 +107,7 @@ export const App = () => {
   const iframe = useRef<HTMLIFrameElement>(null);
   const bridge = useScratchBridge(iframe);
   const runTool = useMemo(() => (bridge ? createToolRunner(bridge) : undefined), [bridge]);
+  const backups = useMemo(() => (bridge ? createProjectBackups(bridge.vm) : undefined), [bridge]);
   const [prefs, updatePrefs] = useUiPrefs();
   const [busy, setBusy] = useState(false);
   const { access, unlock, deny } = useAccess();
@@ -129,6 +131,7 @@ export const App = () => {
             accessCode={access.code}
             sessionId={sessionId}
             runTool={runTool}
+            backups={backups}
             prefs={prefs}
             onPrefs={updatePrefs}
             onFold={() => updatePrefs({ folded: true })}

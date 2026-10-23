@@ -46,6 +46,15 @@ describe('buildModelInput', () => {
     ]);
   });
 
+  test('the note tells the model when the kid undid an answer', () => {
+    const undone = [...messages];
+    undone[1] = { ...earlierAssistant, metadata: { undone: true } };
+    const [, a1] = buildModelInput(undone).history;
+    expect(a1?.parts[0]).toMatchObject({
+      text: expect.stringMatching(/^\[Ausgeführte Werkzeuge: .*\] \[Das Kind hat diese Änderungen .* rückgängig/),
+    });
+  });
+
   test('the current user message carries its project snapshot, the current turn stays verbatim', () => {
     const { turn } = buildModelInput(messages);
     expect(turn[0]?.parts[0]).toEqual({

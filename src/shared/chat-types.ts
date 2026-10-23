@@ -15,6 +15,8 @@ export interface ChatMetadata {
   context?: number;
   /** assistant messages: the AI's summary that replaced the conversation before it ("Zusammenfassen") */
   summary?: true;
+  /** assistant messages: the kid undid this answer's changes to the project (the chat's undo button) */
+  undone?: true;
 }
 
 export type ChatMessage = UIMessage<ChatMetadata>;

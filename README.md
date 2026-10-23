@@ -1,20 +1,58 @@
 # Digiferien KI-Scratch
 
-The official, unmodified Scratch 3 editor with a German AI chat assistant beside it, built for the
-Digiferien workshop (kids 10–16). The assistant reads and changes the project, points at parts of the
-editor, adds library sprites and backdrops, and draws new sprites as SVG.
+The official Scratch 3 editor with a German AI helper ("KI-Helfer") beside it. Kids describe what they want,
+and the helper asks questions, builds small parts of their game, points at things in the editor, adds sprites
+and backdrops from the Scratch library, and draws new sprites.
 
-Background, requirements and decisions: [AGENTS.md](AGENTS.md).
+It was built for **Digiferien**, a one-day AI workshop: about 200 kids aged 10–16 at 10 Austrian schools,
+coding beginners who know a little Scratch. Each kid works through a video tutorial at their own pace, with
+adults in the room.
+
+## How it works
+
+```
+Browser                                         Server (Hono, Azure)            AI services
+┌──────────────────┬───────────────────────┐    ┌─────────────────────┐        ┌───────────────────┐
+│ Chat (React)     │ Scratch 3 editor      │───▶│ access code, limits │───────▶│ Claude Haiku 5.5  │
+│ runs the AI's    │ (unmodified, iframe)  │◀───│ builds the AI input │        │ (Anthropic)       │
+│ tools ──────────▶│ live project          │    │ logs every AI call  │───────▶│ Jev (TypeSafe):   │
+└──────────────────┴───────────────────────┘    └─────────────────────┘        │ kids protection   │
+                                                                               └───────────────────┘
+```
+
+- **The AI works on the live project in the browser.** Its tools (read and add scripts, point at a block,
+  add a sprite …) run right in the editor, so the kid watches the changes happen.
+- **The kid is the game designer.** The helper leads with questions and builds only small, clearly defined
+  parts, usually one script at a time. Answers are short.
+- **Scripts in a format models get right.** The AI reads and writes a compact JSON form of real Scratch
+  blocks, which the app compiles into blocks: 96% correct in our tests, against 80% for raw Scratch project
+  data.
+- **Every AI call is logged** with its token use, for research on how kids work with AI.
+- **Nothing is stored for the kid:** projects are saved and loaded with Scratch's own *Datei* menu (.sb3), and
+  the chat ends when the tab closes.
 
 ## What kids see
 
-- **Left:** the chat ("KI-Helfer"). Its purple top bar continues Scratch's menu bar and holds:
-  - font size buttons;
-  - a toggle for the tool calls, off by default (kids see "baut an deinem Projekt…" instead);
-  - a fold button that shrinks the chat to a slim rail.
+- **Left: the chat.** Its purple top bar continues Scratch's menu bar and holds the font size buttons, a
+  toggle for the AI's tool calls (off by default; kids see "baut an deinem Projekt…") and a fold button. The
+  chat width and input height can be dragged; the browser remembers these settings.
+- **KI-Energie** under the top bar: **3 hearts** (one per message, one refills every 20 s) and the
+  **Gedächtnis** gauge, which fills as the conversation grows. When it is full, the kid clicks
+  "Zusammenfassen" or "Neu anfangen". Both teach that AI isn't free or unlimited.
+- **"Rückgängig"** under every AI answer that changed the project puts the project back to how it was before
+  that answer (Scratch's own undo can't undo AI changes).
+- **Right: the Scratch 3 editor**, unmodified.
+- Until the school's **access code** is entered (or comes with the link as `?code=`), only the chat is locked;
+  Scratch works.
 
-  The chat width and the input height can be dragged. These settings are remembered in the browser.
-- **Right:** the official Scratch 3 editor, unmodified. Projects are saved and loaded via its *Datei* menu (.sb3).
+## Keeping kids safe and costs bounded
+
+- **Adults supervise** every session; the technical layers are deliberately lean.
+- **Kids protection:** every kid message is screened by TypeSafe's Jev before it reaches Claude. Flagged
+  messages get a fixed German answer, for example a kid in distress is sent to an adult. What was tested:
+  [docs/kids-protection.md](docs/kids-protection.md).
+- **Limits:** hearts per kid, the Gedächtnis limit, a cap on answer length and on AI steps per message.
+- **Access codes**, one per school. **Budget:** 200 €/month.
 
 ## Sample prompts
 
@@ -29,31 +67,32 @@ Handy for trying the assistant by hand; each one exercises a different tool fami
 | Zeichne mir einen grünen Drachen als neue Figur. | drawing an SVG sprite |
 | Wo kann ich mein Projekt speichern? | explaining the editor (file menu) |
 
-## Setup
+## Run it locally
 
 Requires Node.js 24 or later.
 
 ```bash
 npm install
 cp .env.example .env   # then fill in the Anthropic and TypeSafe keys and the access codes
+npm run dev            # http://localhost:5173/?code=<one of your access codes>
 ```
 
 | Variable | Meaning |
 |---|---|
 | `ANTHROPIC_API_KEY` | Anthropic API key (server only) |
 | `ANTHROPIC_WORKSPACE_ID` | sent as `anthropic-workspace-id`; needed for identity-linked keys |
-| `ACCESS_CODES` | comma-separated, one per school; not case-sensitive; codes starting with `admin_` have no message limit (testing) |
+| `ACCESS_CODES` | comma-separated, one per school; not case-sensitive; codes starting with `admin_` have no heart limit (testing) |
 | `JEV_API_KEY` | TypeSafe key for the kids-protection guard (server only) |
 | `MODEL` | default `claude-haiku-5-5` |
 | `JEV_MODEL` | default `jev-1.13.0` (the guard thresholds are tuned against it) |
 | `PORT`, `LOG_DIR`, `DIST_DIR` | default `3000`, `logs`, `dist` |
 | `LOG_BLOB_URL` | Blob container for the research log (Azure, managed identity); without it the log goes to `LOG_DIR` |
 
-## Commands
+### Commands
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | Vite on http://localhost:5173/?code=test (hot reload; without `?code=` the chat asks for the code) + API server on :3000 |
+| `npm run dev` | Vite on http://localhost:5173 (hot reload) + API server on :3000 |
 | `npm run build` | type check, Vite build, copy + precompress the Scratch bundle into `dist/` |
 | `npm start` | production server: API + `dist/` on :3000 |
 | `npm test` | unit and component tests (Vitest, headless scratch-vm, no network) |
@@ -62,37 +101,49 @@ cp .env.example .env   # then fill in the Anthropic and TypeSafe keys and the ac
 | `npm run check` | Biome + TypeScript |
 | `npm run lint:fix` | Biome with fixes |
 
-## Layout
-
-```
-index.html, editor.html   host page, editor iframe page
-src/shared/               runs in the browser and in Node: script format, block catalog, tools
-src/editor/               inside the iframe: mounts Scratch, UI pointer, exposes window.ki
-src/client/               React host: chat panel, tool runner
-src/server/               Hono: /api/chat, access code, kids-protection and output guards, research log, stats
-test/support/             headless scratch-vm, fake Anthropic streams, fixtures
-e2e/                      Playwright specs
-eval/guard/               labelled kid messages + runner for the kids-protection guard
-docs/                     kids-protection.md (generated by the guard eval)
-scripts/                  postinstall workaround, Scratch bundle preparation, Azure setup (scripts/azure)
-```
-
 ## Deployment (Azure)
+
+Every push to `main` is tested and deployed to the **staging** slot. **Production** changes only through the
+manual *Swap to production* workflow; running it again rolls back. **No swaps during the event:** a swap
+restarts production and interrupts kids mid-answer. The reasons behind the setup and the traps we hit:
+[docs/deployment.md](docs/deployment.md).
 
 | What | Where |
 |---|---|
-| Web app | `ai-scratch` in RG `2026-digitalferien`, on the existing P0v3 plan `ts-web-playground`: https://ai-scratch.azurewebsites.net, staging slot https://ai-scratch-staging.azurewebsites.net |
-| Secrets | Key Vault `kv-digiferien`; the app settings reference it, the app reads it with its managed identity |
-| Research logs | storage account `stdigiferien`, container `logs` (Entra ID only, no keys): one JSON blob per Anthropic call (`calls/<code>/<session>/…`) and per guard check (`guard/…`), system prompt + tools once per hash (`prefixes/…`). If an upload fails, the record goes to the container's `logs/` directory. No retention rule: Rainer deletes them by hand |
-| Image | `acrars2025.azurecr.io/ai-scratch:<commit>`, pulled with the app's managed identity |
+| Web app | `ai-scratch` in RG `2026-digitalferien`, on the existing P0v3 plan `ts-web-playground`: https://ai-scratch.azurewebsites.net, staging https://ai-scratch-staging.azurewebsites.net; `GET /healthz` shows the running commit |
+| Secrets | Key Vault `kv-digiferien`, read by the app's managed identity |
+| Research logs | storage account `stdigiferien`, container `logs`: one JSON blob per AI call and per guard check. No retention rule; Rainer deletes them by hand |
+| Image | `acrars2025.azurecr.io/ai-scratch:<commit>` |
+| Workflows | [deploy.yml](.github/workflows/deploy.yml) (push to `main` → staging), [swap.yml](.github/workflows/swap.yml) (manual → production); GitHub logs in with OIDC |
 
-- **Every push to `main`** runs `npm run check` and the unit tests, builds the [Dockerfile](Dockerfile) and runs the new image in the **staging** slot ([deploy.yml](.github/workflows/deploy.yml)). `GET /healthz` shows which commit runs.
-- **Production** changes only through the manual **Swap to production** workflow ([swap.yml](.github/workflows/swap.yml)). Running it again rolls back. Never during the event: a swap restarts production and cuts running chats.
-- GitHub logs in to Azure with OIDC (Entra app `gh-ai-scratch-deploy`, main branch only; roles AcrPush + Website Contributor on the web app).
-- Download the logs: `az storage blob download-batch --auth-mode login --account-name stdigiferien -s logs -d <dir>`.
-- Both scripts are safe to re-run (`az login` with Owner on the subscription):
-  - `scripts/azure/provision.sh` creates the resources and uploads the secrets from `.env`. Re-run it after changing the keys or access codes, then restart the app.
-  - `scripts/azure/github-identity.sh` creates the GitHub login and the repository variables.
+Operations (`az login` with Owner on the subscription; both scripts are safe to re-run):
+
+- **Changed keys or access codes in `.env`:** run `scripts/azure/provision.sh`, then restart both slots
+  (`az webapp restart -g 2026-digitalferien -n ai-scratch`, and again with `--slot staging`).
+- **GitHub login** (once): `scripts/azure/github-identity.sh`.
+- **Download the logs:** `az storage blob download-batch --auth-mode login --account-name stdigiferien -s logs -d <dir>`.
+
+## Project layout
+
+```
+index.html, editor.html   host page, editor iframe page
+src/shared/               runs in the browser and in Node: script format, block catalog, tools, prompt
+src/editor/               inside the iframe: mounts Scratch, UI pointer, exposes window.ki
+src/client/               React host: chat panel, access gate, tool runner
+src/server/               Hono: /api/chat, access code, guards, research log, stats
+test/support/             headless scratch-vm, fake Anthropic streams, fixtures
+e2e/                      Playwright specs
+eval/guard/               labelled kid messages + runner for the kids-protection guard
+docs/                     architecture notes per topic, kids-protection report, pre-event checklist
+scripts/                  postinstall workaround, Scratch bundle preparation, Azure setup (scripts/azure)
+```
+
+## More
+
+- [docs/](docs/README.md): how the app works inside, per topic: decisions, constraints and traps.
+- [AGENTS.md](AGENTS.md): background, requirements and working rules (for coding agents and humans).
+- The measurements behind the main choices (Scratch integration, script format, model, chat framework) come
+  from the prototype's report in the separate `ki-scratch` repo.
 
 ## Licence
 

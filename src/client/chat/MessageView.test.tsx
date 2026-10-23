@@ -1,5 +1,5 @@
-import { render, screen, within } from '@testing-library/react';
-import { describe, expect, test } from 'vitest';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import { describe, expect, test, vi } from 'vitest';
 import type { ChatMessage } from '../../shared/chat-types.ts';
 import { kidFriendlyError } from './errors.ts';
 import { MessageView } from './MessageView.tsx';
@@ -70,5 +70,20 @@ describe('kidFriendlyError', () => {
     expect(kidFriendlyError(new Error('{"error":"Falscher Zugangscode"}'))).toBe('Falscher Zugangscode');
     expect(kidFriendlyError(new Error('Failed to fetch'))).toMatch(/Keine Verbindung/);
     expect(kidFriendlyError(new Error('boom'))).toMatch(/schiefgegangen/);
+  });
+
+  test('an answer that can be undone ends with its undo button; an undone one says so', () => {
+    const onUndo = vi.fn();
+    const { rerender } = render(<MessageView message={message} showTools={false} undo={{ onUndo, disabled: false }} />);
+    fireEvent.click(screen.getByRole('button', { name: /Rückgängig/ }));
+    expect(onUndo).toHaveBeenCalledOnce();
+
+    rerender(<MessageView message={message} showTools={false} undo={{ onUndo, disabled: true }} />);
+    expect(screen.getByRole('button', { name: /Rückgängig/ })).toBeDisabled();
+
+    const undone = { ...message, metadata: { undone: true } } as ChatMessage;
+    rerender(<MessageView message={undone} showTools={false} undo={{ onUndo, disabled: false }} />);
+    expect(screen.queryByRole('button', { name: /Rückgängig/ })).not.toBeInTheDocument();
+    expect(screen.getByTestId('undone')).toHaveTextContent('rückgängig gemacht');
   });
 });

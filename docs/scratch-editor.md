@@ -1,0 +1,72 @@
+# The Scratch editor
+
+How we embed and drive Scratch without modifying it. Read before touching `src/editor`, the VM types,
+the UI tools or the build of the Scratch bundle.
+
+## Unmodified, from npm
+
+- We use the **standalone build** of `@scratch/scratch-gui` (it bundles its own React 18) and the public
+  scratch-vm API. No fork, no patches: an upgrade is a version bump, not a rebase. Alternatives (library
+  build, fork, TurboWarp, browser extension) were evaluated and rejected in ki-scratch report §3.
+- [mount-scratch.ts](../src/editor/mount-scratch.ts) is the only place that mounts Scratch; the internal hooks
+  live in [ui-guide.ts](../src/editor/ui-guide.ts) (below). The iframe exposes `window.ki = { vm, store, uiGuide }`
+  ([bridge.ts](../src/editor/bridge.ts)); the host polls for it.
+- **Mount once, never unmount:** the editor crashes on unmount (Blockly focus manager). This is one reason
+  for the iframe, and why the chat, not the editor, is what folds away.
+- **Web root:** the bundle loads its files from `/` (webpack publicPath), see
+  [vite.config.ts](../vite.config.ts) and [prepare-scratch.ts](../scripts/prepare-scratch.ts). In production
+  [app.ts](../src/server/app.ts) serves `dist/client` first, then `dist/scratch`, both at `/`: a host file
+  whose path matches a Scratch file (`static/`, `libraries/`, `chunks/` …) silently shadows it. Host HTML is
+  `no-cache`, Scratch files are cached for a day.
+- **Library pictures** come from Scratch's CDN (`cdn.assets.scratch.mit.edu`); only the library index
+  (`/libraries/*.json`) is ours. A school network that blocks that host breaks `add_library_*`, not the rest.
+- scratch-vm ships no types; the subset we use is **typed by hand** in
+  [vm-types.ts](../src/shared/scratch/vm-types.ts). Add members as you use them, and stay on the public API
+  (plus `target.blocks`, which the GUI uses too). Reading `blocks._blocks` is accepted (the `add_scripts`
+  checks do); never write private fields, change blocks through the VM.
+
+## Driving the UI: access paths, best first
+
+[ui-guide.ts](../src/editor/ui-guide.ts) runs inside the iframe (it draws its pointer into the editor
+document; its styles live there, not in the host CSS). Prefer the higher path:
+
+1. **Public VM API**, e.g. `vm.setEditingTarget()`: the GUI follows by itself.
+2. **The GUI's redux actions** (stable action type strings), e.g. switching tabs.
+3. **ScratchBlocks (Blockly)**: not exported, so it is found inside the webpack runtime by *capability*
+   (a module with `getMainWorkspace` + `centerOnBlock`), never by module id. This is the one internal hook;
+   [e2e/ui-guide.spec.ts](../e2e/ui-guide.spec.ts) guards it.
+
+GUI elements have CSS-module classes like `green-flag_green-flag_1kiAo`: match the stable
+`<file>_<class>_` prefix, never the hash. Menu items have no distinguishing class, so they go by label.
+
+## Traps found the hard way
+
+- **Editor and VM can disagree.** When the editor can't load a block it silently drops every later script of
+  that sprite (the error only reaches the console). `add_scripts` therefore compares the workspace with the
+  VM afterwards and warns the model ([project-tools.ts](../src/shared/tools/project-tools.ts)).
+- **Fields that reference a variable, list or broadcast need their variable type**, or the editor fails to
+  load the sprite's workspace (see the trap above); [sb3-blocks.ts](../src/shared/scratch/sb3-blocks.ts) sets it.
+- **New scripts land on top of each other** unless the editor tidies up; `add_scripts` runs Scratch's own
+  "Blöcke aufräumen" afterwards. The moves reach the VM through the editor's events, so the .sb3 keeps the
+  layout. It needs the code tab open (a hidden workspace has no block sizes), so **every `add_scripts`
+  switches the kid's view** to that sprite's Code tab. Keep that in mind for a "show, don't do" mode.
+- **Sprite thumbnails:** the GUI throttles thumbnail renders and drops an update that follows another
+  within about 500 ms, so a drawn sprite keeps the "?" placeholder. `draw_sprite` repeats the update later.
+  Only the real browser showed this ([e2e/pictures.spec.ts](../e2e/pictures.spec.ts)).
+- **`requestAnimationFrame` never fires in background tabs:** every wait in the ui-guide races it against
+  a timer, so a UI helper can never block the turn.
+
+## Tests and Node
+
+- Unit tests use the Node build of scratch-vm as a headless VM
+  ([headless-vm.ts](../test/support/headless-vm.ts)); it needs the postinstall workaround
+  [fix-vm-node.ts](../scripts/fix-vm-node.ts).
+- Keep `@scratch/scratch-vm` and `@scratch/scratch-storage` (headless tests) on the same pinned version as
+  `@scratch/scratch-gui` (the app).
+
+## Upgrading Scratch
+
+Not during the event season. Otherwise: bump all three `@scratch/*` packages together; re-extract the block catalog and diff it; run
+unit, e2e (they cover the internal paths) and, once it is rebuilt, the model eval. The catalog
+([block-catalog.json](../src/shared/scratch/block-catalog.json)) was extracted from the live palette in the
+ki-scratch prototype; that extractor is not in this repo.

@@ -1,5 +1,6 @@
 // The chat beside the editor. Tools run in the browser on the live VM (onToolCall); the next request of
-// the turn is sent automatically once all tool results are in.
+// the turn is sent automatically once all tool results are in. Each kid message saves the project first,
+// so the answer can be undone (undo.ts).
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, isToolUIPart, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
 import { Hourglass, SendHorizontal, Square } from 'lucide-react';
@@ -31,18 +32,22 @@ import {
   refill,
   take,
 } from '../../shared/energy.ts';
+import type { ProjectBackup, ProjectBackups } from '../../shared/scratch/project-backup.ts';
 import type { ToolRunner } from '../scratch/tool-runner.ts';
 import { INPUT_HEIGHT, type UiPrefs } from '../ui-prefs.ts';
 import { ChatTopBar } from './ChatTopBar.tsx';
 import { EnergyBar, MemoryActions, type MemoryActionsProps } from './EnergyBar.tsx';
 import { kidFriendlyError } from './errors.ts';
 import { Bubble, MessageView, Thinking } from './MessageView.tsx';
+import { backupIdFor, changedProject, markUndone } from './undo.ts';
 
 export interface ChatPanelProps {
   accessCode: string;
   sessionId: string;
   /** undefined while Scratch is still loading */
   runTool: ToolRunner | undefined;
+  /** undefined while Scratch is still loading */
+  backups: ProjectBackups | undefined;
   prefs: UiPrefs;
   onPrefs: (change: Partial<UiPrefs>) => void;
   onFold: () => void;
@@ -97,6 +102,7 @@ export const ChatPanel = ({
   accessCode,
   sessionId,
   runTool,
+  backups,
   prefs,
   onPrefs,
   onFold,
@@ -170,7 +176,10 @@ export const ChatPanel = ({
   const context = measured ?? clearedContext;
   const full = memoryFull(messages);
   const [compacting, setCompacting] = useState(false);
-  const [compactError, setCompactError] = useState<string | undefined>(undefined);
+  // the project as it was when each kid message was sent, by message id
+  const saved = useRef(new Map<string, ProjectBackup>());
+  const [restoring, setRestoring] = useState(false);
+  const [actionError, setActionError] = useState<string | undefined>(undefined);
 
   const ready = runTool !== undefined;
   // Between two requests of a turn the browser runs the tools and useChat reports "ready";
@@ -189,10 +198,14 @@ export const ChatPanel = ({
   const sendText = async (text: string) => {
     if (!text.trim() || !canSend) return;
     if (!admin) setBucket((b) => take(b, Date.now()) ?? b);
-    setCompactError(undefined);
+    setActionError(undefined);
+    const id = crypto.randomUUID();
+    // the project before this answer, for its undo button
+    const backup = backups?.save();
+    if (backup) saved.current.set(id, backup);
     // project snapshot frozen into this turn's user message => identical prefix for every step of the turn
     const project = JSON.stringify(await runTool('get_project', {}));
-    await sendMessage({ text, metadata: { project } });
+    await sendMessage({ id, role: 'user', parts: [{ type: 'text', text }], metadata: { project } });
   };
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -204,7 +217,7 @@ export const ChatPanel = ({
 
   const compact = async () => {
     setCompacting(true);
-    setCompactError(undefined);
+    setActionError(undefined);
     try {
       const res = await apiFetch('/api/compact', {
         method: 'POST',
@@ -215,6 +228,7 @@ export const ChatPanel = ({
       const body = (await res.json().catch(() => ({}))) as { summary?: string; tokens?: number };
       if (!res.ok || !body.summary) throw new Error(JSON.stringify(body));
       clearError();
+      saved.current.clear();
       setMessages([
         {
           id: crypto.randomUUID(),
@@ -228,17 +242,38 @@ export const ChatPanel = ({
         },
       ]);
     } catch (e) {
-      setCompactError(kidFriendlyError(e instanceof Error ? e : new Error(String(e))));
+      setActionError(kidFriendlyError(e instanceof Error ? e : new Error(String(e))));
     } finally {
       setCompacting(false);
     }
   };
   const clear = () => {
     clearError();
-    setCompactError(undefined);
+    setActionError(undefined);
+    saved.current.clear();
     setMessages([]);
     setClearedContext(baseContext.current);
   };
+  const undo = async (index: number) => {
+    const backup = saved.current.get(backupIdFor(messages, index) ?? '');
+    if (!backups || !backup) return;
+    setRestoring(true);
+    setActionError(undefined);
+    try {
+      await backups.restore(backup);
+      setMessages(markUndone(messages, index));
+    } catch (e) {
+      console.error('undo failed', e);
+      setActionError('Das Rückgängigmachen hat leider nicht geklappt.');
+    } finally {
+      setRestoring(false);
+    }
+  };
+  const undoFor = (m: ChatMessage, index: number) =>
+    changedProject(m) && saved.current.has(backupIdFor(messages, index) ?? '')
+      ? { onUndo: () => void undo(index), disabled: busy || compacting || restoring }
+      : undefined;
+
   const memory: MemoryActionsProps = {
     canCompact: hasHistory(messages),
     canClear: messages.length > 0,
@@ -280,20 +315,20 @@ export const ChatPanel = ({
             </Bubble>
           </div>
         )}
-        {messages.map((m) => (
-          <MessageView key={m.id} message={m} showTools={prefs.showTools} />
+        {messages.map((m, i) => (
+          <MessageView key={m.id} message={m} showTools={prefs.showTools} undo={undoFor(m, i)} />
         ))}
         {status === 'submitted' && (
           <div className="my-2.5">
             <Thinking />
           </div>
         )}
-        {compactError && (
+        {actionError && (
           <div
             className="my-2.5 rounded-lg border border-alert-border bg-alert px-3.5 py-2 text-[0.9em] text-foreground"
             role="alert"
           >
-            {compactError}
+            {actionError}
           </div>
         )}
         {error && (

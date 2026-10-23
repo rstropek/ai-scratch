@@ -12,6 +12,17 @@ export const toolDefinitions: ToolDefinition[] = [
   ...assetToolDefinitions,
 ];
 
+/** Tools that change the project: an answer that ran one of them can be undone in the chat. */
+export const PROJECT_CHANGING_TOOLS = new Set([
+  'add_scripts',
+  'clear_scripts',
+  'add_library_sprite',
+  'add_library_backdrop',
+  'add_library_costume',
+  'draw_sprite',
+  'draw_costume',
+]);
+
 /** System prompt + tool instructions: static, so Anthropic can cache it. */
 export const buildInstructions = (): string =>
   `${SYSTEM_PROMPT}\n${projectToolsPrompt()}\n${uiToolsPrompt}\n${assetToolsPrompt}`;

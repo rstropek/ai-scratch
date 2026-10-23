@@ -1,9 +1,11 @@
 // One chat message. Assistant text is Markdown in a Scratch "say" speech bubble, the kid's text
 // plain in a light purple bubble. Tool calls and token usage only show when the tool toggle is on; otherwise a
-// single friendly status line says that the AI is working on the project.
+// single friendly status line says that the AI is working on the project. An answer that changed the project
+// ends with its undo button (undo.ts).
 import { type DynamicToolUIPart, getToolName, isToolUIPart, type ToolUIPart } from 'ai';
-import { Brain, Check, Hammer, LoaderCircle, NotebookPen, Wrench, X } from 'lucide-react';
+import { Brain, Check, Hammer, LoaderCircle, NotebookPen, Undo2, Wrench, X } from 'lucide-react';
 import { type ReactNode, useMemo } from 'react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { ChatMessage } from '../../shared/chat-types.ts';
 import { renderMarkdown } from './markdown.ts';
@@ -141,7 +143,36 @@ const ToolLine = ({ part }: { part: ToolPart }) => {
   );
 };
 
-export const MessageView = ({ message, showTools }: { message: ChatMessage; showTools: boolean }) => {
+export interface UndoProps {
+  onUndo: () => void;
+  /** a turn is in progress */
+  disabled: boolean;
+}
+
+const UndoButton = ({ onUndo, disabled }: UndoProps) => (
+  <Button
+    variant="ghost"
+    size="xs"
+    className="-ml-1.5 h-auto gap-1.5 py-0.5 text-[length:0.8em] font-normal text-muted-foreground hover:text-primary-ink"
+    title="Macht dein Projekt wieder so, wie es vor dieser Antwort war"
+    disabled={disabled}
+    onClick={onUndo}
+  >
+    <Undo2 aria-hidden className="size-[1.15em]" />
+    Rückgängig
+  </Button>
+);
+
+export const MessageView = ({
+  message,
+  showTools,
+  undo,
+}: {
+  message: ChatMessage;
+  showTools: boolean;
+  /** only for answers that changed the project and can still be undone */
+  undo?: UndoProps;
+}) => {
   if (message.metadata?.summary) {
     const text = message.parts.flatMap((p) => (p.type === 'text' ? [p.text] : [])).join('\n');
     return (
@@ -186,6 +217,14 @@ export const MessageView = ({ message, showTools }: { message: ChatMessage; show
         <StatusLine className="text-[0.7em]">
           {usage.inputTokens} in ({usage.inputTokenDetails?.cacheReadTokens ?? 0} cached) / {usage.outputTokens} out
         </StatusLine>
+      )}
+      {message.metadata?.undone ? (
+        <StatusLine data-testid="undone">
+          <Undo2 aria-hidden />
+          rückgängig gemacht
+        </StatusLine>
+      ) : (
+        undo && <UndoButton {...undo} />
       )}
     </div>
   );

@@ -2,6 +2,7 @@
 // - earlier turns: what was said plus a one-line note of the tools that ran (no inputs/results, no
 //   reasoning; their project state is outdated anyway). Without the note the model sees its own claims
 //   ("I built it and highlighted the block") without evidence and "corrects" them as hallucinations.
+//   If the kid undid the answer (metadata.undone), the note says so: the model must not build on it.
 // - the current user message carries the project snapshot taken when it was sent, so every step of
 //   the turn has an identical (cacheable) prefix.
 // - the current turn after that message: verbatim, because signed thinking blocks and tool results
@@ -21,7 +22,9 @@ const toolNote = (m: ChatMessage): string | undefined => {
       ? [`${p.type.slice(5)}${'state' in p && p.state === 'output-error' ? ' (Fehler)' : ''}`]
       : [],
   );
-  return tools.length ? `[Ausgeführte Werkzeuge: ${tools.join(', ')}]` : undefined;
+  if (!tools.length) return undefined;
+  const note = `[Ausgeführte Werkzeuge: ${tools.join(', ')}]`;
+  return m.metadata?.undone ? `${note} [Das Kind hat diese Änderungen am Projekt rückgängig gemacht.]` : note;
 };
 
 /** What was said plus the tool note, as one text part (none if nothing was said). */

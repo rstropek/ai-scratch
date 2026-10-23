@@ -55,6 +55,7 @@ export interface Costume {
 }
 export interface Sound {
   name: string;
+  asset?: Asset;
 }
 
 export interface Blocks {
@@ -101,6 +102,11 @@ export interface Storage {
   AssetType: { ImageVector: unknown };
   DataFormat: { SVG: string };
   createAsset(type: unknown, format: string, data: Uint8Array, id: string | null, generateId: boolean): Asset;
+  /** helpers are asked in order of priority (built-in assets: 100, web: -100); null = not mine */
+  addHelper(
+    helper: { load(type: unknown, assetId: string, format: string): Promise<Asset> | null },
+    priority?: number,
+  ): void;
 }
 
 export interface Runtime {

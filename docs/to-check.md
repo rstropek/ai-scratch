@@ -15,5 +15,5 @@ Open checks, not yet done. Tick them off (or delete them) when done.
   - a kid idle for over 5 minutes loses their history cache, but tools and system stay warm through the other kids. A 1-hour TTL doubles every write and isn't worth it.
 - [ ] **Azure: SSE streaming** is not buffered by App Service (answers must stream, not arrive at once).
 - [ ] **Azure: app settings** contain the real `ACCESS_CODES` (one per school plus the `admin_` code, without `test`), `JEV_API_KEY` and the Anthropic keys.
-- [ ] **Azure: one instance.** Hearts live in memory (`src/server/hearts.ts`); scaling out would give each instance its own buckets.
-- [ ] **Azure: logs** (`logs/calls.jsonl`, guard log) end up in Blob storage and survive restarts.
+- [x] **Azure: instances** (decided 2026-10-23). Hearts live in memory per instance (`src/server/hearts.ts`). ARR affinity is on, so scaling out keeps each kid on one instance; losing affinity only refills a kid's hearts.
+- [x] **Azure: logs** end up in Blob storage (`stdigiferien/logs`, one blob per record) and survive restarts. Verified in production on 2026-10-23.

@@ -1,0 +1,23 @@
+# Docs
+
+Architecture notes per topic: the decisions, constraints and traps that the code doesn't show. They are
+written for coding agents (and humans) who change this app; read [AGENTS.md](../AGENTS.md) first.
+
+| Doc | Read it before you touch… |
+|---|---|
+| [architecture.md](architecture.md) | anything: how a turn flows, who owns which state, identity, error conventions |
+| [scratch-editor.md](scratch-editor.md) | `src/editor`, VM types, UI tools, the Scratch bundle or a Scratch upgrade |
+| [tools-and-scripts.md](tools-and-scripts.md) | a tool, its wording, the script format or the system prompt |
+| [conversation.md](conversation.md) | the model input, prompt caching, "Zusammenfassen" or the Gedächtnis gauge |
+| [limits-and-safety.md](limits-and-safety.md) | access codes, hearts, the kids-protection guard or the output limits |
+| [research-log.md](research-log.md) | logging, `/api/stats`, cost, or the stored logs in Azure |
+| [deployment.md](deployment.md) | the Dockerfile, the workflows, `scripts/azure` or any Azure setting |
+| [testing.md](testing.md) | tests, or when debugging a real session from the logs |
+
+Two more files, not architecture notes:
+
+- [kids-protection.md](kids-protection.md) is **generated** by `npm run eval:guard`; never edit it by hand.
+- [to-check.md](to-check.md) is Rainer's checklist of open checks before the event.
+
+Keep these notes current: when a change alters a decision or a trap described here, update the doc in the
+same change. Keep them short, and don't retell what a source file shows.
