@@ -2,7 +2,8 @@
 # Creates (or updates) the Azure resources for the event: web app + staging slot on the existing P0v3 plan,
 # Key Vault with the server secrets, storage account for the research logs. Safe to re-run; re-running also
 # re-uploads the secrets from .env (e.g. after swapping in the event key or the real access codes).
-# The image and ACR pull via managed identity are set by the deploy workflow (.github/workflows/deploy.yml).
+# The image is set by the deploy workflow (.github/workflows/deploy.yml). Both slots pull from ACR with their
+# managed identity: a swap restarts staging with production's settings, so production needs the flag too.
 # Usage: scripts/azure/provision.sh   (needs `az login` with Owner on the subscription)
 set -euo pipefail
 
@@ -104,7 +105,7 @@ for slot in "" "$SLOT"; do
   assign "$principal" "AcrPull" "$ACR_ID"
   az webapp update "${target[@]}" --https-only true --client-affinity-enabled true -o none
   az webapp config set "${target[@]}" --always-on true --min-tls-version 1.2 --ftps-state Disabled \
-    --http20-enabled true -o none
+    --http20-enabled true --generic-configurations '{"acrUseManagedIdentityCreds": true}' -o none
   az webapp config appsettings set "${target[@]}" --settings "${SETTINGS[@]}" -o none
 done
 
