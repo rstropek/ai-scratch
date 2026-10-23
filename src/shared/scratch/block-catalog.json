@@ -1,0 +1,1919 @@
+{
+ "looks_nextbackdrop": {
+  "shape": "stack",
+  "label": "wechsle zum nächsten Bühnenbild",
+  "inputs": {},
+  "fields": {}
+ },
+ "looks_changeeffectby": {
+  "shape": "stack",
+  "label": "ändere Effekt [EFFECT] um (CHANGE)",
+  "inputs": {
+   "CHANGE": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": "25"
+   }
+  },
+  "fields": {
+   "EFFECT": {
+    "options": [
+     "COLOR",
+     "FISHEYE",
+     "WHIRL",
+     "PIXELATE",
+     "MOSAIC",
+     "BRIGHTNESS",
+     "GHOST"
+    ]
+   }
+  }
+ },
+ "looks_seteffectto": {
+  "shape": "stack",
+  "label": "setze Effekt [EFFECT] auf (VALUE)",
+  "inputs": {
+   "VALUE": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": "0"
+   }
+  },
+  "fields": {
+   "EFFECT": {
+    "options": [
+     "COLOR",
+     "FISHEYE",
+     "WHIRL",
+     "PIXELATE",
+     "MOSAIC",
+     "BRIGHTNESS",
+     "GHOST"
+    ]
+   }
+  }
+ },
+ "looks_cleargraphiceffects": {
+  "shape": "stack",
+  "label": "schalte Grafikeffekte aus",
+  "inputs": {},
+  "fields": {}
+ },
+ "looks_backdropnumbername": {
+  "shape": "reporter",
+  "label": "Bühnenbild [NUMBER_NAME]",
+  "inputs": {},
+  "fields": {
+   "NUMBER_NAME": {
+    "options": [
+     "number",
+     "name"
+    ]
+   }
+  }
+ },
+ "sound_stopallsounds": {
+  "shape": "stack",
+  "label": "stoppe alle Klänge",
+  "inputs": {},
+  "fields": {}
+ },
+ "sound_changeeffectby": {
+  "shape": "stack",
+  "label": "ändere Effekt [EFFECT] um (VALUE)",
+  "inputs": {
+   "VALUE": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": "10"
+   }
+  },
+  "fields": {
+   "EFFECT": {
+    "options": [
+     "PITCH",
+     "PAN"
+    ]
+   }
+  }
+ },
+ "sound_seteffectto": {
+  "shape": "stack",
+  "label": "setze Effekt [EFFECT] auf (VALUE)",
+  "inputs": {
+   "VALUE": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": "100"
+   }
+  },
+  "fields": {
+   "EFFECT": {
+    "options": [
+     "PITCH",
+     "PAN"
+    ]
+   }
+  }
+ },
+ "sound_cleareffects": {
+  "shape": "stack",
+  "label": "schalte Klangeffekte aus",
+  "inputs": {},
+  "fields": {}
+ },
+ "sound_changevolumeby": {
+  "shape": "stack",
+  "label": "ändere Lautstärke um (VOLUME)",
+  "inputs": {
+   "VOLUME": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": "-10"
+   }
+  },
+  "fields": {}
+ },
+ "sound_setvolumeto": {
+  "shape": "stack",
+  "label": "setze Lautstärke auf (VOLUME) %",
+  "inputs": {
+   "VOLUME": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": "100"
+   }
+  },
+  "fields": {}
+ },
+ "sound_volume": {
+  "shape": "reporter",
+  "label": "Lautstärke",
+  "inputs": {},
+  "fields": {}
+ },
+ "event_whenflagclicked": {
+  "shape": "hat",
+  "label": "Wenn flag angeklickt wird",
+  "inputs": {},
+  "fields": {}
+ },
+ "event_whenkeypressed": {
+  "shape": "hat",
+  "label": "Wenn Taste [KEY_OPTION] gedrückt wird",
+  "inputs": {},
+  "fields": {
+   "KEY_OPTION": {
+    "options": [
+     "space",
+     "up arrow",
+     "down arrow",
+     "right arrow",
+     "left arrow",
+     "any",
+     "a",
+     "b",
+     "c",
+     "d",
+     "e",
+     "f",
+     "g",
+     "h",
+     "i",
+     "j",
+     "k",
+     "l",
+     "m",
+     "n",
+     "o",
+     "p",
+     "q",
+     "r",
+     "s",
+     "t",
+     "u",
+     "v",
+     "w",
+     "x",
+     "y",
+     "z",
+     "0",
+     "1",
+     "2",
+     "3",
+     "4",
+     "5",
+     "6",
+     "7",
+     "8",
+     "9"
+    ]
+   }
+  }
+ },
+ "event_whengreaterthan": {
+  "shape": "hat",
+  "label": "Wenn [WHENGREATERTHANMENU] > (VALUE)",
+  "inputs": {
+   "VALUE": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": "10"
+   }
+  },
+  "fields": {
+   "WHENGREATERTHANMENU": {
+    "options": [
+     "LOUDNESS",
+     "TIMER"
+    ]
+   }
+  }
+ },
+ "control_wait": {
+  "shape": "stack",
+  "label": "warte (DURATION) Sekunden",
+  "inputs": {
+   "DURATION": {
+    "kind": "value",
+    "shadow": "math_positive_number",
+    "shadowField": "NUM",
+    "default": "1"
+   }
+  },
+  "fields": {}
+ },
+ "control_repeat": {
+  "shape": "stack",
+  "label": "wiederhole (TIMES) mal {SUBSTACK} *",
+  "inputs": {
+   "TIMES": {
+    "kind": "value",
+    "shadow": "math_whole_number",
+    "shadowField": "NUM",
+    "default": "10"
+   },
+   "SUBSTACK": {
+    "kind": "statement"
+   }
+  },
+  "fields": {}
+ },
+ "control_forever": {
+  "shape": "cap",
+  "label": "wiederhole fortlaufend {SUBSTACK} *",
+  "inputs": {
+   "SUBSTACK": {
+    "kind": "statement"
+   }
+  },
+  "fields": {}
+ },
+ "control_if": {
+  "shape": "stack",
+  "label": "falls (CONDITION) , dann {SUBSTACK}",
+  "inputs": {
+   "CONDITION": {
+    "kind": "value",
+    "boolean": true
+   },
+   "SUBSTACK": {
+    "kind": "statement"
+   }
+  },
+  "fields": {}
+ },
+ "control_if_else": {
+  "shape": "stack",
+  "label": "falls (CONDITION) , dann {SUBSTACK} sonst {SUBSTACK2}",
+  "inputs": {
+   "CONDITION": {
+    "kind": "value",
+    "boolean": true
+   },
+   "SUBSTACK": {
+    "kind": "statement"
+   },
+   "SUBSTACK2": {
+    "kind": "statement"
+   }
+  },
+  "fields": {}
+ },
+ "control_wait_until": {
+  "shape": "stack",
+  "label": "warte bis (CONDITION)",
+  "inputs": {
+   "CONDITION": {
+    "kind": "value",
+    "boolean": true
+   }
+  },
+  "fields": {}
+ },
+ "control_repeat_until": {
+  "shape": "stack",
+  "label": "wiederhole bis (CONDITION) {SUBSTACK} *",
+  "inputs": {
+   "CONDITION": {
+    "kind": "value",
+    "boolean": true
+   },
+   "SUBSTACK": {
+    "kind": "statement"
+   }
+  },
+  "fields": {}
+ },
+ "sensing_answer": {
+  "shape": "reporter",
+  "label": "Antwort",
+  "inputs": {},
+  "fields": {}
+ },
+ "sensing_keypressed": {
+  "shape": "boolean",
+  "label": "Taste (KEY_OPTION) gedrückt?",
+  "inputs": {
+   "KEY_OPTION": {
+    "kind": "value",
+    "shadow": "sensing_keyoptions",
+    "shadowField": "KEY_OPTION",
+    "default": "space",
+    "options": [
+     "space",
+     "up arrow",
+     "down arrow",
+     "right arrow",
+     "left arrow",
+     "any",
+     "a",
+     "b",
+     "c",
+     "d",
+     "e",
+     "f",
+     "g",
+     "h",
+     "i",
+     "j",
+     "k",
+     "l",
+     "m",
+     "n",
+     "o",
+     "p",
+     "q",
+     "r",
+     "s",
+     "t",
+     "u",
+     "v",
+     "w",
+     "x",
+     "y",
+     "z",
+     "0",
+     "1",
+     "2",
+     "3",
+     "4",
+     "5",
+     "6",
+     "7",
+     "8",
+     "9"
+    ]
+   }
+  },
+  "fields": {}
+ },
+ "sensing_mousedown": {
+  "shape": "boolean",
+  "label": "Maustaste gedrückt?",
+  "inputs": {},
+  "fields": {}
+ },
+ "sensing_mousex": {
+  "shape": "reporter",
+  "label": "Maus x-Position",
+  "inputs": {},
+  "fields": {}
+ },
+ "sensing_mousey": {
+  "shape": "reporter",
+  "label": "Maus y-Position",
+  "inputs": {},
+  "fields": {}
+ },
+ "sensing_loudness": {
+  "shape": "reporter",
+  "label": "Lautstärke",
+  "inputs": {},
+  "fields": {}
+ },
+ "sensing_timer": {
+  "shape": "reporter",
+  "label": "Stoppuhr",
+  "inputs": {},
+  "fields": {}
+ },
+ "sensing_resettimer": {
+  "shape": "stack",
+  "label": "setze Stoppuhr zurück",
+  "inputs": {},
+  "fields": {}
+ },
+ "sensing_current": {
+  "shape": "reporter",
+  "label": "[CURRENTMENU] im Moment",
+  "inputs": {},
+  "fields": {
+   "CURRENTMENU": {
+    "options": [
+     "YEAR",
+     "MONTH",
+     "DATE",
+     "DAYOFWEEK",
+     "HOUR",
+     "MINUTE",
+     "SECOND"
+    ]
+   }
+  }
+ },
+ "sensing_dayssince2000": {
+  "shape": "reporter",
+  "label": "Tage seit 2000",
+  "inputs": {},
+  "fields": {}
+ },
+ "sensing_online": {
+  "shape": "boolean",
+  "label": "online?",
+  "inputs": {},
+  "fields": {}
+ },
+ "sensing_username": {
+  "shape": "reporter",
+  "label": "Benutzername",
+  "inputs": {},
+  "fields": {}
+ },
+ "operator_add": {
+  "shape": "reporter",
+  "label": "(NUM1) + (NUM2)",
+  "inputs": {
+   "NUM1": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": ""
+   },
+   "NUM2": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": ""
+   }
+  },
+  "fields": {}
+ },
+ "operator_subtract": {
+  "shape": "reporter",
+  "label": "(NUM1) - (NUM2)",
+  "inputs": {
+   "NUM1": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": ""
+   },
+   "NUM2": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": ""
+   }
+  },
+  "fields": {}
+ },
+ "operator_multiply": {
+  "shape": "reporter",
+  "label": "(NUM1) * (NUM2)",
+  "inputs": {
+   "NUM1": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": ""
+   },
+   "NUM2": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": ""
+   }
+  },
+  "fields": {}
+ },
+ "operator_divide": {
+  "shape": "reporter",
+  "label": "(NUM1) / (NUM2)",
+  "inputs": {
+   "NUM1": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": ""
+   },
+   "NUM2": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": ""
+   }
+  },
+  "fields": {}
+ },
+ "operator_random": {
+  "shape": "reporter",
+  "label": "Zufallszahl von (FROM) bis (TO)",
+  "inputs": {
+   "FROM": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": "1"
+   },
+   "TO": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": "10"
+   }
+  },
+  "fields": {}
+ },
+ "operator_gt": {
+  "shape": "boolean",
+  "label": "(OPERAND1) > (OPERAND2)",
+  "inputs": {
+   "OPERAND1": {
+    "kind": "value",
+    "shadow": "text",
+    "shadowField": "TEXT",
+    "default": ""
+   },
+   "OPERAND2": {
+    "kind": "value",
+    "shadow": "text",
+    "shadowField": "TEXT",
+    "default": "50"
+   }
+  },
+  "fields": {}
+ },
+ "operator_lt": {
+  "shape": "boolean",
+  "label": "(OPERAND1) < (OPERAND2)",
+  "inputs": {
+   "OPERAND1": {
+    "kind": "value",
+    "shadow": "text",
+    "shadowField": "TEXT",
+    "default": ""
+   },
+   "OPERAND2": {
+    "kind": "value",
+    "shadow": "text",
+    "shadowField": "TEXT",
+    "default": "50"
+   }
+  },
+  "fields": {}
+ },
+ "operator_equals": {
+  "shape": "boolean",
+  "label": "(OPERAND1) = (OPERAND2)",
+  "inputs": {
+   "OPERAND1": {
+    "kind": "value",
+    "shadow": "text",
+    "shadowField": "TEXT",
+    "default": ""
+   },
+   "OPERAND2": {
+    "kind": "value",
+    "shadow": "text",
+    "shadowField": "TEXT",
+    "default": "50"
+   }
+  },
+  "fields": {}
+ },
+ "operator_and": {
+  "shape": "boolean",
+  "label": "(OPERAND1) und (OPERAND2)",
+  "inputs": {
+   "OPERAND1": {
+    "kind": "value",
+    "boolean": true
+   },
+   "OPERAND2": {
+    "kind": "value",
+    "boolean": true
+   }
+  },
+  "fields": {}
+ },
+ "operator_or": {
+  "shape": "boolean",
+  "label": "(OPERAND1) oder (OPERAND2)",
+  "inputs": {
+   "OPERAND1": {
+    "kind": "value",
+    "boolean": true
+   },
+   "OPERAND2": {
+    "kind": "value",
+    "boolean": true
+   }
+  },
+  "fields": {}
+ },
+ "operator_not": {
+  "shape": "boolean",
+  "label": "nicht (OPERAND)",
+  "inputs": {
+   "OPERAND": {
+    "kind": "value",
+    "boolean": true
+   }
+  },
+  "fields": {}
+ },
+ "operator_mod": {
+  "shape": "reporter",
+  "label": "(NUM1) mod (NUM2)",
+  "inputs": {
+   "NUM1": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": ""
+   },
+   "NUM2": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": ""
+   }
+  },
+  "fields": {}
+ },
+ "operator_round": {
+  "shape": "reporter",
+  "label": "(NUM) gerundet",
+  "inputs": {
+   "NUM": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": ""
+   }
+  },
+  "fields": {}
+ },
+ "operator_mathop": {
+  "shape": "reporter",
+  "label": "[OPERATOR] von (NUM)",
+  "inputs": {
+   "NUM": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": ""
+   }
+  },
+  "fields": {
+   "OPERATOR": {
+    "options": [
+     "abs",
+     "floor",
+     "ceiling",
+     "sqrt",
+     "sin",
+     "cos",
+     "tan",
+     "asin",
+     "acos",
+     "atan",
+     "ln",
+     "log",
+     "e ^",
+     "10 ^"
+    ]
+   }
+  }
+ },
+ "sensing_askandwait": {
+  "shape": "stack",
+  "label": "frage (QUESTION) und warte",
+  "inputs": {
+   "QUESTION": {
+    "kind": "value",
+    "shadow": "text",
+    "shadowField": "TEXT",
+    "default": "Wie heißt du?"
+   }
+  },
+  "fields": {}
+ },
+ "operator_join": {
+  "shape": "reporter",
+  "label": "verbinde (STRING1) und (STRING2)",
+  "inputs": {
+   "STRING1": {
+    "kind": "value",
+    "shadow": "text",
+    "shadowField": "TEXT",
+    "default": "Apfel "
+   },
+   "STRING2": {
+    "kind": "value",
+    "shadow": "text",
+    "shadowField": "TEXT",
+    "default": "Banane"
+   }
+  },
+  "fields": {}
+ },
+ "operator_letter_of": {
+  "shape": "reporter",
+  "label": "Zeichen (LETTER) von (STRING)",
+  "inputs": {
+   "LETTER": {
+    "kind": "value",
+    "shadow": "math_whole_number",
+    "shadowField": "NUM",
+    "default": "1"
+   },
+   "STRING": {
+    "kind": "value",
+    "shadow": "text",
+    "shadowField": "TEXT",
+    "default": "Apfel"
+   }
+  },
+  "fields": {}
+ },
+ "operator_length": {
+  "shape": "reporter",
+  "label": "Länge von (STRING)",
+  "inputs": {
+   "STRING": {
+    "kind": "value",
+    "shadow": "text",
+    "shadowField": "TEXT",
+    "default": "Apfel"
+   }
+  },
+  "fields": {}
+ },
+ "operator_contains": {
+  "shape": "boolean",
+  "label": "(STRING1) enthält (STRING2) ?",
+  "inputs": {
+   "STRING1": {
+    "kind": "value",
+    "shadow": "text",
+    "shadowField": "TEXT",
+    "default": "Apfel"
+   },
+   "STRING2": {
+    "kind": "value",
+    "shadow": "text",
+    "shadowField": "TEXT",
+    "default": "a"
+   }
+  },
+  "fields": {}
+ },
+ "looks_switchbackdropto": {
+  "shape": "stack",
+  "label": "wechsle zu Bühnenbild (BACKDROP)",
+  "inputs": {
+   "BACKDROP": {
+    "kind": "value",
+    "shadow": "looks_backdrops",
+    "shadowField": "BACKDROP",
+    "dynamic": true
+   }
+  },
+  "fields": {}
+ },
+ "looks_switchbackdroptoandwait": {
+  "shape": "stack",
+  "label": "wechsle zu Bühnenbild (BACKDROP) und warte",
+  "inputs": {
+   "BACKDROP": {
+    "kind": "value",
+    "shadow": "looks_backdrops",
+    "shadowField": "BACKDROP",
+    "dynamic": true
+   }
+  },
+  "fields": {}
+ },
+ "sound_playuntildone": {
+  "shape": "stack",
+  "label": "spiele Klang (SOUND_MENU) ganz",
+  "inputs": {
+   "SOUND_MENU": {
+    "kind": "value",
+    "shadow": "sound_sounds_menu",
+    "shadowField": "SOUND_MENU",
+    "dynamic": true
+   }
+  },
+  "fields": {}
+ },
+ "sound_play": {
+  "shape": "stack",
+  "label": "spiele Klang (SOUND_MENU)",
+  "inputs": {
+   "SOUND_MENU": {
+    "kind": "value",
+    "shadow": "sound_sounds_menu",
+    "shadowField": "SOUND_MENU",
+    "dynamic": true
+   }
+  },
+  "fields": {}
+ },
+ "event_whenstageclicked": {
+  "shape": "hat",
+  "label": "Wenn die Bühne angeklickt wird",
+  "inputs": {},
+  "fields": {}
+ },
+ "event_whenbackdropswitchesto": {
+  "shape": "hat",
+  "label": "Wenn das Bühnenbild zu [BACKDROP] wechselt",
+  "inputs": {},
+  "fields": {
+   "BACKDROP": {
+    "dynamic": true
+   }
+  }
+ },
+ "event_whenbroadcastreceived": {
+  "shape": "hat",
+  "label": "Wenn ich [BROADCAST_OPTION] empfange",
+  "inputs": {},
+  "fields": {
+   "BROADCAST_OPTION": {
+    "dynamic": true
+   }
+  }
+ },
+ "event_broadcast": {
+  "shape": "stack",
+  "label": "sende (BROADCAST_INPUT) an alle",
+  "inputs": {
+   "BROADCAST_INPUT": {
+    "kind": "value",
+    "shadow": "event_broadcast_menu",
+    "shadowField": "BROADCAST_OPTION",
+    "dynamic": true
+   }
+  },
+  "fields": {}
+ },
+ "event_broadcastandwait": {
+  "shape": "stack",
+  "label": "sende (BROADCAST_INPUT) an alle und warte",
+  "inputs": {
+   "BROADCAST_INPUT": {
+    "kind": "value",
+    "shadow": "event_broadcast_menu",
+    "shadowField": "BROADCAST_OPTION",
+    "dynamic": true
+   }
+  },
+  "fields": {}
+ },
+ "control_stop": {
+  "shape": "cap",
+  "label": "stoppe [STOP_OPTION]",
+  "inputs": {},
+  "fields": {
+   "STOP_OPTION": {
+    "options": [
+     "all",
+     "this script",
+     "other scripts in sprite"
+    ]
+   }
+  }
+ },
+ "control_create_clone_of": {
+  "shape": "stack",
+  "label": "erzeuge Klon von (CLONE_OPTION)",
+  "inputs": {
+   "CLONE_OPTION": {
+    "kind": "value",
+    "shadow": "control_create_clone_of_menu",
+    "shadowField": "CLONE_OPTION",
+    "default": "Sprite1",
+    "options": [
+     "Sprite1"
+    ]
+   }
+  },
+  "fields": {}
+ },
+ "sensing_of": {
+  "shape": "reporter",
+  "label": "[PROPERTY] von (OBJECT)",
+  "inputs": {
+   "OBJECT": {
+    "kind": "value",
+    "shadow": "sensing_of_object_menu",
+    "shadowField": "OBJECT",
+    "default": "_stage_",
+    "options": [
+     "_stage_",
+     "Sprite1"
+    ]
+   }
+  },
+  "fields": {
+   "PROPERTY": {
+    "options": [
+     ""
+    ]
+   }
+  }
+ },
+ "data_setvariableto": {
+  "shape": "stack",
+  "label": "setze [VARIABLE] auf (VALUE)",
+  "inputs": {
+   "VALUE": {
+    "kind": "value",
+    "shadow": "text",
+    "shadowField": "TEXT",
+    "default": "0"
+   }
+  },
+  "fields": {
+   "VARIABLE": {
+    "dynamic": true
+   }
+  }
+ },
+ "data_changevariableby": {
+  "shape": "stack",
+  "label": "ändere [VARIABLE] um (VALUE)",
+  "inputs": {
+   "VALUE": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": "1"
+   }
+  },
+  "fields": {
+   "VARIABLE": {
+    "dynamic": true
+   }
+  }
+ },
+ "data_showvariable": {
+  "shape": "stack",
+  "label": "zeige Variable [VARIABLE]",
+  "inputs": {},
+  "fields": {
+   "VARIABLE": {
+    "dynamic": true
+   }
+  }
+ },
+ "data_hidevariable": {
+  "shape": "stack",
+  "label": "verstecke Variable [VARIABLE]",
+  "inputs": {},
+  "fields": {
+   "VARIABLE": {
+    "dynamic": true
+   }
+  }
+ },
+ "data_addtolist": {
+  "shape": "stack",
+  "label": "füge (ITEM) zu [LIST] hinzu",
+  "inputs": {
+   "ITEM": {
+    "kind": "value",
+    "shadow": "text",
+    "shadowField": "TEXT",
+    "default": "Ding"
+   }
+  },
+  "fields": {
+   "LIST": {
+    "dynamic": true
+   }
+  }
+ },
+ "data_deleteoflist": {
+  "shape": "stack",
+  "label": "lösche (INDEX) aus [LIST]",
+  "inputs": {
+   "INDEX": {
+    "kind": "value",
+    "shadow": "math_integer",
+    "shadowField": "NUM",
+    "default": "1"
+   }
+  },
+  "fields": {
+   "LIST": {
+    "dynamic": true
+   }
+  }
+ },
+ "data_deletealloflist": {
+  "shape": "stack",
+  "label": "lösche alles aus [LIST]",
+  "inputs": {},
+  "fields": {
+   "LIST": {
+    "dynamic": true
+   }
+  }
+ },
+ "data_insertatlist": {
+  "shape": "stack",
+  "label": "füge (ITEM) bei (INDEX) in [LIST] ein",
+  "inputs": {
+   "ITEM": {
+    "kind": "value",
+    "shadow": "text",
+    "shadowField": "TEXT",
+    "default": "Ding"
+   },
+   "INDEX": {
+    "kind": "value",
+    "shadow": "math_integer",
+    "shadowField": "NUM",
+    "default": "1"
+   }
+  },
+  "fields": {
+   "LIST": {
+    "dynamic": true
+   }
+  }
+ },
+ "data_replaceitemoflist": {
+  "shape": "stack",
+  "label": "ersetze Element (INDEX) von [LIST] durch (ITEM)",
+  "inputs": {
+   "INDEX": {
+    "kind": "value",
+    "shadow": "math_integer",
+    "shadowField": "NUM",
+    "default": "1"
+   },
+   "ITEM": {
+    "kind": "value",
+    "shadow": "text",
+    "shadowField": "TEXT",
+    "default": "Ding"
+   }
+  },
+  "fields": {
+   "LIST": {
+    "dynamic": true
+   }
+  }
+ },
+ "data_itemoflist": {
+  "shape": "reporter",
+  "label": "Element (INDEX) von [LIST]",
+  "inputs": {
+   "INDEX": {
+    "kind": "value",
+    "shadow": "math_integer",
+    "shadowField": "NUM",
+    "default": "1"
+   }
+  },
+  "fields": {
+   "LIST": {
+    "dynamic": true
+   }
+  }
+ },
+ "data_itemnumoflist": {
+  "shape": "reporter",
+  "label": "Nummer von (ITEM) in [LIST]",
+  "inputs": {
+   "ITEM": {
+    "kind": "value",
+    "shadow": "text",
+    "shadowField": "TEXT",
+    "default": "Ding"
+   }
+  },
+  "fields": {
+   "LIST": {
+    "dynamic": true
+   }
+  }
+ },
+ "data_lengthoflist": {
+  "shape": "reporter",
+  "label": "Länge von [LIST]",
+  "inputs": {},
+  "fields": {
+   "LIST": {
+    "dynamic": true
+   }
+  }
+ },
+ "data_listcontainsitem": {
+  "shape": "boolean",
+  "label": "[LIST] enthält (ITEM) ?",
+  "inputs": {
+   "ITEM": {
+    "kind": "value",
+    "shadow": "text",
+    "shadowField": "TEXT",
+    "default": "Ding"
+   }
+  },
+  "fields": {
+   "LIST": {
+    "dynamic": true
+   }
+  }
+ },
+ "data_showlist": {
+  "shape": "stack",
+  "label": "zeige Liste [LIST]",
+  "inputs": {},
+  "fields": {
+   "LIST": {
+    "dynamic": true
+   }
+  }
+ },
+ "data_hidelist": {
+  "shape": "stack",
+  "label": "verstecke Liste [LIST]",
+  "inputs": {},
+  "fields": {
+   "LIST": {
+    "dynamic": true
+   }
+  }
+ },
+ "motion_movesteps": {
+  "shape": "stack",
+  "label": "gehe (STEPS) er Schritt",
+  "inputs": {
+   "STEPS": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": "10"
+   }
+  },
+  "fields": {}
+ },
+ "motion_turnright": {
+  "shape": "stack",
+  "label": "drehe dich um (DEGREES) Grad",
+  "inputs": {
+   "DEGREES": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": "15"
+   }
+  },
+  "fields": {}
+ },
+ "motion_turnleft": {
+  "shape": "stack",
+  "label": "drehe dich um (DEGREES) Grad",
+  "inputs": {
+   "DEGREES": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": "15"
+   }
+  },
+  "fields": {}
+ },
+ "motion_goto": {
+  "shape": "stack",
+  "label": "gehe zu (TO)",
+  "inputs": {
+   "TO": {
+    "kind": "value",
+    "shadow": "motion_goto_menu",
+    "shadowField": "TO",
+    "default": "_random_",
+    "options": [
+     "_random_",
+     "_mouse_"
+    ]
+   }
+  },
+  "fields": {}
+ },
+ "motion_gotoxy": {
+  "shape": "stack",
+  "label": "gehe zu x: (X) y: (Y)",
+  "inputs": {
+   "X": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": "0"
+   },
+   "Y": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": "0"
+   }
+  },
+  "fields": {}
+ },
+ "motion_glideto": {
+  "shape": "stack",
+  "label": "gleite in (SECS) Sek. zu (TO)",
+  "inputs": {
+   "SECS": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": "1"
+   },
+   "TO": {
+    "kind": "value",
+    "shadow": "motion_glideto_menu",
+    "shadowField": "TO",
+    "default": "_random_",
+    "options": [
+     "_random_",
+     "_mouse_"
+    ]
+   }
+  },
+  "fields": {}
+ },
+ "motion_glidesecstoxy": {
+  "shape": "stack",
+  "label": "gleite in (SECS) Sek. zu x: (X) y: (Y)",
+  "inputs": {
+   "SECS": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": "1"
+   },
+   "X": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": "0"
+   },
+   "Y": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": "0"
+   }
+  },
+  "fields": {}
+ },
+ "motion_pointindirection": {
+  "shape": "stack",
+  "label": "setze Richtung auf (DIRECTION) Grad",
+  "inputs": {
+   "DIRECTION": {
+    "kind": "value",
+    "shadow": "math_angle",
+    "shadowField": "NUM",
+    "default": "90"
+   }
+  },
+  "fields": {}
+ },
+ "motion_pointtowards": {
+  "shape": "stack",
+  "label": "drehe dich zu (TOWARDS)",
+  "inputs": {
+   "TOWARDS": {
+    "kind": "value",
+    "shadow": "motion_pointtowards_menu",
+    "shadowField": "TOWARDS",
+    "default": "_mouse_",
+    "options": [
+     "_mouse_"
+    ]
+   }
+  },
+  "fields": {}
+ },
+ "motion_changexby": {
+  "shape": "stack",
+  "label": "ändere x um (DX)",
+  "inputs": {
+   "DX": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": "10"
+   }
+  },
+  "fields": {}
+ },
+ "motion_setx": {
+  "shape": "stack",
+  "label": "setze x auf (X)",
+  "inputs": {
+   "X": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": "0"
+   }
+  },
+  "fields": {}
+ },
+ "motion_changeyby": {
+  "shape": "stack",
+  "label": "ändere y um (DY)",
+  "inputs": {
+   "DY": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": "10"
+   }
+  },
+  "fields": {}
+ },
+ "motion_sety": {
+  "shape": "stack",
+  "label": "setze y auf (Y)",
+  "inputs": {
+   "Y": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": "0"
+   }
+  },
+  "fields": {}
+ },
+ "motion_ifonedgebounce": {
+  "shape": "stack",
+  "label": "pralle vom Rand ab",
+  "inputs": {},
+  "fields": {}
+ },
+ "motion_setrotationstyle": {
+  "shape": "stack",
+  "label": "setze Drehtyp auf [STYLE]",
+  "inputs": {},
+  "fields": {
+   "STYLE": {
+    "options": [
+     "left-right",
+     "don't rotate",
+     "all around"
+    ]
+   }
+  }
+ },
+ "motion_xposition": {
+  "shape": "reporter",
+  "label": "x-Position",
+  "inputs": {},
+  "fields": {}
+ },
+ "motion_yposition": {
+  "shape": "reporter",
+  "label": "y-Position",
+  "inputs": {},
+  "fields": {}
+ },
+ "motion_direction": {
+  "shape": "reporter",
+  "label": "Richtung",
+  "inputs": {},
+  "fields": {}
+ },
+ "looks_sayforsecs": {
+  "shape": "stack",
+  "label": "sage (MESSAGE) für (SECS) Sekunden",
+  "inputs": {
+   "MESSAGE": {
+    "kind": "value",
+    "shadow": "text",
+    "shadowField": "TEXT",
+    "default": "Hallo!"
+   },
+   "SECS": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": "2"
+   }
+  },
+  "fields": {}
+ },
+ "looks_say": {
+  "shape": "stack",
+  "label": "sage (MESSAGE)",
+  "inputs": {
+   "MESSAGE": {
+    "kind": "value",
+    "shadow": "text",
+    "shadowField": "TEXT",
+    "default": "Hallo!"
+   }
+  },
+  "fields": {}
+ },
+ "looks_thinkforsecs": {
+  "shape": "stack",
+  "label": "denke (MESSAGE) für (SECS) Sekunden",
+  "inputs": {
+   "MESSAGE": {
+    "kind": "value",
+    "shadow": "text",
+    "shadowField": "TEXT",
+    "default": "Hmm..."
+   },
+   "SECS": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": "2"
+   }
+  },
+  "fields": {}
+ },
+ "looks_think": {
+  "shape": "stack",
+  "label": "denke (MESSAGE)",
+  "inputs": {
+   "MESSAGE": {
+    "kind": "value",
+    "shadow": "text",
+    "shadowField": "TEXT",
+    "default": "Hmm..."
+   }
+  },
+  "fields": {}
+ },
+ "looks_switchcostumeto": {
+  "shape": "stack",
+  "label": "wechsle zu Kostüm (COSTUME)",
+  "inputs": {
+   "COSTUME": {
+    "kind": "value",
+    "shadow": "looks_costume",
+    "shadowField": "COSTUME",
+    "dynamic": true
+   }
+  },
+  "fields": {}
+ },
+ "looks_nextcostume": {
+  "shape": "stack",
+  "label": "wechsle zum nächsten Kostüm",
+  "inputs": {},
+  "fields": {}
+ },
+ "looks_changesizeby": {
+  "shape": "stack",
+  "label": "ändere Größe um (CHANGE)",
+  "inputs": {
+   "CHANGE": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": "10"
+   }
+  },
+  "fields": {}
+ },
+ "looks_setsizeto": {
+  "shape": "stack",
+  "label": "setze Größe auf (SIZE)",
+  "inputs": {
+   "SIZE": {
+    "kind": "value",
+    "shadow": "math_number",
+    "shadowField": "NUM",
+    "default": "100"
+   }
+  },
+  "fields": {}
+ },
+ "looks_show": {
+  "shape": "stack",
+  "label": "zeige dich",
+  "inputs": {},
+  "fields": {}
+ },
+ "looks_hide": {
+  "shape": "stack",
+  "label": "verstecke dich",
+  "inputs": {},
+  "fields": {}
+ },
+ "looks_gotofrontback": {
+  "shape": "stack",
+  "label": "gehe zu [FRONT_BACK] Ebene",
+  "inputs": {},
+  "fields": {
+   "FRONT_BACK": {
+    "options": [
+     "front",
+     "back"
+    ]
+   }
+  }
+ },
+ "looks_goforwardbackwardlayers": {
+  "shape": "stack",
+  "label": "gehe (NUM) Ebenen nach [FORWARD_BACKWARD]",
+  "inputs": {
+   "NUM": {
+    "kind": "value",
+    "shadow": "math_integer",
+    "shadowField": "NUM",
+    "default": "1"
+   }
+  },
+  "fields": {
+   "FORWARD_BACKWARD": {
+    "options": [
+     "forward",
+     "backward"
+    ]
+   }
+  }
+ },
+ "looks_costumenumbername": {
+  "shape": "reporter",
+  "label": "Kostüm [NUMBER_NAME]",
+  "inputs": {},
+  "fields": {
+   "NUMBER_NAME": {
+    "options": [
+     "number",
+     "name"
+    ]
+   }
+  }
+ },
+ "looks_size": {
+  "shape": "reporter",
+  "label": "Größe",
+  "inputs": {},
+  "fields": {}
+ },
+ "event_whenthisspriteclicked": {
+  "shape": "hat",
+  "label": "Wenn diese Figur angeklickt wird",
+  "inputs": {},
+  "fields": {}
+ },
+ "control_start_as_clone": {
+  "shape": "hat",
+  "label": "Wenn ich als Klon entstehe",
+  "inputs": {},
+  "fields": {}
+ },
+ "control_delete_this_clone": {
+  "shape": "cap",
+  "label": "lösche diesen Klon",
+  "inputs": {},
+  "fields": {}
+ },
+ "sensing_touchingobject": {
+  "shape": "boolean",
+  "label": "wird (TOUCHINGOBJECTMENU) berührt?",
+  "inputs": {
+   "TOUCHINGOBJECTMENU": {
+    "kind": "value",
+    "shadow": "sensing_touchingobjectmenu",
+    "shadowField": "TOUCHINGOBJECTMENU",
+    "default": "_mouse_",
+    "options": [
+     "_mouse_",
+     "_edge_"
+    ]
+   }
+  },
+  "fields": {}
+ },
+ "sensing_touchingcolor": {
+  "shape": "boolean",
+  "label": "wird Farbe (COLOR) berührt?",
+  "inputs": {
+   "COLOR": {
+    "kind": "value",
+    "shadow": "colour_picker",
+    "shadowField": "COLOUR",
+    "default": "#db6bf2",
+    "options": [
+     "#ffffff",
+     "#cccccc",
+     "#c0c0c0",
+     "#999999",
+     "#666666",
+     "#333333",
+     "#000000",
+     "#ffcccc",
+     "#ff6666",
+     "#ff0000",
+     "#cc0000",
+     "#990000",
+     "#660000",
+     "#330000",
+     "#ffcc99",
+     "#ff9966",
+     "#ff9900",
+     "#ff6600",
+     "#cc6600",
+     "#993300",
+     "#663300",
+     "#ffff99",
+     "#ffff66",
+     "#ffcc66",
+     "#ffcc33",
+     "#cc9933",
+     "#996633",
+     "#663333",
+     "#ffffcc",
+     "#ffff33",
+     "#ffff00",
+     "#ffcc00",
+     "#999900",
+     "#666600",
+     "#333300",
+     "#99ff99",
+     "#66ff99",
+     "#33ff33",
+     "#33cc00",
+     "#009900",
+     "#006600",
+     "#003300",
+     "#99ffff",
+     "#33ffff",
+     "#66cccc",
+     "#00cccc",
+     "#339999",
+     "#336666",
+     "#003333",
+     "#ccffff",
+     "#66ffff",
+     "#33ccff",
+     "#3366ff",
+     "#3333ff",
+     "#000099",
+     "#000066",
+     "#ccccff",
+     "#9999ff",
+     "#6666cc",
+     "#6633ff",
+     "#6600cc",
+     "#333399",
+     "#330099",
+     "#ffccff",
+     "#ff99ff",
+     "#cc66cc",
+     "#cc33cc",
+     "#993399",
+     "#663366",
+     "#330033"
+    ]
+   }
+  },
+  "fields": {}
+ },
+ "sensing_coloristouchingcolor": {
+  "shape": "boolean",
+  "label": "Farbe (COLOR) berührt (COLOR2) ?",
+  "inputs": {
+   "COLOR": {
+    "kind": "value",
+    "shadow": "colour_picker",
+    "shadowField": "COLOUR",
+    "default": "#d35f77",
+    "options": [
+     "#ffffff",
+     "#cccccc",
+     "#c0c0c0",
+     "#999999",
+     "#666666",
+     "#333333",
+     "#000000",
+     "#ffcccc",
+     "#ff6666",
+     "#ff0000",
+     "#cc0000",
+     "#990000",
+     "#660000",
+     "#330000",
+     "#ffcc99",
+     "#ff9966",
+     "#ff9900",
+     "#ff6600",
+     "#cc6600",
+     "#993300",
+     "#663300",
+     "#ffff99",
+     "#ffff66",
+     "#ffcc66",
+     "#ffcc33",
+     "#cc9933",
+     "#996633",
+     "#663333",
+     "#ffffcc",
+     "#ffff33",
+     "#ffff00",
+     "#ffcc00",
+     "#999900",
+     "#666600",
+     "#333300",
+     "#99ff99",
+     "#66ff99",
+     "#33ff33",
+     "#33cc00",
+     "#009900",
+     "#006600",
+     "#003300",
+     "#99ffff",
+     "#33ffff",
+     "#66cccc",
+     "#00cccc",
+     "#339999",
+     "#336666",
+     "#003333",
+     "#ccffff",
+     "#66ffff",
+     "#33ccff",
+     "#3366ff",
+     "#3333ff",
+     "#000099",
+     "#000066",
+     "#ccccff",
+     "#9999ff",
+     "#6666cc",
+     "#6633ff",
+     "#6600cc",
+     "#333399",
+     "#330099",
+     "#ffccff",
+     "#ff99ff",
+     "#cc66cc",
+     "#cc33cc",
+     "#993399",
+     "#663366",
+     "#330033"
+    ]
+   },
+   "COLOR2": {
+    "kind": "value",
+    "shadow": "colour_picker",
+    "shadowField": "COLOUR",
+    "default": "#0b67c8",
+    "options": [
+     "#ffffff",
+     "#cccccc",
+     "#c0c0c0",
+     "#999999",
+     "#666666",
+     "#333333",
+     "#000000",
+     "#ffcccc",
+     "#ff6666",
+     "#ff0000",
+     "#cc0000",
+     "#990000",
+     "#660000",
+     "#330000",
+     "#ffcc99",
+     "#ff9966",
+     "#ff9900",
+     "#ff6600",
+     "#cc6600",
+     "#993300",
+     "#663300",
+     "#ffff99",
+     "#ffff66",
+     "#ffcc66",
+     "#ffcc33",
+     "#cc9933",
+     "#996633",
+     "#663333",
+     "#ffffcc",
+     "#ffff33",
+     "#ffff00",
+     "#ffcc00",
+     "#999900",
+     "#666600",
+     "#333300",
+     "#99ff99",
+     "#66ff99",
+     "#33ff33",
+     "#33cc00",
+     "#009900",
+     "#006600",
+     "#003300",
+     "#99ffff",
+     "#33ffff",
+     "#66cccc",
+     "#00cccc",
+     "#339999",
+     "#336666",
+     "#003333",
+     "#ccffff",
+     "#66ffff",
+     "#33ccff",
+     "#3366ff",
+     "#3333ff",
+     "#000099",
+     "#000066",
+     "#ccccff",
+     "#9999ff",
+     "#6666cc",
+     "#6633ff",
+     "#6600cc",
+     "#333399",
+     "#330099",
+     "#ffccff",
+     "#ff99ff",
+     "#cc66cc",
+     "#cc33cc",
+     "#993399",
+     "#663366",
+     "#330033"
+    ]
+   }
+  },
+  "fields": {}
+ },
+ "sensing_distanceto": {
+  "shape": "reporter",
+  "label": "Entfernung von (DISTANCETOMENU)",
+  "inputs": {
+   "DISTANCETOMENU": {
+    "kind": "value",
+    "shadow": "sensing_distancetomenu",
+    "shadowField": "DISTANCETOMENU",
+    "default": "_mouse_",
+    "options": [
+     "_mouse_"
+    ]
+   }
+  },
+  "fields": {}
+ },
+ "sensing_setdragmode": {
+  "shape": "stack",
+  "label": "setze Ziehbarkeit auf [DRAG_MODE]",
+  "inputs": {},
+  "fields": {
+   "DRAG_MODE": {
+    "options": [
+     "draggable",
+     "not draggable"
+    ]
+   }
+  }
+ }
+}

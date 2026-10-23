@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <title>Scratch</title>
+    <style>
+      html,
+      body,
+      #gui {
+        margin: 0;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Editor-only page embedded in an iframe by the host app (index.html). The host is same-origin
+         and reaches window.ki = {vm, store, uiGuide} directly. -->
+    <div id="gui"></div>
+    <!-- the unmodified @scratch/scratch-gui standalone build; defines window.GUI -->
+    <script src="/scratch-gui-standalone.js"></script>
+    <script type="module" src="/src/editor/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,102 @@
+# Digiferien: KI-Scratch app
+
+## Background
+
+"Digiferien" (Digitalferien) is a one-day AI workshop for kids and teens (10–16), roughly **200 students at 10 schools**. They are coding beginners who know a little Scratch. Each student works at their own pace through a video tutorial (no live trainer), for about 2 hours and ~75 chat turns.
+
+This repo is the **real app** the students use: the official, unmodified **Scratch 3 editor** with a **German AI chat assistant** beside it. The assistant can:
+- read and change the student's project;
+- point at parts of the editor ("look here");
+- add Scratch library sprites and backdrops;
+- draw new sprites as editable SVG.
+
+**This is production software, not a feasibility study.** Real kids will use it, unlike the ki-scratch prototype. Error handling, kid-friendly German error messages, tests and a stable deployment are part of the job.
+
+**It is also a one-time event (next week), not a long-lived product.** Optimize for working reliably on that day; skip anything a single event doesn't need. If it goes well it may be extended later.
+
+## Prior work
+
+An exploration phase produced a tested prototype in `/home/rainer/github/ki-scratch`. **Read `docs/report.md` there before designing anything.** It contains the measured recommendations, the decisions already made and the open points (§15). Its README is outdated; the report wins.
+
+Sprint 1 ported the AI SDK chat spike (`spikes/chat-frameworks/ai-sdk/`) and the prototype's `public/` modules to TypeScript in this repo:
+- the dsl script format, the block catalog and `sb3-blocks`;
+- the tool sets (dsl only);
+- the asset tools;
+- the UI guide and UI tools.
+
+The prompt and tool wording are unchanged from the prototype.
+
+Not ported:
+- the sb3/code representations and the block validator;
+- the AI-blocks extension;
+- the model eval (`eval/`), which still needs rebuilding on the server's request builder.
+
+## Architecture (from the report)
+
+- **Editor:** the `@scratch/scratch-gui` standalone build, unmodified, in a same-origin iframe; driven through the VM API.
+- **Host:** Vite + React 19 + TypeScript, Tailwind 4 + shadcn/ui.
+- **Backend:** Hono + Vercel AI SDK v7. Tools run in the browser on the live VM. The server rebuilds the model input every turn and logs every Anthropic call.
+- **Model:** Claude Haiku 5.5 (effort high), called through the Anthropic API directly. Requests need the `anthropic-workspace-id` header.
+- **Scripts:** the model reads and writes the nested-JSON DSL, never raw sb3.
+
+## Tooling
+
+- **TypeScript with strict type checking** everywhere, in the frontend and the backend. Ported prototype modules (plain JS) get converted to TS, not kept as JS.
+- **Biome** for linting and formatting; no ESLint or Prettier.
+- **Vite** for building, **Vitest** for unit and component tests. The prototype's `node --test` tests move to Vitest.
+- **Playwright** for e2e tests, with the LLM mocked at the network layer.
+
+## Code layout and conventions
+
+Commands and folder overview: [README.md](README.md).
+
+- **Where code runs decides where it lives:**
+  - `src/shared`: browser and Node;
+  - `src/editor`: inside the Scratch iframe;
+  - `src/client`: the React host;
+  - `src/server`: Hono.
+- **Relative imports end in `.ts`/`.tsx`.** Node runs the server's TypeScript directly (type stripping, no build step), so only erasable syntax is allowed: no enums, namespaces or parameter properties.
+- **Tools come in families** (project, ui, asset):
+  - definitions + prompt text live in `src/shared/tools` (the server sends them to the model);
+  - executors are `ToolHandlers` that run in the browser on the live VM, strictly one at a time (`src/client/scratch/tool-runner.ts`).
+
+  Tool error messages are read by the model, so they say in English what to fix.
+- **Kid-facing text is German; code, comments and model-facing tool messages are English.**
+- **The scratch-vm API is typed by hand** in `src/shared/scratch/vm-types.ts`; add members there when you use more of it.
+- **`.npmrc` sets `legacy-peer-deps`:** `@scratch/scratch-gui` declares React 18 peers, but we only use its standalone bundle, which ships its own React.
+- **Tests:**
+  - unit tests sit next to the code (`*.test.ts`) and use the headless VM (`test/support/headless-vm.ts`);
+  - e2e mocks `/api/chat` with streams built by the AI SDK itself (`e2e/helpers/mock-chat.ts`), and any page error fails a test;
+  - server tests fake Anthropic's SSE (`test/support/anthropic-sse.ts`).
+- **Verify against the real app before claiming a UI fix works.** Example: the GUI drops sprite-thumbnail updates sent within ~500 ms of each other. Only the browser showed that.
+
+## Requirements and decisions
+
+- **Product scope:**
+  - German UI first; desktop only.
+  - No image uploads.
+  - Projects are saved and loaded via Scratch's built-in .sb3 file menu only.
+- **Access and sessions:**
+  - **10 access codes, one per school.** Without a valid code the app is unusable.
+  - A kid is identified by a random id in a cookie. This is intentionally not secure.
+  - Warn before closing or reloading the tab. There is no session resume.
+- **Logging and budget:**
+  - Store **all** LLM interactions for research, with token stats.
+  - A token **health bar** per kid (a tokens-per-minute budget).
+  - Budget: 200 €/month. Keep the context under 100k tokens.
+- **Hosting:** everything is deployed to **Microsoft Azure** with the `az` CLI, subscription **"Microsoft Sponsorship"**.
+- **Licence:** AGPL is fine; the code will be published.
+- **Out of scope:**
+  - login hardening;
+  - throttling beyond the health bar;
+  - polished design.
+- **Teaching mode:** start with **"AI builds"**, where the assistant changes the project for the kid. **"AI supports"**, where it guides and points and the kid builds, gets added step by step later. Keep the prompt and tool selection open for that.
+- **Owned by Rainer, don't design:** the video tutorial.
+
+## Working agreements
+
+- Secrets live in `.env` (git-ignored, server-side only). Never print or commit keys.
+- Leave Scratch unmodified wherever possible.
+- Tests: unit > component > e2e.
+- Don't commit or push unless Rainer asks.
+- Ask Rainer about product and design decisions; decide technical questions yourself.
