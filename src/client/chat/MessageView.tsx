@@ -30,7 +30,7 @@ export const Bubble = ({
     className={cn(
       'relative max-w-[90%] rounded-2xl border px-3.5 py-2 whitespace-pre-wrap [overflow-wrap:anywhere]',
       from === 'user'
-        ? 'border-primary/35 bg-primary-light'
+        ? 'border-primary/35 bg-primary-light text-primary-ink'
         : 'mb-1.5 bg-white shadow-[0_1px_2px_hsla(0,0%,0%,0.08)] after:absolute after:-bottom-[6.5px] after:left-5 after:size-3 after:rotate-45 after:border-r after:border-b after:bg-white',
       className,
     )}

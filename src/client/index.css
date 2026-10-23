@@ -16,6 +16,7 @@
   --primary-hover: #714eb6; /* looks-secondary-dark */
   --primary-foreground: #ffffff;
   --primary-light: #ede7f9; /* looks-light-transparent on white */
+  --primary-ink: #3b2a6b; /* text on primary-light: the grey reads muddy on lilac */
   --secondary: #e9f1fc; /* ui-secondary: panel ground */
   --secondary-foreground: #575e75;
   --muted: #e9f1fc;
@@ -45,6 +46,7 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-hover: var(--primary-hover);
   --color-primary-light: var(--primary-light);
+  --color-primary-ink: var(--primary-ink);
   --color-alert: var(--alert);
   --color-alert-border: var(--alert-border);
   --color-secondary: var(--secondary);
@@ -194,6 +196,7 @@
       border-radius: 0.375rem;
       background: var(--primary-light);
       padding: 0.4em 0.75em;
+      color: var(--primary-ink);
     }
     & hr {
       margin-block: 0.75em;
