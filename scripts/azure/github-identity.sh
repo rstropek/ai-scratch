@@ -22,14 +22,20 @@ fi
 SP_ID=$(az ad sp show --id "$CLIENT_ID" --query id -o tsv 2>/dev/null || az ad sp create --id "$CLIENT_ID" --query id -o tsv)
 
 log "Federated credential for $REPO main"
+# GitHub decides the subject format (newer repos: immutable, with owner and repo ids); ask it instead of guessing
+SUBJECT="$(gh api "repos/$REPO/actions/oidc/customization/sub" --jq .sub_claim_prefix):ref:refs/heads/main"
+CREDENTIAL="{
+  \"name\": \"main\",
+  \"issuer\": \"https://token.actions.githubusercontent.com\",
+  \"subject\": \"$SUBJECT\",
+  \"audiences\": [\"api://AzureADTokenExchange\"]
+}"
 if [[ -z "$(az ad app federated-credential list --id "$CLIENT_ID" --query "[?name=='main'].name" -o tsv)" ]]; then
-  az ad app federated-credential create --id "$CLIENT_ID" -o none --parameters "{
-    \"name\": \"main\",
-    \"issuer\": \"https://token.actions.githubusercontent.com\",
-    \"subject\": \"repo:$REPO:ref:refs/heads/main\",
-    \"audiences\": [\"api://AzureADTokenExchange\"]
-  }"
+  az ad app federated-credential create --id "$CLIENT_ID" -o none --parameters "$CREDENTIAL"
+else
+  az ad app federated-credential update --id "$CLIENT_ID" --federated-credential-id main -o none --parameters "$CREDENTIAL"
 fi
+echo "    subject $SUBJECT"
 
 log "Roles: AcrPush on $ACR, Website Contributor on $WEBAPP"
 assign() {
