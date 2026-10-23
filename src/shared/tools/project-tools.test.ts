@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { createVm, sprite } from '../../../test/support/headless-vm.ts';
+import { createVm, loadFixture, sprite } from '../../../test/support/headless-vm.ts';
 import { buildInstructions, toolDefinitions } from './index.ts';
 import { createProjectTools, type ProjectSnapshot } from './project-tools.ts';
 import { runTool } from './tool-types.ts';
@@ -98,6 +98,49 @@ describe('project tools', () => {
         /editor failed to show 1 script\(s\) of Sprite1 \(their first blocks: event_whenbroadcastreceived\).*Do not add/,
       ),
     });
+  });
+
+  // Two sprites that both check touching each other is a classic Scratch race: whichever runs first
+  // may hide or switch costume before the other one checks.
+  test('add_scripts warns when two sprites check touching each other', async () => {
+    const project = JSON.parse(loadFixture('default-project'));
+    project.targets.push({ ...project.targets[1], name: 'Hai', blocks: {} });
+    const vm = await createVm(JSON.stringify(project));
+    const tools = createProjectTools(vm);
+    const checks = (other: string) => [
+      { op: 'event_whenflagclicked' },
+      {
+        op: 'control_forever',
+        SUBSTACK: [
+          {
+            op: 'control_if',
+            CONDITION: { op: 'sensing_touchingobject', TOUCHINGOBJECTMENU: other },
+            SUBSTACK: [{ op: 'looks_nextcostume' }],
+          },
+        ],
+      },
+    ];
+    expect(await runTool(tools, 'add_scripts', { sprite: 'Sprite1', scripts: [checks('Hai')] })).not.toHaveProperty(
+      'warning',
+    );
+    expect(await runTool(tools, 'add_scripts', { sprite: 'Hai', scripts: [checks('_edge_')] })).not.toHaveProperty(
+      'warning',
+    );
+    expect(await runTool(tools, 'add_scripts', { sprite: 'Hai', scripts: [checks('Sprite1')] })).toMatchObject({
+      ok: true,
+      warning: expect.stringMatching(/^Hai and Sprite1 both check whether they touch each other.*event_broadcast/),
+    });
+  });
+
+  test('add_scripts warns when a sprite hides itself and the green flag never shows it again', async () => {
+    const vm = await createVm();
+    const tools = createProjectTools(vm);
+    const caught = [{ op: 'event_whenbroadcastreceived', BROADCAST_OPTION: 'gefressen' }, { op: 'looks_hide' }];
+    expect(await runTool(tools, 'add_scripts', { sprite: 'Sprite1', scripts: [caught] })).toMatchObject({
+      warning: expect.stringMatching(/^Sprite1 hides itself, but no green-flag script shows it/),
+    });
+    const start = [{ op: 'event_whenflagclicked' }, { op: 'motion_gotoxy', X: -200, Y: 150 }, { op: 'looks_show' }];
+    expect(await runTool(tools, 'add_scripts', { sprite: 'Sprite1', scripts: [start] })).not.toHaveProperty('warning');
   });
 
   test('unknown sprites and tools produce messages the model can act on', async () => {

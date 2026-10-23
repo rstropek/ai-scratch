@@ -136,6 +136,49 @@ const editorWarning = (sprite: string, missing: string[]): string =>
   'They are in the project and run, but the kid cannot see them. Do not add them again. Tell the kid that ' +
   'the editor does not show these scripts right now and ask an adult for help.';
 
+/** Sprites that the target's "touching …?" blocks check (mouse pointer and edge left out). */
+const touchedSprites = (target: Target): Set<string> =>
+  new Set(
+    Object.values(target.blocks._blocks)
+      .filter((b) => b.opcode === 'sensing_touchingobjectmenu')
+      .map((b) => b.fields.TOUCHINGOBJECTMENU?.value ?? '')
+      .filter((name) => name && !name.startsWith('_')),
+  );
+
+/** Sprites that check touching the target while the target checks touching them, too. */
+const mutualTouchChecks = (vm: VirtualMachine, target: Target): string[] => {
+  const name = target.getName();
+  return [...touchedSprites(target)].filter((other) => {
+    const t = vm.runtime.targets.find((x) => x.isOriginal && !x.isStage && x.getName() === other);
+    return t !== undefined && touchedSprites(t).has(name);
+  });
+};
+
+const touchWarning = (sprite: string, others: string[]): string =>
+  `${sprite} and ${others.join(', ')} both check whether they touch each other. Their scripts run one after ` +
+  'the other, so often only one of them notices the touch (e.g. one hides or switches costume first). Keep ' +
+  'the touch check in one sprite and let it send a message (event_broadcast) that the other sprite handles ' +
+  'with event_whenbroadcastreceived; remove the other check. Fix it now and tell the kid why in one sentence.';
+
+/** The target hides itself, but no green-flag script sets its visibility outside of loops and ifs. */
+const staysHiddenAfterStop = (target: Target): boolean => {
+  const { blocks } = target;
+  if (!Object.values(blocks._blocks).some((b) => b.opcode === 'looks_hide')) return false;
+  return !blocks.getScripts().some((id) => {
+    if (blocks.getBlock(id)?.opcode !== 'event_whenflagclicked') return false;
+    for (let b = blocks.getBlock(id); b; b = b.next ? blocks.getBlock(b.next) : undefined) {
+      if (b.opcode === 'looks_show' || b.opcode === 'looks_hide') return true;
+    }
+    return false;
+  });
+};
+
+const hiddenWarning = (sprite: string): string =>
+  `${sprite} hides itself, but no green-flag script shows it at the start. If the kid stops the game while ` +
+  `${sprite} is hidden, it stays invisible after the next green flag (and hidden sprites touch nothing). Start ` +
+  'a green-flag script with looks_show and the start position, before its loop, unless you are about to add ' +
+  'such a script anyway.';
+
 export const createProjectTools = (
   vm: VirtualMachine,
   { cleanUp, scriptsMissingInEditor }: ProjectToolOptions = {},
@@ -160,9 +203,13 @@ export const createProjectTools = (
     } catch (e) {
       console.warn('add_scripts: comparing the editor with the project failed', e);
     }
-    return missing.length
-      ? { ok: true, added, warning: editorWarning(target.getName(), missing) }
-      : { ok: true, added };
+    const mutual = mutualTouchChecks(vm, target);
+    const warnings = [
+      ...(missing.length ? [editorWarning(target.getName(), missing)] : []),
+      ...(mutual.length ? [touchWarning(target.getName(), mutual)] : []),
+      ...(staysHiddenAfterStop(target) ? [hiddenWarning(target.getName())] : []),
+    ];
+    return warnings.length ? { ok: true, added, warning: warnings.join('\n') } : { ok: true, added };
   },
   clear_scripts: (args) => {
     const target = findTarget(vm, stringArg(args, 'sprite'));
