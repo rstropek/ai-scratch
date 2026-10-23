@@ -9,12 +9,12 @@ describe('renderMarkdown', () => {
     );
     expect(renderMarkdown('1. eins\n2. zwei\n\n- a\n  - b')).toMatch(/<ol>\s*<li>eins<\/li>[\s\S]*<ul>[\s\S]*<ul>/);
     expect(renderMarkdown('| Block | Farbe |\n|---|:-:|\n| Steuerung | orange |')).toMatch(
-      /<table>[\s\S]*<th>Block<\/th>[\s\S]*<td align="center">orange<\/td>/,
+      /<div><table>[\s\S]*<th>Block<\/th>[\s\S]*<td align="center">orange<\/td>/,
     );
     expect(renderMarkdown('Zeile 1\nZeile 2')).toBe('<p>Zeile 1<br>Zeile 2</p>\n');
   });
 
-  test('drops scripts, event handlers, styles, images and dangerous links', () => {
+  test('raw HTML only shows as text; images and javascript: links are dropped', () => {
     const html = renderMarkdown(
       [
         '<script>alert(1)</script>',
@@ -26,13 +26,25 @@ describe('renderMarkdown', () => {
         '<form><input></form>',
       ].join('\n\n'),
     );
-    expect(html).not.toMatch(/script|onerror|onclick|style=|<img|javascript:|<iframe|<form|<input/i);
-    expect(html).toContain('hi');
+    const dom = document.createElement('div');
+    dom.innerHTML = html;
+    expect(dom.querySelectorAll('script, img, iframe, form, input, [style], [onclick], [onerror]')).toHaveLength(0);
+    expect(dom.querySelector('a')?.hasAttribute('href')).toBe(false);
+    expect(dom.textContent).toContain('<script>alert(1)</script>');
+  });
+
+  test('Scratch notation, checklists and indented lines keep their meaning', () => {
+    expect(renderMarkdown('Nimm <mouse down?> und <b>')).toBe('<p>Nimm &lt;mouse down?&gt; und &lt;b&gt;</p>\n');
+    expect(renderMarkdown('- [ ] Katze\n- [x] Hund')).toBe('<ul>\n<li>☐ Katze</li>\n<li>☑ Hund</li>\n</ul>\n');
+    expect(renderMarkdown('Schritte:\n\n    wiederhole')).not.toContain('<pre>');
+    expect(renderMarkdown('```\ncode\n```')).toContain('<pre><code>code');
   });
 
   test('links open in a new tab so the Scratch project in this tab survives', () => {
     expect(renderMarkdown('[Scratch](https://scratch.mit.edu)')).toBe(
       '<p><a href="https://scratch.mit.edu" target="_blank" rel="noopener noreferrer">Scratch</a></p>\n',
     );
+    // a relative link would open a second, empty app: it stays text
+    expect(renderMarkdown('[hier](/)')).not.toContain('href');
   });
 });

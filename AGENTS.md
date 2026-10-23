@@ -90,7 +90,7 @@ Commands and folder overview: [README.md](README.md).
   - login hardening;
   - throttling beyond the health bar;
   - polished design.
-- **Teaching mode:** start with **"AI builds"**, where the assistant changes the project for the kid. **"AI supports"**, where it guides and points and the kid builds, gets added step by step later. Keep the prompt and tool selection open for that.
+- **Teaching mode:** the kid designs the game (idea, rules, points, levels); the assistant leads with questions, step by step, and builds only small, clearly defined parts (usually one script), never a whole game or large parts of it. Answers are short. A stricter **"AI supports"** mode, where it only guides and points and the kid builds, may come later. Keep the prompt and tool selection open for that.
 - **Owned by Rainer, don't design:** the video tutorial.
 
 ## Working agreements

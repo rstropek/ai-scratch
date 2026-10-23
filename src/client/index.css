@@ -120,7 +120,7 @@
     & > div > :last-child {
       margin-bottom: 0;
     }
-    & :is(p, ul, ol, pre, blockquote, table) {
+    & :is(p, ul, ol, pre, blockquote) {
       margin-block: 0.5em;
     }
     & :is(h1, h2, h3, h4, h5, h6) {
@@ -162,7 +162,7 @@
     & ol > li::marker {
       font-weight: 700;
     }
-    & a {
+    & a[href] {
       color: var(--primary);
       text-decoration: underline;
       text-underline-offset: 2px;
@@ -199,11 +199,13 @@
       margin-block: 0.75em;
       border-top-width: 1px;
     }
-    /* wide tables scroll inside the bubble instead of squeezing the columns */
-    & table {
-      display: block;
+    /* wide tables scroll in their wrapper (markdown.ts) instead of squeezing the columns */
+    & div:has(> table) {
+      margin-block: 0.5em;
       max-width: 100%;
       overflow-x: auto;
+    }
+    & table {
       border-collapse: collapse;
       font-size: 0.9em;
       overflow-wrap: normal;
