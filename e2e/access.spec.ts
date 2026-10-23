@@ -54,4 +54,8 @@ test('a code the server stops accepting sends the kid back to the gate', async (
   await page.getByRole('button', { name: 'Senden', exact: true }).click();
   await expect(page.getByRole('alert')).toHaveText(/Dein Code gilt nicht mehr/);
   await expect(codeField(page)).toBeVisible();
+  // the refused turn is over: the folded rail doesn't claim the AI is still working
+  await page.getByRole('button', { name: 'Chat einklappen' }).click();
+  await expect(page.getByRole('button', { name: 'Chat öffnen' })).toBeVisible();
+  await expect(page.getByTestId('rail-busy')).toHaveCount(0);
 });

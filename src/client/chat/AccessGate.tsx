@@ -22,10 +22,11 @@ export interface AccessGateProps {
 
 export const AccessGate = ({ checking, error, initialCode, onCode, fontSize, onFontSize, onFold }: AccessGateProps) => {
   const [code, setCode] = useState(initialCode ?? '');
+  const normalized = normalizeCode(code);
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (checking || !normalizeCode(code)) return;
-    onCode(normalizeCode(code));
+    if (checking || !normalized) return;
+    onCode(normalized);
   };
   return (
     <div className="flex h-full min-h-0 flex-col" style={{ fontSize }}>
@@ -60,7 +61,7 @@ export const AccessGate = ({ checking, error, initialCode, onCode, fontSize, onF
             <Button
               type="submit"
               className="h-auto py-1.5 text-[length:inherit] font-bold focus-visible:ring-ring [&_svg]:size-[1em]"
-              disabled={checking || !normalizeCode(code)}
+              disabled={checking || !normalized}
             >
               {checking ? (
                 <>

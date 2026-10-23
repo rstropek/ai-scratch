@@ -40,9 +40,9 @@ describe('checkCode', () => {
     return fetch;
   };
 
-  test('sends the normalized code and reports ok', async () => {
+  test('sends the code and reports ok', async () => {
     const fetch = answer(new Response(null, { status: 204 }));
-    expect(await checkCode(' Schule1 ')).toBe('ok');
+    expect(await checkCode('schule1')).toBe('ok');
     expect(fetch).toHaveBeenCalledWith('/api/access', { headers: { [ACCESS_CODE_HEADER]: 'schule1' } });
   });
 

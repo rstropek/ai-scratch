@@ -45,8 +45,8 @@ const useAccess = () => {
       setAccess({ state: 'open', code });
       return;
     }
-    // a remembered code stays remembered when only the connection failed
-    if (result === 'wrong' && source === 'stored') forgetCode();
+    // a remembered code stays remembered when only the connection failed (also when the kid retries it)
+    if (result === 'wrong' && code === storedCode()) forgetCode();
     setAccess(
       result === 'wrong'
         ? { state: 'gate', error: WRONG[source], code: source === 'typed' ? code : undefined }

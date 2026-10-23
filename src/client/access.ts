@@ -33,9 +33,10 @@ export const forgetCode = (): void => {
 
 export type CodeCheck = 'ok' | 'wrong' | 'offline';
 
+/** `code` is normalized (AccessGate, takeLinkCode, and storeCode only ever gets checked codes). */
 export const checkCode = async (code: string): Promise<CodeCheck> => {
   try {
-    const res = await fetch('/api/access', { headers: { [ACCESS_CODE_HEADER]: normalizeCode(code) } });
+    const res = await fetch('/api/access', { headers: { [ACCESS_CODE_HEADER]: code } });
     return res.ok ? 'ok' : res.status === 401 ? 'wrong' : 'offline';
   } catch {
     return 'offline';

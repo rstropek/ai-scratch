@@ -3,7 +3,16 @@
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, isToolUIPart, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
 import { Hourglass, SendHorizontal, Square } from 'lucide-react';
-import { type FormEvent, type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type FormEvent,
+  type ReactNode,
+  type RefObject,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Splitter } from '@/components/Splitter';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -99,6 +108,12 @@ export const ChatPanel = ({
   runToolRef.current = runTool;
   const deniedRef = useRef(onAccessDenied);
   deniedRef.current = onAccessDenied;
+  // every /api call: a 401 means the server no longer accepts the code
+  const apiFetch = useCallback(async (...args: Parameters<typeof fetch>) => {
+    const res = await fetch(...args);
+    if (res.status === 401) deniedRef.current();
+    return res;
+  }, []);
   const bottom = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const panelHeight = useElementHeight(panel);
@@ -108,13 +123,9 @@ export const ChatPanel = ({
       new DefaultChatTransport<ChatMessage>({
         api: '/api/chat',
         headers: { [ACCESS_CODE_HEADER]: accessCode, [SESSION_HEADER]: sessionId },
-        fetch: async (url, init) => {
-          const res = await fetch(url, init);
-          if (res.status === 401) deniedRef.current();
-          return res;
-        },
+        fetch: apiFetch,
       }),
-    [accessCode, sessionId],
+    [accessCode, sessionId, apiFetch],
   );
   const { messages, setMessages, sendMessage, addToolOutput, status, error, clearError, stop } = useChat<ChatMessage>({
     transport,
@@ -168,7 +179,11 @@ export const ChatPanel = ({
     lastMessage?.role === 'assistant' &&
     lastMessage.parts.some((p) => isToolUIPart(p) && (p.state === 'input-streaming' || p.state === 'input-available'));
   const busy = status === 'submitted' || status === 'streaming' || toolsRunning;
-  useEffect(() => onBusyChange(busy), [busy, onBusyChange]);
+  useEffect(() => {
+    onBusyChange(busy);
+    // unmounted mid-turn (access denied): nothing runs any more
+    return () => onBusyChange(false);
+  }, [busy, onBusyChange]);
 
   const canSend = ready && !busy && !compacting && !full && hearts > 0;
   const sendText = async (text: string) => {
@@ -191,12 +206,12 @@ export const ChatPanel = ({
     setCompacting(true);
     setCompactError(undefined);
     try {
-      const res = await fetch('/api/compact', {
+      const res = await apiFetch('/api/compact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', [ACCESS_CODE_HEADER]: accessCode, [SESSION_HEADER]: sessionId },
         body: JSON.stringify({ messages }),
       });
-      if (res.status === 401) return onAccessDenied();
+      if (res.status === 401) return;
       const body = (await res.json().catch(() => ({}))) as { summary?: string; tokens?: number };
       if (!res.ok || !body.summary) throw new Error(JSON.stringify(body));
       clearError();
