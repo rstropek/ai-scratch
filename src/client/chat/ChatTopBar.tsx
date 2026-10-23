@@ -8,8 +8,9 @@ import { FONT_SIZE } from '../ui-prefs.ts';
 export interface ChatTopBarProps {
   fontSize: number;
   onFontSize: (size: number) => void;
-  showTools: boolean;
-  onShowTools: (show: boolean) => void;
+  /** without it there is no tool toggle (the access gate) */
+  showTools?: boolean;
+  onShowTools?: (show: boolean) => void;
   onFold: () => void;
 }
 
@@ -46,14 +47,16 @@ export const ChatTopBar = ({ fontSize, onFontSize, showTools, onShowTools, onFol
     >
       <AArrowUp />
     </BarButton>
-    <BarButton
-      aria-label="Werkzeuge anzeigen"
-      title={showTools ? 'Werkzeuge verstecken' : 'Werkzeuge anzeigen'}
-      aria-pressed={showTools}
-      onClick={() => onShowTools(!showTools)}
-    >
-      <Wrench />
-    </BarButton>
+    {onShowTools && (
+      <BarButton
+        aria-label="Werkzeuge anzeigen"
+        title={showTools ? 'Werkzeuge verstecken' : 'Werkzeuge anzeigen'}
+        aria-pressed={showTools}
+        onClick={() => onShowTools(!showTools)}
+      >
+        <Wrench />
+      </BarButton>
+    )}
     <span className="mx-1 h-5 w-px bg-white/30" aria-hidden />
     <BarButton aria-label="Chat einklappen" title="Chat einklappen" onClick={onFold}>
       <PanelLeftClose />

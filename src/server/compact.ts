@@ -4,6 +4,7 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import type { Context } from 'hono';
+import { normalizeCode } from '../shared/access.ts';
 import { ACCESS_CODE_HEADER, type ChatMessage, SESSION_HEADER } from '../shared/chat-types.ts';
 import type { ChatDeps } from './chat.ts';
 import { textOnly, turnNumber, withoutGuarded } from './model-input.ts';
@@ -55,7 +56,7 @@ export const createCompactHandler =
       fetch: createLoggingFetch(
         sink,
         {
-          accessCode: c.req.header(ACCESS_CODE_HEADER) ?? '',
+          accessCode: normalizeCode(c.req.header(ACCESS_CODE_HEADER) ?? ''),
           session: c.req.header(SESSION_HEADER),
           turn: turnNumber(messages),
           purpose: 'compact',

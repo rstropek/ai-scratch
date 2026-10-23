@@ -39,6 +39,8 @@ export interface ChatPanelProps {
   onFold: () => void;
   /** a turn is in progress (the folded rail shows it) */
   onBusyChange: (busy: boolean) => void;
+  /** the server no longer accepts the access code (401) */
+  onAccessDenied: () => void;
 }
 
 const WELCOME =
@@ -82,10 +84,21 @@ const useNow = (active: boolean, everyMs = 500) => {
   return now;
 };
 
-export const ChatPanel = ({ accessCode, sessionId, runTool, prefs, onPrefs, onFold, onBusyChange }: ChatPanelProps) => {
+export const ChatPanel = ({
+  accessCode,
+  sessionId,
+  runTool,
+  prefs,
+  onPrefs,
+  onFold,
+  onBusyChange,
+  onAccessDenied,
+}: ChatPanelProps) => {
   const [input, setInput] = useState('');
   const runToolRef = useRef(runTool);
   runToolRef.current = runTool;
+  const deniedRef = useRef(onAccessDenied);
+  deniedRef.current = onAccessDenied;
   const bottom = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const panelHeight = useElementHeight(panel);
@@ -95,6 +108,11 @@ export const ChatPanel = ({ accessCode, sessionId, runTool, prefs, onPrefs, onFo
       new DefaultChatTransport<ChatMessage>({
         api: '/api/chat',
         headers: { [ACCESS_CODE_HEADER]: accessCode, [SESSION_HEADER]: sessionId },
+        fetch: async (url, init) => {
+          const res = await fetch(url, init);
+          if (res.status === 401) deniedRef.current();
+          return res;
+        },
       }),
     [accessCode, sessionId],
   );
@@ -178,6 +196,7 @@ export const ChatPanel = ({ accessCode, sessionId, runTool, prefs, onPrefs, onFo
         headers: { 'Content-Type': 'application/json', [ACCESS_CODE_HEADER]: accessCode, [SESSION_HEADER]: sessionId },
         body: JSON.stringify({ messages }),
       });
+      if (res.status === 401) return onAccessDenied();
       const body = (await res.json().catch(() => ({}))) as { summary?: string; tokens?: number };
       if (!res.ok || !body.summary) throw new Error(JSON.stringify(body));
       clearError();

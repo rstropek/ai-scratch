@@ -24,6 +24,8 @@ export const createApp = ({ config, sink, fetch }: AppDeps): Hono => {
   const app = new Hono();
 
   app.use('/api/*', requireAccessCode(config.accessCodes));
+  // the gate's check of a typed-in code: the middleware above does the work
+  app.get('/api/access', (c) => c.body(null, 204));
   app.post('/api/chat', createChatHandler(deps));
   app.post('/api/compact', createCompactHandler(deps));
   app.get('/api/stats', (c) => c.json(stats));

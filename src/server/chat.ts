@@ -13,6 +13,7 @@ import {
   toUIMessageStream,
 } from 'ai';
 import type { Context } from 'hono';
+import { normalizeCode } from '../shared/access.ts';
 import { ACCESS_CODE_HEADER, type ChatMessage, type ChatMetadata, SESSION_HEADER } from '../shared/chat-types.ts';
 import { isAdminCode, memoryFull } from '../shared/energy.ts';
 import { buildInstructions, toolDefinitions } from '../shared/tools/index.ts';
@@ -111,7 +112,7 @@ export const createChatHandler =
     if (!isChatMessages(messages)) return c.json({ error: 'Ungültige Anfrage' }, 400);
 
     const ctx: CallContext = {
-      accessCode: c.req.header(ACCESS_CODE_HEADER) ?? '',
+      accessCode: normalizeCode(c.req.header(ACCESS_CODE_HEADER) ?? ''),
       session: c.req.header(SESSION_HEADER),
       turn: turnNumber(messages),
     };

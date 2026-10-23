@@ -77,7 +77,7 @@ Commands and folder overview: [README.md](README.md).
   - No image uploads.
   - Projects are saved and loaded via Scratch's built-in .sb3 file menu only.
 - **Access and sessions:**
-  - **10 access codes, one per school.** Without a valid code the app is unusable.
+  - **10 access codes, one per school.** Without a valid code the chat is locked (Scratch works): the kid types the code into the chat panel (`src/client/chat/AccessGate.tsx`) or gets it via `?code=` in the link; the browser remembers it. Codes are not case-sensitive.
   - A kid is identified by a random id in a cookie. This is intentionally not secure.
   - Warn before closing or reloading the tab. There is no session resume.
 - **Logging and budget:**

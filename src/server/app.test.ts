@@ -80,6 +80,18 @@ describe('api', () => {
     expect(requests).toEqual([]);
   });
 
+  test('the gate checks a code without calling anything; case and spaces do not matter', async () => {
+    const { app, requests, records } = setup('');
+    const check = (code?: string) =>
+      app.request('/api/access', { headers: code === undefined ? {} : { 'X-Access-Code': code } });
+    expect((await check('schule1')).status).toBe(204);
+    expect((await check(' Schule1 ')).status).toBe(204);
+    expect((await check('falsch')).status).toBe(401);
+    expect((await check()).status).toBe(401);
+    expect(requests).toEqual([]);
+    expect(records).toEqual([]);
+  });
+
   test('rejects malformed chat requests', async () => {
     const { app } = setup('');
     expect((await post(app, { messages: 'x' })).status).toBe(400);

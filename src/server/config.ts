@@ -1,5 +1,6 @@
 // Server configuration, read once from the environment (.env in development).
 import fs from 'node:fs';
+import { normalizeCode } from '../shared/access.ts';
 
 export interface Config {
   port: number;
@@ -11,6 +12,7 @@ export interface Config {
   jevApiKey: string;
   /** pinned: the guard thresholds are tuned against this version */
   jevModel: string;
+  /** normalized (lowercase), so kids can type them in any case */
   accessCodes: Set<string>;
   logDir: string;
   /** built client + precompressed Scratch bundle (npm run build) */
@@ -24,12 +26,7 @@ const required = (env: NodeJS.ProcessEnv, name: string): string => {
 };
 
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): Config => {
-  const accessCodes = new Set(
-    required(env, 'ACCESS_CODES')
-      .split(',')
-      .map((c) => c.trim())
-      .filter(Boolean),
-  );
+  const accessCodes = new Set(required(env, 'ACCESS_CODES').split(',').map(normalizeCode).filter(Boolean));
   return {
     port: Number(env.PORT ?? 3000),
     anthropicApiKey: required(env, 'ANTHROPIC_API_KEY'),

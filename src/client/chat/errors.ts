@@ -1,5 +1,7 @@
 // Turns chat errors into short German messages for kids.
 
+export const OFFLINE = 'Keine Verbindung zum Server. Prüfe das Internet und versuch es nochmal.';
+
 /** The server answers errors as JSON {error: "…"} in German; useChat puts the body into the message. */
 export const kidFriendlyError = (error: Error): string => {
   try {
@@ -10,7 +12,6 @@ export const kidFriendlyError = (error: Error): string => {
   } catch {
     // not JSON: a network or stream error
   }
-  if (/fetch|network/i.test(error.message))
-    return 'Keine Verbindung zum Server. Prüfe das Internet und versuch es nochmal.';
+  if (/fetch|network/i.test(error.message)) return OFFLINE;
   return 'Da ist etwas schiefgegangen. Versuch es bitte nochmal.';
 };

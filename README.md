@@ -42,7 +42,7 @@ cp .env.example .env   # then fill in the Anthropic and TypeSafe keys and the ac
 |---|---|
 | `ANTHROPIC_API_KEY` | Anthropic API key (server only) |
 | `ANTHROPIC_WORKSPACE_ID` | sent as `anthropic-workspace-id`; needed for identity-linked keys |
-| `ACCESS_CODES` | comma-separated, one per school; codes starting with `admin_` have no message limit (testing) |
+| `ACCESS_CODES` | comma-separated, one per school; not case-sensitive; codes starting with `admin_` have no message limit (testing) |
 | `JEV_API_KEY` | TypeSafe key for the kids-protection guard (server only) |
 | `MODEL` | default `claude-haiku-5-5` |
 | `JEV_MODEL` | default `jev-1.13.0` (the guard thresholds are tuned against it) |
@@ -52,7 +52,7 @@ cp .env.example .env   # then fill in the Anthropic and TypeSafe keys and the ac
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | Vite on http://localhost:5173/?code=test (hot reload) + API server on :3000 |
+| `npm run dev` | Vite on http://localhost:5173/?code=test (hot reload; without `?code=` the chat asks for the code) + API server on :3000 |
 | `npm run build` | type check, Vite build, copy + precompress the Scratch bundle into `dist/` |
 | `npm start` | production server: API + `dist/` on :3000 |
 | `npm test` | unit and component tests (Vitest, headless scratch-vm, no network) |

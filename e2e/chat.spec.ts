@@ -52,9 +52,3 @@ test('a failing tool call is reported back to the model instead of breaking the 
   await expect(page.getByTestId('tool-call')).toContainText(/Did you mean: motion_movesteps/);
   expect(JSON.stringify(requests[1])).toContain('"state":"output-error"');
 });
-
-test('a wrong access code shows a German error', async ({ page }) => {
-  await openApp(page, 'falsch');
-  await send(page, 'Hallo');
-  await expect(page.getByRole('alert')).toHaveText('Falscher Zugangscode');
-});
