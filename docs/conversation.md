@@ -7,7 +7,8 @@ What the model sees each turn, why, and how that stays cheap. Read before touchi
 ## The model input is rebuilt every turn
 
 The browser keeps the full conversation, but the server never replays it raw. The rules and their reasons
-are in the header of [model-input.ts](../src/server/model-input.ts): earlier turns as text plus a tool note,
+are in the header of [model-input.ts](../src/server/model-input.ts): earlier turns as text plus a tool note (in the kid's next message, never in the model's own: there it
+copied the note as text instead of calling the tool),
 the current turn verbatim, the project snapshot frozen into the kid's message, guarded turns left out (also
 from summaries). What the header doesn't say:
 

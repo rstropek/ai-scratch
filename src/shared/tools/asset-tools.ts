@@ -74,13 +74,16 @@ export const assetToolDefinitions: ToolDefinition[] = [
   ),
   fn(
     'draw_costume',
-    'Adds an SVG drawing as a new costume to a sprite, or as a new backdrop when sprite is "Stage".',
+    'Adds an SVG drawing as a new costume to a sprite, or as a new backdrop when sprite is "Stage". ' +
+      'A costume with the same name is redrawn in place: to change a drawing, reuse its name instead of adding a new costume.',
     {
       sprite: { type: 'string' },
       costume: { type: 'string', description: 'costume/backdrop name' },
       svg: {
         type: 'string',
-        description: svgDescription('a backdrop is exactly 480x360, a sprite costume usually 40-150 units'),
+        description: svgDescription(
+          'a backdrop is exactly 480x360, a sprite costume usually 40-150 units; to match the other costumes, use their size from the project',
+        ),
       },
     },
     ['sprite', 'costume', 'svg'],
@@ -311,6 +314,17 @@ export const createAssetTools = (
       const svg = extractSvg(args.svg);
       const [w, h] = checkSvg(svg);
       const target = findTarget(vm, stringArg(args, 'sprite'));
+      const name = stringArg(args, 'costume');
+      const index = target.getCostumes().findIndex((c) => c.name === name);
+      if (index >= 0) {
+        // redraw in place, like the paint editor (it works on the editing target)
+        const editing = vm.editingTarget;
+        vm.setEditingTarget(target.id);
+        await vm.updateSvg(index, svg, w / 2, h / 2);
+        if (editing && editing.id !== target.id) vm.setEditingTarget(editing.id);
+        for (const ms of [600, 1500]) setTimeout(() => vm.emitTargetsUpdate(false), ms); // thumbnails, see above
+        return { ok: true, redrawn: name, costumes: target.getCostumes().map((c) => c.name), size: [w, h] };
+      }
       const storage = vm.runtime.storage;
       const asset = storage.createAsset(
         storage.AssetType.ImageVector,
@@ -322,7 +336,7 @@ export const createAssetTools = (
       await vm.addCostume(
         `${asset.assetId}.svg`,
         {
-          name: stringArg(args, 'costume'),
+          name,
           asset,
           assetId: asset.assetId,
           md5: `${asset.assetId}.svg`,

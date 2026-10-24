@@ -1,6 +1,7 @@
 import { JSDOM } from 'jsdom';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { createVm, libraryItems, offlineLibrary, withStorage } from '../../../test/support/headless-vm.ts';
+import type { Target } from '../scratch/vm-types.ts';
 import { checkSvg, createAssetTools, extractSvg, searchLibrary } from './asset-tools.ts';
 import { runTool } from './tool-types.ts';
 
@@ -61,6 +62,18 @@ describe('asset tools', () => {
     const stage = vm.runtime.getTargetForStage();
     expect(stage.getCostumes()[stage.currentCostume]?.name).toBe('Wiese');
     expect(stage.getCostumes()[1]?.rotationCenterX).toBe(240);
+  });
+
+  test('draw_costume with an existing name redraws that costume instead of adding one', async () => {
+    const { vm, run } = await setup();
+    const sprite = (v: typeof vm) => v.runtime.targets.find((t) => !t.isStage && t.isOriginal) as Target;
+    const before = sprite(vm).getCostumes().length;
+    await run('draw_costume', { sprite: 'Sprite1', costume: 'Karte', svg: svg(80, 110) });
+    const first = sprite(vm).getCostumes()[before]?.asset?.assetId;
+    const result = await run('draw_costume', { sprite: 'Sprite1', costume: 'Karte', svg: svg(100, 100) });
+    expect(result).toMatchObject({ ok: true, redrawn: 'Karte', size: [100, 100] });
+    expect(sprite(vm).getCostumes()).toHaveLength(before + 1);
+    expect(sprite(vm).getCostumes()[before]?.asset?.assetId).not.toBe(first);
   });
 
   test('bad SVG is rejected with messages the model can act on', () => {

@@ -36,7 +36,7 @@ describe('MessageView', () => {
   });
 
   test('with tools hidden: only the text and a friendly line while a tool is still running', () => {
-    const { rerender } = render(<MessageView message={message} showTools={false} />);
+    const { rerender } = render(<MessageView message={message} showTools={false} live />);
     expect(screen.getByText('Schau mal!')).toBeInTheDocument();
     expect(screen.queryByTestId('tool-call')).not.toBeInTheDocument();
     expect(screen.queryByText(/cached/)).not.toBeInTheDocument();
@@ -49,7 +49,19 @@ describe('MessageView', () => {
         p.type === 'tool-add_scripts' ? { ...p, state: 'output-available', output: {} } : p,
       ),
     } as ChatMessage;
-    rerender(<MessageView message={done} showTools={false} />);
+    rerender(<MessageView message={done} showTools={false} live />);
+    expect(screen.queryByTestId('working')).not.toBeInTheDocument();
+  });
+
+  test('a stopped answer shows no thinking or building, although its parts still say so', () => {
+    const stopped = {
+      ...message,
+      parts: [{ type: 'reasoning', text: '', state: 'streaming' }, ...message.parts],
+    } as ChatMessage;
+    const { rerender } = render(<MessageView message={stopped} showTools={false} live />);
+    expect(screen.getByText(/denkt nach/)).toBeInTheDocument();
+    rerender(<MessageView message={stopped} showTools={false} />);
+    expect(screen.queryByText(/denkt nach/)).not.toBeInTheDocument();
     expect(screen.queryByTestId('working')).not.toBeInTheDocument();
   });
 

@@ -225,7 +225,7 @@ export const ChatPanel = ({
         body: JSON.stringify({ messages }),
       });
       if (res.status === 401) return;
-      const body = (await res.json().catch(() => ({}))) as { summary?: string; tokens?: number };
+      const body = (await res.json().catch(() => ({}))) as { summary?: string; tokens?: number; turns?: number };
       if (!res.ok || !body.summary) throw new Error(JSON.stringify(body));
       clearError();
       saved.current.clear();
@@ -236,6 +236,7 @@ export const ChatPanel = ({
           parts: [{ type: 'text', text: body.summary }],
           metadata: {
             summary: true,
+            ...(body.turns !== undefined ? { turns: body.turns } : {}),
             // estimate until the next turn measures it: the start of this session plus the summary
             ...(baseContext.current !== undefined ? { context: baseContext.current + (body.tokens ?? 0) } : {}),
           },
@@ -316,7 +317,13 @@ export const ChatPanel = ({
           </div>
         )}
         {messages.map((m, i) => (
-          <MessageView key={m.id} message={m} showTools={prefs.showTools} undo={undoFor(m, i)} />
+          <MessageView
+            key={m.id}
+            message={m}
+            showTools={prefs.showTools}
+            live={busy && i === messages.length - 1}
+            undo={undoFor(m, i)}
+          />
         ))}
         {status === 'submitted' && (
           <div className="my-2.5">

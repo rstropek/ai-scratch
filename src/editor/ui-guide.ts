@@ -78,12 +78,18 @@ export const openTab = (store: GuiStore, tab: string): void => {
   store.dispatch({ type: 'scratch-gui/navigation/ACTIVATE_TAB', activeTabIndex: TABS[tab as EditorTab] });
 };
 
-/** Scratch's "Blöcke aufräumen": stacks the shown sprite's scripts in one column, without overlaps.
- * The moves reach the VM through the editor's own change events, so the .sb3 keeps the layout. */
-export const cleanUpScripts = async (store: GuiStore): Promise<void> => {
+/** Scratch's "Blöcke aufräumen": stacks the shown sprite's scripts in one column, without overlaps,
+ * and gives the VM the new positions, so the .sb3 keeps the layout. The editor's own change events
+ * would bring them only on the next frame (never in a hidden tab): by then the next tool call may
+ * already show another sprite, and the VM drops the moves. */
+export const cleanUpScripts = async (vm: VirtualMachine, store: GuiStore): Promise<void> => {
   openTab(store, 'code'); // a hidden workspace has no block sizes to lay out with
   await nextFrame();
   workspace().cleanUp();
+  const blocks = vm.editingTarget?.blocks;
+  for (const block of workspace().getTopBlocks()) {
+    blocks?.moveBlock({ id: block.id, newCoordinate: block.getRelativeToSurfaceXY() });
+  }
 };
 
 /** The shown sprite's scripts that run in the VM but are missing in the editor, as opcodes of their
@@ -132,7 +138,8 @@ const ensureStyle = () => {
 type Find = () => Element | null | undefined;
 
 /** Draws a pulsing ring + label around an element's on-screen box and follows it for `ms`. */
-const pointAt = (getElement: Find, label: string, ms = 6000) => {
+// long enough for the kid to read the answer that explains it: the text often streams after the tool ran
+const pointAt = (getElement: Find, label: string, ms = 15_000) => {
   ensureStyle();
   overlay?.remove();
   const me = document.createElement('div');

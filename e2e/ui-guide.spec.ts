@@ -1,7 +1,7 @@
 // The UI pointer relies on the one internal hook (ScratchBlocks found in the webpack runtime) and on
 // CSS-module class prefixes of scratch-gui: the parts most likely to break on a Scratch update.
 import { expect, openApp, send, test } from './helpers/app.ts';
-import { answer, mockChat, toolCall } from './helpers/mock-chat.ts';
+import { answer, mockChat, toolCall, toolCalls } from './helpers/mock-chat.ts';
 
 test('the assistant points at a palette block via a tool call', async ({ page }) => {
   await mockChat(page, [
@@ -49,4 +49,28 @@ test('pointing at a script block selects the sprite and centers the block', asyn
   await send(page, 'Bau und zeig mir das Warten');
   await expect(editor.locator('.ki-label')).toHaveText(/Hier wird gewartet/);
   await expect(editor.locator('.ki-pointer')).toBeInViewport();
+});
+
+test('scripts added in later steps never land on top of earlier ones, also when another sprite follows', async ({
+  page,
+}) => {
+  const say = (text: string) => [[{ op: 'event_whenflagclicked' }, { op: 'looks_say', MESSAGE: text }]];
+  await mockChat(page, [
+    toolCall('add_scripts', { sprite: 'Sprite1', scripts: say('eins') }),
+    // the editor reports its tidy-up a frame later; by then the next call already shows the Stage
+    toolCalls(
+      ['add_scripts', { sprite: 'Sprite1', scripts: say('zwei') }],
+      ['add_scripts', { sprite: 'Stage', scripts: say('drei') }],
+    ),
+    answer('Fertig!'),
+  ]);
+  const editor = await openApp(page);
+  await send(page, 'Bau drei Skripte');
+  await expect(page.getByTestId('assistant-text')).toHaveText(/Fertig/);
+  const ys = await editor.evaluate(() => {
+    const blocks = window.ki?.vm.runtime.targets.find((t) => !t.isStage)?.blocks;
+    return (blocks?.getScripts() ?? []).map((id) => blocks?.getBlock(id)?.y ?? 0);
+  });
+  expect(ys).toHaveLength(2);
+  expect(Math.abs((ys[0] ?? 0) - (ys[1] ?? 0))).toBeGreaterThan(40); // a hat block plus a say block apart
 });

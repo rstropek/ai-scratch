@@ -13,7 +13,8 @@ Every Anthropic call and every guard screening is stored for research. Read befo
 - **Every guard screening**, with Jev's probabilities. A message Jev flags as personal data is stored as a
   placeholder; everything else, including messages that pass while Jev is down, is stored verbatim.
 - A call cut off by the output limit or a closed connection is logged with what arrived, marked `aborted`.
-- Each record carries the access code (school), the session (page load) and the turn number; summary calls
+- Each record carries the access code (school), the session (page load) and the turn number (it keeps
+  counting across "Zusammenfassen": the summary message carries the number of turns it replaced); summary calls
   carry `purpose: 'compact'`.
 - **Prefix dedup:** system prompt + tools (~50 KB) are the same in every call, so they are stored once under a
   hash, and each call record references the hash. Both sinks use the same hash, so local and Azure logs mix.

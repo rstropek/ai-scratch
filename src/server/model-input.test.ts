@@ -38,31 +38,54 @@ describe('buildModelInput', () => {
     currentAssistant,
   ];
 
-  test('earlier turns keep only text plus a note of the tools that ran, one text part each', () => {
-    const [u1, a1] = buildModelInput(messages).history;
+  test('earlier turns keep only text, one text part each; the tool note opens the next kid message', () => {
+    const next = [...messages, user('u3', 'Noch was', '{"newer":3}')];
+    const [u1, a1, u2] = buildModelInput(next).history;
     expect(u1?.parts).toEqual([{ type: 'text', text: 'Bau was' }]); // old snapshot dropped
-    expect(a1?.parts).toEqual([
-      { type: 'text', text: '[Ausgeführte Werkzeuge: add_scripts, green_flag (Fehler)]\n\nFertig!' },
+    expect(a1?.parts).toEqual([{ type: 'text', text: 'Fertig!' }]); // nothing the model could copy as text
+    expect(u2?.parts).toEqual([
+      {
+        type: 'text',
+        text: '[Hinweis der App zu deiner letzten Antwort: Ausgeführte Werkzeuge: add_scripts, green_flag (Fehler)]\n\nUnd jetzt?',
+      },
     ]);
   });
 
-  test('the note tells the model when the kid undid an answer', () => {
+  test('an explanation the answer repeated after a tool call reaches later turns once', () => {
+    const repeating = {
+      ...earlierAssistant,
+      parts: [
+        { type: 'text', text: 'Ich habe das Skript für die Bühne gebaut.' },
+        ...earlierAssistant.parts.slice(1, 2),
+        { type: 'text', text: 'Ich habe das Skript für die Bühne gebaut. Probier es aus!' },
+      ],
+    } as ChatMessage;
+    const [, a1] = buildModelInput([messages[0] as ChatMessage, repeating, ...messages.slice(2)]).history;
+    expect(a1?.parts).toEqual([{ type: 'text', text: 'Ich habe das Skript für die Bühne gebaut. Probier es aus!' }]);
+  });
+
+  test('the note on the last answer opens the current kid message and says when the kid undid it', () => {
     const undone = [...messages];
     undone[1] = { ...earlierAssistant, metadata: { undone: true } };
-    const [, a1] = buildModelInput(undone).history;
-    expect(a1?.parts[0]).toMatchObject({
-      text: expect.stringMatching(/^\[Ausgeführte Werkzeuge: .*\] \[Das Kind hat diese Änderungen .* rückgängig/),
+    const { turn } = buildModelInput(undone.slice(0, 3));
+    expect(turn[0]?.parts[0]).toEqual({
+      type: 'text',
+      text: '[Hinweis der App zu deiner letzten Antwort: Ausgeführte Werkzeuge: add_scripts, green_flag (Fehler). Das Kind hat diese Änderungen am Projekt rückgängig gemacht.]',
     });
+    expect(turn[0]?.parts[1]).toMatchObject({ text: expect.stringMatching(/^<projekt>/) });
   });
 
   test('the current user message carries its project snapshot, the current turn stays verbatim', () => {
     const { turn } = buildModelInput(messages);
-    expect(turn[0]?.parts[0]).toEqual({
+    expect(turn[0]?.parts[1]).toEqual({
       type: 'text',
       text: '<projekt>\n{"new":2}\n</projekt>\n(Das ist der aktuelle Projektstand, get_project ist nicht nötig.)',
     });
     expect(turn[1]).toBe(currentAssistant);
     expect(turnNumber(messages)).toBe(2);
+    // a summary that replaced 5 turns keeps the count going for the research log
+    const summary = { id: 's', role: 'assistant', parts: [], metadata: { summary: true, turns: 5 } } as ChatMessage;
+    expect(turnNumber([summary, user('u6', 'Weiter')])).toBe(6);
   });
 
   test('the history of one turn reappears unchanged at the start of the next (prompt cache)', () => {

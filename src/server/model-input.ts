@@ -3,6 +3,8 @@
 //   reasoning; their project state is outdated anyway). Without the note the model sees its own claims
 //   ("I built it and highlighted the block") without evidence and "corrects" them as hallucinations.
 //   If the kid undid the answer (metadata.undone), the note says so: the model must not build on it.
+//   The note opens the kid's next message, as a note from the app: inside the model's own messages the
+//   model copied it as text ("[Ausgeführte Werkzeuge: add_scripts]") instead of calling the tool.
 // - the current user message carries the project snapshot taken when it was sent, so every step of
 //   the turn has an identical (cacheable) prefix.
 // - the current turn after that message: verbatim, because signed thinking blocks and tool results
@@ -15,6 +17,7 @@
 // with their own cache breakpoint and the next turn reads them instead of writing them again. One text
 // block per earlier message keeps a turn's growth far inside the cache's 20-block lookback.
 import type { ChatMessage } from '../shared/chat-types.ts';
+import { repeatedTexts } from '../shared/repeated-text.ts';
 
 const toolNote = (m: ChatMessage): string | undefined => {
   const tools = m.parts.flatMap((p) =>
@@ -23,15 +26,35 @@ const toolNote = (m: ChatMessage): string | undefined => {
       : [],
   );
   if (!tools.length) return undefined;
-  const note = `[Ausgeführte Werkzeuge: ${tools.join(', ')}]`;
-  return m.metadata?.undone ? `${note} [Das Kind hat diese Änderungen am Projekt rückgängig gemacht.]` : note;
+  const note = `Ausgeführte Werkzeuge: ${tools.join(', ')}`;
+  return m.metadata?.undone ? `${note}. Das Kind hat diese Änderungen am Projekt rückgängig gemacht.` : note;
 };
 
-/** What was said plus the tool note, as one text part (none if nothing was said). */
-export const textOnly = (m: ChatMessage): ChatMessage => {
-  const texts = m.parts.flatMap((p) => (p.type === 'text' ? [p.text] : []));
-  const text = [toolNote(m), ...texts].filter(Boolean).join('\n\n');
+/** The note on the answer before a kid message, for the start of that message. */
+const appNote = (previous: ChatMessage | undefined): string | undefined => {
+  const note = previous?.role === 'assistant' ? toolNote(previous) : undefined;
+  return note && `[Hinweis der App zu deiner letzten Antwort: ${note}]`;
+};
+
+/** What the answer said, without a text it repeated later (repeated-text.ts). */
+const texts = (m: ChatMessage): string[] => {
+  const all = m.parts.flatMap((p) => (p.type === 'text' ? [p.text] : []));
+  const repeated = repeatedTexts(all);
+  return all.filter((_, i) => !repeated.has(i));
+};
+
+/** What was said, as one text part (none if nothing was said); `note` goes first. */
+const oneText = (m: ChatMessage, note?: string): ChatMessage => {
+  // an answer that only ran tools keeps its place in the conversation
+  const said = texts(m).length || !toolNote(m) || note ? texts(m) : ['(nur Werkzeuge, kein Text)'];
+  const text = [note, ...said].filter(Boolean).join('\n\n');
   return { ...m, parts: text ? [{ type: 'text', text }] : [] };
+};
+
+/** What was said plus the tool note, for a transcript (compact.ts). */
+export const textOnly = (m: ChatMessage): ChatMessage => {
+  const note = toolNote(m);
+  return oneText(m, note && `[${note}]`);
 };
 
 /** Drops each guard answer and the kid message it answered. */
@@ -60,23 +83,20 @@ export const buildModelInput = (all: ChatMessage[]): ModelInput => {
   if (!user) return { history: [], turn: messages };
   const history = messages
     .slice(0, current)
-    .map((m) => (m.metadata?.summary ? summaryAsUser(m) : textOnly(m)))
+    .map((m, i) =>
+      m.metadata?.summary ? summaryAsUser(m) : oneText(m, m.role === 'user' ? appNote(messages[i - 1]) : undefined),
+    )
     .filter((m) => m.parts.length);
+  const note = appNote(messages[current - 1]);
   const project = user.metadata?.project;
-  const userWithProject: ChatMessage = project
-    ? {
-        ...user,
-        parts: [
-          {
-            type: 'text',
-            text: `<projekt>\n${project}\n</projekt>\n(Das ist der aktuelle Projektstand, get_project ist nicht nötig.)`,
-          },
-          ...user.parts,
-        ],
-      }
-    : user;
+  const extra = [
+    note,
+    project && `<projekt>\n${project}\n</projekt>\n(Das ist der aktuelle Projektstand, get_project ist nicht nötig.)`,
+  ].flatMap((text) => (text ? [{ type: 'text' as const, text }] : []));
+  const userWithProject: ChatMessage = extra.length ? { ...user, parts: [...extra, ...user.parts] } : user;
   return { history, turn: [userWithProject, ...messages.slice(current + 1)] };
 };
 
-/** The 1-based number of the current turn (= user messages so far). */
-export const turnNumber = (messages: ChatMessage[]): number => messages.filter((m) => m.role === 'user').length;
+/** The 1-based number of the current turn (= user messages so far, including those a summary replaced). */
+export const turnNumber = (messages: ChatMessage[]): number =>
+  messages.reduce((n, m) => n + (m.role === 'user' ? 1 : (m.metadata?.turns ?? 0)), 0);

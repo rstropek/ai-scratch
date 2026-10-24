@@ -20,7 +20,7 @@ export const createSerialRunner = (handlers: ToolHandlers): ToolRunner => {
 export const createToolRunner = (bridge: KiBridge): ToolRunner =>
   createSerialRunner({
     ...createProjectTools(bridge.vm, {
-      cleanUp: () => bridge.uiGuide.cleanUpScripts(bridge.store),
+      cleanUp: () => bridge.uiGuide.cleanUpScripts(bridge.vm, bridge.store),
       scriptsMissingInEditor: () => bridge.uiGuide.scriptsMissingInEditor(bridge.vm),
     }),
     ...createAssetTools(bridge.vm),

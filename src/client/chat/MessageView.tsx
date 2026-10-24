@@ -8,6 +8,7 @@ import { type ReactNode, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { ChatMessage } from '../../shared/chat-types.ts';
+import { repeatedTexts } from '../../shared/repeated-text.ts';
 import { renderMarkdown } from './markdown.ts';
 
 // Arguments of these tools are long (scripts, SVG): show only the tool name.
@@ -166,10 +167,13 @@ const UndoButton = ({ onUndo, disabled }: UndoProps) => (
 export const MessageView = ({
   message,
   showTools,
+  live = false,
   undo,
 }: {
   message: ChatMessage;
   showTools: boolean;
+  /** the answer is still coming; a stopped answer keeps parts that say "streaming" for ever */
+  live?: boolean;
   /** only for answers that changed the project and can still be undone */
   undo?: UndoProps;
 }) => {
@@ -183,7 +187,8 @@ export const MessageView = ({
   }
   const fromUser = message.role === 'user';
   const usage = message.metadata?.usage;
-  const working = !showTools && message.parts.some((p) => isToolUIPart(p) && isPending(p));
+  const working = live && !showTools && message.parts.some((p) => isToolUIPart(p) && isPending(p));
+  const repeated = repeatedTexts(message.parts.map((p) => (p.type === 'text' ? p.text : '')));
   return (
     <div
       className={cn('my-2.5 flex flex-col gap-1.5', fromUser ? 'items-end' : 'items-start')}
@@ -192,7 +197,7 @@ export const MessageView = ({
       {message.parts.map((part, i) => {
         const key = `${message.id}-${i}`;
         if (part.type === 'text') {
-          if (!part.text) return null;
+          if (!part.text || repeated.has(i)) return null;
           // the kid's text stays plain: a typed * or # means just that
           return fromUser ? (
             <Bubble key={key} from="user" testId="user-text">
@@ -203,7 +208,8 @@ export const MessageView = ({
           );
         }
         // without the tool view, "thinking" only shows while it happens
-        if (part.type === 'reasoning' && (showTools || part.state === 'streaming')) return <Thinking key={key} />;
+        if (part.type === 'reasoning' && (showTools || (live && part.state === 'streaming')))
+          return <Thinking key={key} />;
         if (showTools && isToolUIPart(part)) return <ToolLine key={key} part={part} />;
         return null;
       })}

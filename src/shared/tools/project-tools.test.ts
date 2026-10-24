@@ -9,7 +9,19 @@ describe('project tools', () => {
     const vm = await createVm();
     const snapshot = (await runTool(createProjectTools(vm), 'get_project', {})) as ProjectSnapshot;
     expect(snapshot.targets.map((t) => t.name)).toEqual(['Stage', 'Sprite1']);
-    expect(snapshot.targets[1]).toMatchObject({ x: 0, y: 0, scripts: [], costumes: ['costume1', 'costume2'] });
+    expect(snapshot.targets[1]).toMatchObject({
+      x: 0,
+      y: 0,
+      scripts: [],
+      costumes: [{ name: 'costume1' }, { name: 'costume2' }],
+    });
+  });
+
+  test('get_project shows costume sizes once the renderer has loaded them', async () => {
+    const vm = await createVm();
+    Object.assign(sprite(vm).getCostumes()[0] ?? {}, { size: [80.4, 109.6] }); // the headless VM has no renderer
+    const snapshot = (await runTool(createProjectTools(vm), 'get_project', {})) as ProjectSnapshot;
+    expect(snapshot.targets[1]?.costumes).toEqual([{ name: 'costume1', size: [80, 110] }, { name: 'costume2' }]);
   });
 
   test('add_scripts adds nothing when any block is wrong', async () => {

@@ -47,8 +47,10 @@ GUI elements have CSS-module classes like `green-flag_green-flag_1kiAo`: match t
 - **Fields that reference a variable, list or broadcast need their variable type**, or the editor fails to
   load the sprite's workspace (see the trap above); [sb3-blocks.ts](../src/shared/scratch/sb3-blocks.ts) sets it.
 - **New scripts land on top of each other** unless the editor tidies up; `add_scripts` runs Scratch's own
-  "Blöcke aufräumen" afterwards. The moves reach the VM through the editor's events, so the .sb3 keeps the
-  layout. It needs the code tab open (a hidden workspace has no block sizes), so **every `add_scripts`
+  "Blöcke aufräumen" afterwards and copies the new positions into the VM, so the .sb3 keeps the layout. Not
+  through the editor's own events: Blockly fires them on the next animation frame, and when the model sends
+  several `add_scripts` in one step the next one has already switched the sprite, so the VM dropped the moves
+  and scripts piled up at the top. It needs the code tab open (a hidden workspace has no block sizes), so **every `add_scripts`
   switches the kid's view** to that sprite's Code tab. Keep that in mind for a "show, don't do" mode.
 - **Sprite thumbnails:** the GUI throttles thumbnail renders and drops an update that follows another
   within about 500 ms, so a drawn sprite keeps the "?" placeholder. `draw_sprite` repeats the update later.

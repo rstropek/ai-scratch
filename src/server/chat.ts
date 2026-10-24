@@ -154,6 +154,8 @@ export const createChatHandler =
     }
 
     const abort = new AbortController();
+    // the kid's "Stopp" (or a closed tab) ends the model call too; nothing reads the rest
+    c.req.raw.signal.addEventListener('abort', () => abort.abort(), { once: true });
     const anthropic = createAnthropic({
       apiKey: config.anthropicApiKey,
       headers: config.anthropicWorkspaceId ? { 'anthropic-workspace-id': config.anthropicWorkspaceId } : {},

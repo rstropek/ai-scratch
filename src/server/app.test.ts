@@ -222,6 +222,35 @@ describe('output guard', () => {
     expect(await stats(app)).toMatchObject({ outputCaps: { textCuts: 1, stepLimits: 0 } });
   });
 
+  test('when the kid stops the answer, the model call is aborted too', async () => {
+    let upstream: AbortSignal | undefined;
+    const fakeFetch: typeof fetch = async (url, init) => {
+      if (String(url) === JEV_URL) return jevAnswer();
+      upstream = init?.signal ?? undefined;
+      // the start of an answer, then nothing more until the call is aborted
+      const start = anthropicSse({ text: 'Ich denke' }).split('event: message_delta')[0] ?? '';
+      const body = new ReadableStream<Uint8Array>({
+        start: (controller) => {
+          controller.enqueue(new TextEncoder().encode(start));
+          upstream?.addEventListener('abort', () => controller.error(new DOMException('aborted', 'AbortError')));
+        },
+      });
+      return new Response(body, { status: 200, headers: { 'content-type': 'text/event-stream' } });
+    };
+    const sink: LogSink = { storePrefix: () => 'h', append: () => {}, appendGuard: () => {} };
+    const app = createApp({ config, sink, fetch: fakeFetch });
+    const kid = new AbortController();
+    const res = await app.request('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Access-Code': 'schule1', 'X-Session-Id': 'sess' },
+      body: JSON.stringify(chatBody),
+      signal: kid.signal,
+    });
+    await res.body?.getReader().read(); // the answer has started
+    kid.abort();
+    await expect.poll(() => upstream?.aborted).toBe(true);
+  });
+
   test('a turn that keeps calling the model ends after the step limit', async () => {
     const { app, requests } = setup(anthropicSse({ text: 'nie' }));
     const steps = Array.from({ length: MAX_STEPS_PER_TURN }, (_, i) => [
@@ -338,7 +367,7 @@ describe('KI-Energie', () => {
       },
     ];
     const res = await post(app, { messages }, 'schule1', '/api/compact');
-    expect(await res.json()).toEqual({ summary: '**Dein Spiel**: Fang mich', tokens: 50 });
+    expect(await res.json()).toEqual({ summary: '**Dein Spiel**: Fang mich', tokens: 50, turns: 1 });
     const sent = JSON.stringify(requests[0]?.body.messages);
     expect(sent).toContain('Kind: Ein Fisch soll vor dem Hai flüchten');
     expect(sent).toContain('KI-Helfer: [Ausgeführte Werkzeuge: add_scripts]');

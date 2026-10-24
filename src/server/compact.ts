@@ -75,7 +75,7 @@ export const createCompactHandler =
       const summary = result.text.trim();
       if (!summary) throw new Error('empty summary');
       stats.energy.compacts += 1;
-      return c.json({ summary, tokens: result.usage.outputTokens ?? 0 });
+      return c.json({ summary, tokens: result.usage.outputTokens ?? 0, turns: turnNumber(messages) });
     } catch (e) {
       console.error('compact failed', e);
       return c.json({ error: COMPACT_FAILED }, 502);

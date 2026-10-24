@@ -15,6 +15,8 @@ export interface ChatMetadata {
   context?: number;
   /** assistant messages: the AI's summary that replaced the conversation before it ("Zusammenfassen") */
   summary?: true;
+  /** summaries: how many kid turns the summary replaced, so turn numbers in the research log keep counting */
+  turns?: number;
   /** assistant messages: the kid undid this answer's changes to the project (the chat's undo button) */
   undone?: true;
 }

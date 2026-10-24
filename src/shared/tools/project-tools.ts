@@ -49,7 +49,8 @@ export interface TargetSnapshot {
   variables: string[];
   lists: string[];
   scripts: DslScript[];
-  costumes: string[];
+  /** size in stage units, when the renderer has loaded the costume (not in the headless VM) */
+  costumes: { name: string; size?: [number, number] }[];
   sounds: string[];
 }
 export interface ProjectSnapshot {
@@ -76,8 +77,15 @@ interface Sb3Target {
 export const projectSnapshot = (vm: VirtualMachine): ProjectSnapshot => {
   const json = JSON.parse(vm.toJSON()) as { targets: Sb3Target[]; extensions: string[] };
   const names = (vars: Sb3Target['variables']) => Object.values(vars ?? {}).map((v) => v[0]);
+  // toJSON serializes the original targets in this order; only the live costumes know their size
+  const originals = vm.runtime.targets.filter((t) => t.isOriginal);
+  const costumes = (i: number, t: Sb3Target) =>
+    t.costumes.map(({ name }, j) => {
+      const size = originals[i]?.getCostumes()[j]?.size;
+      return size ? { name, size: [Math.round(size[0]), Math.round(size[1])] as [number, number] } : { name };
+    });
   return {
-    targets: json.targets.map((t) => ({
+    targets: json.targets.map((t, i) => ({
       name: t.isStage ? 'Stage' : t.name,
       isStage: t.isStage,
       ...(t.isStage
@@ -86,7 +94,7 @@ export const projectSnapshot = (vm: VirtualMachine): ProjectSnapshot => {
       variables: names(t.variables),
       lists: names(t.lists),
       scripts: decompileBlocks(t.blocks),
-      costumes: t.costumes.map((c) => c.name),
+      costumes: costumes(i, t),
       sounds: t.sounds.map((s) => s.name),
     })),
     extensions: json.extensions,

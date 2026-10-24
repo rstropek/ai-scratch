@@ -49,6 +49,8 @@ export interface VmBlock {
 
 export interface Costume {
   name: string;
+  /** [width, height] in stage units, set when the renderer loads the costume */
+  size?: [number, number];
   rotationCenterX?: number;
   rotationCenterY?: number;
   asset?: Asset;
@@ -62,6 +64,8 @@ export interface Blocks {
   _blocks: Record<string, VmBlock>;
   getBlock(id: string): VmBlock | undefined;
   getScripts(): string[];
+  /** what the editor's move events call; ignores ids of other targets */
+  moveBlock(e: { id: string; newCoordinate: { x: number; y: number } }): void;
   deleteBlock(id: string): void;
   /** the XML the editor rebuilds the workspace from */
   toXML(): string;
@@ -147,7 +151,7 @@ export interface VirtualMachine {
   addSprite(json: string): Promise<void>;
   addBackdrop(md5ext: string, backdrop: CostumeInit): Promise<void>;
   addCostume(md5ext: string, costume: CostumeInit, targetId: string): Promise<void>;
-  updateSvg(costumeIndex: number, svg: string, rotationCenterX: number, rotationCenterY: number): void;
+  updateSvg(costumeIndex: number, svg: string, rotationCenterX: number, rotationCenterY: number): Promise<void>;
   attachStorage(storage: unknown): void;
   postIOData(device: string, data: unknown): void;
 }

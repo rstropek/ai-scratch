@@ -4,9 +4,14 @@ import type { Page, Request } from '@playwright/test';
 import { createUIMessageStream, createUIMessageStreamResponse, type UIMessageChunk } from 'ai';
 import type { ChatMetadata } from '../../src/shared/chat-types.ts';
 
-export type Step = { toolCall: { name: string; input: unknown } } | { text: string; metadata?: ChatMetadata };
+type Call = { name: string; input: unknown };
+export type Step = { toolCalls: Call[] } | { text: string; metadata?: ChatMetadata };
 
-export const toolCall = (name: string, input: unknown = {}): Step => ({ toolCall: { name, input } });
+export const toolCall = (name: string, input: unknown = {}): Step => ({ toolCalls: [{ name, input }] });
+/** Several tool calls in one model step, as the model often sends them. */
+export const toolCalls = (...calls: [name: string, input: unknown][]): Step => ({
+  toolCalls: calls.map(([name, input]) => ({ name, input })),
+});
 /** A text answer; `metadata` goes on its finish chunk (e.g. the context the turn measured). */
 export const answer = (text: string, metadata?: ChatMetadata): Step => ({ text, metadata });
 
@@ -20,7 +25,14 @@ const chunksFor = (step: Step, messageId: string): UIMessageChunk[] => {
           { type: 'text-delta', id, delta: step.text },
           { type: 'text-end', id },
         ]
-      : [{ type: 'tool-input-available', toolCallId: id, toolName: step.toolCall.name, input: step.toolCall.input }];
+      : step.toolCalls.map(
+          ({ name, input }, i): UIMessageChunk => ({
+            type: 'tool-input-available',
+            toolCallId: `${id}-${i}`,
+            toolName: name,
+            input,
+          }),
+        );
   const metadata = 'metadata' in step && step.metadata ? { messageMetadata: step.metadata } : {};
   return [
     { type: 'start', messageId },
