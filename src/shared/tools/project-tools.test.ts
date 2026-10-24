@@ -73,6 +73,64 @@ describe('project tools', () => {
     expect(xml).toMatch(/<field name="LIST" id="[^"]+" variabletype="list">Punkte</);
   });
 
+  test('add_scripts creates missing variables for all sprites, and the ones in local_variables on the sprite', async () => {
+    const vm = await createVm();
+    const tools = createProjectTools(vm);
+    const scripts = [
+      [
+        { op: 'event_whenflagclicked' },
+        { op: 'data_setvariableto', VARIABLE: 'Punkte', VALUE: 0 },
+        { op: 'data_setvariableto', VARIABLE: 'Bild', VALUE: 1 },
+        { op: 'data_addtolist', ITEM: '1', LIST: 'Karten' },
+      ],
+    ];
+    await runTool(tools, 'add_scripts', { sprite: 'Sprite1', scripts, local_variables: ['Bild', 'Karten'] });
+    const names = (vars: Record<string, { name: string; type: string }>) =>
+      Object.values(vars).map((v) => `${v.name}:${v.type || 'var'}`);
+    expect(names(vm.runtime.getTargetForStage().variables)).toContain('Punkte:var');
+    expect(names(vm.runtime.getTargetForStage().variables)).not.toContain('Bild:var');
+    expect(names(sprite(vm).variables).sort()).toEqual(['Bild:var', 'Karten:list']);
+    // the blocks point at the sprite's own variable, so each clone sets its own value
+    const [localId] = Object.entries(sprite(vm).variables).find(([, v]) => v.name === 'Bild') ?? [];
+    const set = Object.values(sprite(vm).blocks._blocks).filter((b) => b.opcode === 'data_setvariableto');
+    expect(set.map((b) => b.fields.VARIABLE?.id)).toContain(localId);
+  });
+
+  test('local_variables refuses a name that exists for all sprites, and the Stage', async () => {
+    const vm = await createVm();
+    vm.runtime.getTargetForStage().createVariable('var_punkte', 'Punkte', '');
+    const tools = createProjectTools(vm);
+    const scripts = [[{ op: 'event_whenflagclicked' }, { op: 'data_setvariableto', VARIABLE: 'Punkte', VALUE: 0 }]];
+    await expect(
+      runTool(tools, 'add_scripts', { sprite: 'Sprite1', scripts, local_variables: ['Punkte'] }),
+    ).rejects.toThrow(/"Punkte" already exists for all sprites/);
+    await expect(
+      runTool(tools, 'add_scripts', { sprite: 'Stage', scripts, local_variables: ['Punkte'] }),
+    ).rejects.toThrow(/Stage cannot have its own variables/);
+    expect(sprite(vm).blocks.getScripts()).toEqual([]);
+  });
+
+  test('add_scripts warns when a sprite polls for clicks instead of using the click hat', async () => {
+    const vm = await createVm();
+    const tools = createProjectTools(vm);
+    const clicked = {
+      op: 'operator_and',
+      OPERAND1: { op: 'sensing_mousedown' },
+      OPERAND2: { op: 'sensing_touchingobject', TOUCHINGOBJECTMENU: '_mouse_' },
+    };
+    const scripts = [
+      [
+        { op: 'event_whenflagclicked' },
+        {
+          op: 'control_forever',
+          SUBSTACK: [{ op: 'control_if', CONDITION: clicked, SUBSTACK: [{ op: 'looks_nextcostume' }] }],
+        },
+      ],
+    ];
+    const result = (await runTool(tools, 'add_scripts', { sprite: 'Sprite1', scripts })) as { warning?: string };
+    expect(result.warning).toMatch(/use event_whenthisspriteclicked/);
+  });
+
   test('add_scripts tidies the editor after adding, and a failed tidy-up still reports the scripts as added', async () => {
     const vm = await createVm();
     let cleanUps = 0;

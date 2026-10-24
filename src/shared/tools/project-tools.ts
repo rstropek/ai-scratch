@@ -16,6 +16,12 @@ export const projectToolDefinitions: ToolDefinition[] = [
     {
       sprite: { type: 'string', description: 'Sprite name, or "Stage"' },
       scripts: { type: 'array', items: { type: 'array', items: { type: 'object', additionalProperties: true } } },
+      local_variables: {
+        type: 'array',
+        items: { type: 'string' },
+        description:
+          'Names of variables or lists in these scripts that belong to this sprite only ("Nur für diese Figur"); each clone then has its own value. Missing ones not named here are created for all sprites.',
+      },
     },
     ['sprite', 'scripts'],
   ),
@@ -29,7 +35,7 @@ A script is a list of blocks. A block is {"op": "<opcode>", ...inputs and fields
 - number/text inputs and menus: plain values, e.g. {"op": "motion_movesteps", "STEPS": 10}
 - reporters/booleans as values: nested blocks, e.g. {"op": "operator_gt", "OPERAND1": {"op": "motion_xposition"}, "OPERAND2": 50}
 - C-blocks: "SUBSTACK" (and "SUBSTACK2" for else) is a list of blocks
-- variables/lists/messages by name: {"op": "data_changevariableby", "VARIABLE": "Punkte", "VALUE": 1}, {"op": "data_variable", "VARIABLE": "Punkte"}, {"op": "event_broadcast", "BROADCAST_INPUT": "los"}, {"op": "event_whenbroadcastreceived", "BROADCAST_OPTION": "los"}. Missing variables are created automatically.
+- variables/lists/messages by name: {"op": "data_changevariableby", "VARIABLE": "Punkte", "VALUE": 1}, {"op": "data_variable", "VARIABLE": "Punkte"}, {"op": "event_broadcast", "BROADCAST_INPUT": "los"}, {"op": "event_whenbroadcastreceived", "BROADCAST_OPTION": "los"}. Missing variables are created automatically, for all sprites; list them in add_scripts "local_variables" to make them the sprite's own. In get_project, the Stage's variables are for all sprites, a sprite's variables are its own.
 - custom blocks: a script starting with {"op": "procedures_definition", "name": "Springe", "params": ["Höhe"]}; inside use {"op": "argument", "name": "Höhe"}; call with {"op": "procedures_call", "name": "Springe", "args": [50]}
 Example: [[{"op": "event_whenflagclicked"}, {"op": "control_repeat", "TIMES": 10, "SUBSTACK": [{"op": "motion_movesteps", "STEPS": 10}, {"op": "control_wait", "DURATION": 0.1}]}, {"op": "looks_say", "MESSAGE": "Fertig"}]]
 `;
@@ -139,6 +145,35 @@ export interface ProjectToolOptions {
   scriptsMissingInEditor?: () => string[];
 }
 
+let localCounter = 0;
+
+/** Creates the sprite's own variables and lists that it doesn't have yet; a list if the scripts use the name as one. */
+const createLocalVariables = (vm: VirtualMachine, target: Target, names: string[], blocks: Sb3Blocks): void => {
+  if (target.isStage) fail(['"local_variables": the Stage cannot have its own variables; leave it out']);
+  const usedAsList = new Set(
+    Object.values(blocks).flatMap((b) => {
+      const field = Array.isArray(b) ? undefined : b.fields?.LIST;
+      return field === undefined ? [] : [Array.isArray(field) ? field[0] : field];
+    }),
+  );
+  const stage = vm.runtime.getTargetForStage();
+  const has = (t: Target, name: string, type: string) =>
+    Object.values(t.variables).some((v) => v.name === name && v.type === type);
+  const errors = names
+    .filter((name) => has(stage, name, usedAsList.has(name) ? 'list' : ''))
+    .map(
+      (name) =>
+        `"${name}" already exists for all sprites. Use it as it is, or pick another name for the sprite's own one`,
+    );
+  if (errors.length) fail(errors);
+  for (const name of names) {
+    const type = usedAsList.has(name) ? 'list' : '';
+    // a fresh id: shareBlocksToTarget maps the scripts' references to it by name
+    if (!has(target, name, type))
+      target.createVariable(`local_${Date.now().toString(36)}_${localCounter++}`, name, type);
+  }
+};
+
 const editorWarning = (sprite: string, missing: string[]): string =>
   `The editor failed to show ${missing.length} script(s) of ${sprite} (their first blocks: ${missing.join(', ')}). ` +
   'They are in the project and run, but the kid cannot see them. Do not add them again. Tell the kid that ' +
@@ -187,6 +222,20 @@ const hiddenWarning = (sprite: string): string =>
   'a green-flag script with looks_show and the start position, before its loop, unless you are about to add ' +
   'such a script anyway.';
 
+/** The target polls for clicks on itself (mouse down + touching the mouse pointer) instead of using the hat. */
+const pollsForClicks = (target: Target): boolean => {
+  const blocks = Object.values(target.blocks._blocks);
+  return (
+    blocks.some((b) => b.opcode === 'sensing_mousedown') &&
+    blocks.some((b) => b.opcode === 'sensing_touchingobjectmenu' && b.fields.TOUCHINGOBJECTMENU?.value === '_mouse_')
+  );
+};
+
+const clickWarning = (sprite: string): string =>
+  `${sprite} checks "mouse down" and "touching mouse-pointer" in a loop. If that is a click on the sprite, use ` +
+  'event_whenthisspriteclicked instead: kids understand it more easily, and it reacts once per click. Rebuild ' +
+  "the sprite's scripts that way now, unless the kid drags the sprite with the mouse.";
+
 export const createProjectTools = (
   vm: VirtualMachine,
   { cleanUp, scriptsMissingInEditor }: ProjectToolOptions = {},
@@ -198,6 +247,11 @@ export const createProjectTools = (
     if (!Array.isArray(scripts)) return fail(['"scripts" must be a list of scripts (each a list of blocks)']);
     const { blocks, errors } = compileScripts(scripts, { procedures: existingProcedures(target) });
     if (errors.length) fail(errors);
+    const locals = jsonArg(args, 'local_variables') ?? [];
+    if (!Array.isArray(locals) || locals.some((n) => typeof n !== 'string' || !n)) {
+      return fail(['"local_variables" must be a list of variable or list names']);
+    }
+    if (locals.length) createLocalVariables(vm, target, locals, blocks);
     const added = await applySb3Blocks(vm, target, blocks);
     try {
       await cleanUp?.();
@@ -216,6 +270,7 @@ export const createProjectTools = (
       ...(missing.length ? [editorWarning(target.getName(), missing)] : []),
       ...(mutual.length ? [touchWarning(target.getName(), mutual)] : []),
       ...(staysHiddenAfterStop(target) ? [hiddenWarning(target.getName())] : []),
+      ...(pollsForClicks(target) ? [clickWarning(target.getName())] : []),
     ];
     return warnings.length ? { ok: true, added, warning: warnings.join('\n') } : { ok: true, added };
   },

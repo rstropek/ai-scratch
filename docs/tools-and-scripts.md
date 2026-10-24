@@ -44,9 +44,15 @@ format or the system prompt.
 - **Deterministic checks beat prompt text.** In a replayed session ("Fang mich") Haiku ignored the prompt's
   Scratch tips while building, but it fixed the pitfalls as soon as an `add_scripts` result carried a
   warning. So `add_scripts` checks the result (scripts missing in the editor, two sprites testing the same
-  touch, a sprite that hides itself and is never shown at the start) and returns a `warning` that tells the
+  touch, a sprite that hides itself and is never shown at the start, a sprite that polls for clicks with
+  "mouse down" + "touching mouse-pointer" instead of the click hat) and returns a `warning` that tells the
   model what to fix and to explain it in one sentence. For a new recurring mistake, add such a check rather
   than more prompt.
+- **Variables are for all sprites unless named in `local_variables`.** Missing variables are created on the
+  Stage (scratch-vm's `fixUpVariableReferences` in `shareBlocksToTarget`). Per-clone values (which picture a
+  Memory card shows) need the sprite's own variable, so `add_scripts` creates the names in `local_variables` on
+  the sprite first, and the VM then maps the scripts' references to them by name. Before that, the model asked
+  the kid to create them in the editor.
 - **Library first, drawing second:** the prompt sends the model to `search_library` (English keywords) before
   it draws SVG; drawings are checked cheaply (viewBox, size) and the editor's SVG loader sanitizes the rest.
 
