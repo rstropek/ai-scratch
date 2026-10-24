@@ -36,7 +36,7 @@ A script is a list of blocks. A block is {"op": "<opcode>", ...inputs and fields
 - reporters/booleans as values: nested blocks, e.g. {"op": "operator_gt", "OPERAND1": {"op": "motion_xposition"}, "OPERAND2": 50}
 - C-blocks: "SUBSTACK" (and "SUBSTACK2" for else) is a list of blocks
 - variables/lists/messages by name: {"op": "data_changevariableby", "VARIABLE": "Punkte", "VALUE": 1}, {"op": "data_variable", "VARIABLE": "Punkte"}, {"op": "event_broadcast", "BROADCAST_INPUT": "los"}, {"op": "event_whenbroadcastreceived", "BROADCAST_OPTION": "los"}. Missing variables are created automatically, for all sprites; list them in add_scripts "local_variables" to make them the sprite's own. In get_project, the Stage's variables are for all sprites, a sprite's variables are its own.
-- custom blocks: a script starting with {"op": "procedures_definition", "name": "Springe", "params": ["Höhe"]}; inside use {"op": "argument", "name": "Höhe"}; call with {"op": "procedures_call", "name": "Springe", "args": [50]}
+- custom blocks: a script starting with {"op": "procedures_definition", "name": "Springe", "params": ["Höhe"]}; inside use {"op": "argument", "name": "Höhe"}; call with {"op": "procedures_call", "name": "Springe", "args": [50]}. Add "warp": true to the procedures_definition to run it without screen refresh ("Ohne Bildschirmaktualisierung laufen lassen"): much faster for calculations and recursion, but nothing moves on screen until it ends
 Example: [[{"op": "event_whenflagclicked"}, {"op": "control_repeat", "TIMES": 10, "SUBSTACK": [{"op": "motion_movesteps", "STEPS": 10}, {"op": "control_wait", "DURATION": 0.1}]}, {"op": "looks_say", "MESSAGE": "Fertig"}]]
 `;
 
@@ -120,6 +120,7 @@ const existingProcedures = (target: Target): Record<string, ProcedureInfo> =>
             proccode,
             argIds: JSON.parse(m.argumentids ?? '[]') as string[],
             argNames: JSON.parse(m.argumentnames ?? '[]') as string[],
+            warp: String(m.warp) === 'true',
           },
         ];
       }),

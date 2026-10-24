@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { createVm, findVariable, runGreenFlag, sprite } from '../../../test/support/headless-vm.ts';
-import { createProjectTools } from '../tools/project-tools.ts';
+import { createProjectTools, type ProjectSnapshot } from '../tools/project-tools.ts';
 import { compileScripts, type DslScript, decompileBlocks } from './script-dsl.ts';
 
 describe('compileScripts', () => {
@@ -81,6 +81,53 @@ describe('compileScripts', () => {
     });
     await runGreenFlag(vm, 500);
     expect(Number(findVariable(vm, 'Ergebnis')?.value)).toBe(120);
+  });
+
+  test('"warp" runs a custom block without screen refresh, and get_project shows it', async () => {
+    const countTo = async (warp: boolean) => {
+      const vm = await createVm();
+      // without a renderer nothing requests a redraw, and then Scratch never waits for a frame;
+      // counting requests one here, like a sprite that moves
+      const runtime = vm.runtime as unknown as {
+        _primitives: Record<string, (args: unknown, util: unknown) => unknown>;
+        requestRedraw(): void;
+      };
+      const change = runtime._primitives.data_changevariableby;
+      runtime._primitives.data_changevariableby = (args, util) => {
+        runtime.requestRedraw();
+        return change?.(args, util);
+      };
+      const tools = createProjectTools(vm);
+      await tools.add_scripts?.({
+        sprite: 'Sprite1',
+        scripts: [
+          [
+            { op: 'event_whenflagclicked' },
+            { op: 'data_setvariableto', VARIABLE: 'Tiefe', VALUE: 0 },
+            { op: 'procedures_call', name: 'Zähle', args: [] },
+          ],
+          [
+            { op: 'procedures_definition', name: 'Zähle', params: [], warp },
+            { op: 'data_changevariableby', VARIABLE: 'Tiefe', VALUE: 1 },
+            {
+              op: 'control_if',
+              CONDITION: { op: 'operator_lt', OPERAND1: { op: 'data_variable', VARIABLE: 'Tiefe' }, OPERAND2: 300 },
+              SUBSTACK: [{ op: 'procedures_call', name: 'Zähle', args: [] }],
+            },
+          ],
+        ],
+      });
+      const snapshot = (await tools.get_project?.({})) as ProjectSnapshot;
+      const definition = snapshot.targets[1]?.scripts.flat().find((b) => b.op === 'procedures_definition');
+      await runGreenFlag(vm, 300);
+      return { depth: Number(findVariable(vm, 'Tiefe')?.value), definition };
+    };
+    const warped = await countTo(true);
+    expect(warped.depth).toBe(300);
+    expect(warped.definition).toMatchObject({ name: 'Zähle', warp: true });
+    const normal = await countTo(false);
+    expect(normal.depth).toBeLessThan(300); // a recursive call waits for the next frame
+    expect(normal.definition).not.toHaveProperty('warp');
   });
 
   test('the prototype of a definition has an argument reporter per parameter', () => {

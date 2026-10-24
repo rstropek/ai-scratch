@@ -24,6 +24,8 @@ export interface ProcedureInfo {
   proccode: string;
   argIds: string[];
   argNames: string[];
+  /** "Ohne Bildschirmaktualisierung laufen lassen" */
+  warp: boolean;
 }
 
 const PRIMITIVE: Record<string, number> = {
@@ -60,6 +62,7 @@ export const compileScripts = (
         proccode: [name, ...params.map(() => '%s')].join(' '),
         argIds: params.map((p) => `arg_${slug(name)}_${slug(p)}`),
         argNames: params,
+        warp: head.warp === true,
       };
     }
   }
@@ -152,7 +155,7 @@ export const compileScripts = (
           argumentids: JSON.stringify(p.argIds),
           argumentnames: JSON.stringify(p.argNames),
           argumentdefaults: JSON.stringify(p.argNames.map(() => '')),
-          warp: 'false',
+          warp: String(p.warp),
         },
       };
       inputs.custom_block = [1, protoId];
@@ -178,7 +181,7 @@ export const compileScripts = (
         children: [],
         proccode: p.proccode,
         argumentids: JSON.stringify(p.argIds),
-        warp: 'false',
+        warp: String(p.warp),
       };
       p.argIds.forEach((argId, i) => {
         const v = args[i] ?? '';
@@ -321,6 +324,7 @@ export const decompileBlocks = (sb3Blocks: Sb3Blocks): DslScript[] => {
         op: b.opcode,
         name: procName(proto?.mutation?.proccode),
         params: parseIds(proto?.mutation?.argumentnames),
+        ...(String(proto?.mutation?.warp) === 'true' ? { warp: true } : {}),
       };
     }
     if (b.opcode === 'procedures_call') {
