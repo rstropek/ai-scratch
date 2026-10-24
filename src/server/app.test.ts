@@ -13,6 +13,8 @@ const config: Config = {
   anthropicApiKey: 'test-key',
   anthropicWorkspaceId: 'ws-test',
   model: 'claude-haiku-5-5',
+  effort: 'high',
+  instructions: undefined,
   jevApiKey: 'jev-key',
   jevModel: 'jev-1.13.0',
   accessCodes: new Set(['schule1', 'admin_test']),

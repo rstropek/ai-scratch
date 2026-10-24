@@ -20,7 +20,8 @@
     "check": "biome check . && tsc -b",
     "lint:fix": "biome check --write .",
     "postinstall": "node scripts/fix-vm-node.ts",
-    "eval:guard": "node --env-file=.env eval/guard/run.ts"
+    "eval:guard": "node --env-file=.env eval/guard/run.ts",
+    "eval:games": "node eval/games/run.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "4.0.87",

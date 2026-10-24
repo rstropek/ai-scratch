@@ -84,6 +84,8 @@ npm run dev            # http://localhost:5173/?code=<one of your access codes>
 | `ACCESS_CODES` | comma-separated, one per school; not case-sensitive; codes starting with `admin_` have no heart limit (testing) |
 | `JEV_API_KEY` | TypeSafe key for the kids-protection guard (server only) |
 | `MODEL` | default `claude-haiku-5-5` |
+| `EFFORT` | the chat's thinking effort, default `high` |
+| `INSTRUCTIONS_FILE` | replaces the built-in system prompt + tool instructions (for prompt variants in `eval:games`; not for production) |
 | `JEV_MODEL` | default `jev-1.13.0` (the guard thresholds are tuned against it) |
 | `PORT`, `LOG_DIR`, `DIST_DIR` | default `3000`, `logs`, `dist` |
 | `LOG_BLOB_URL` | Blob container for the research log (Azure, managed identity); without it the log goes to `LOG_DIR` |
@@ -97,6 +99,7 @@ npm run dev            # http://localhost:5173/?code=<one of your access codes>
 | `npm start` | production server: API + `dist/` on :3000 |
 | `npm test` | unit and component tests (Vitest, headless scratch-vm, no network) |
 | `npm run e2e` | Playwright against the production build, model mocked |
+| `npm run eval:games` | a simulated kid builds Memory/Fangspiel with the real app and model, a bot plays and checks each version ([eval/games](eval/games/README.md)); costs real money |
 | `npm run eval:guard` | runs the labelled kid messages against the real Jev guard, writes [docs/kids-protection.md](docs/kids-protection.md) |
 | `npm run check` | Biome + TypeScript |
 | `npm run lint:fix` | Biome with fixes |
@@ -134,6 +137,7 @@ src/server/               Hono: /api/chat, access code, guards, research log, st
 test/support/             headless scratch-vm, fake Anthropic streams, fixtures
 e2e/                      Playwright specs
 eval/guard/               labelled kid messages + runner for the kids-protection guard
+eval/games/               game harness: simulated kid + real app + a bot that plays the result
 docs/                     architecture notes per topic, kids-protection report, pre-event checklist
 scripts/                  postinstall workaround, Scratch bundle preparation, Azure setup (scripts/azure)
 ```

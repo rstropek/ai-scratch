@@ -165,7 +165,7 @@ export const createChatHandler =
       model: anthropic(config.model),
       instructions: {
         role: 'system',
-        content: INSTRUCTIONS,
+        content: config.instructions ?? INSTRUCTIONS,
         providerOptions: CACHE,
       },
       messages: await modelMessages(messages),
@@ -175,7 +175,7 @@ export const createChatHandler =
       providerOptions: {
         anthropic: {
           thinking: { type: 'adaptive' },
-          effort: 'high',
+          effort: config.effort,
           cacheControl: { type: 'ephemeral' }, // top-level: automatic breakpoint at the end of the conversation
         },
       },

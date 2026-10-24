@@ -138,6 +138,8 @@ export interface VirtualMachine {
   runtime: Runtime;
   editingTarget: Target | null;
   toJSON(): string;
+  /** the project as an .sb3 file, like Datei > Speichern */
+  saveProjectSb3(): Promise<Blob>;
   loadProject(project: string | object): Promise<void>;
   shareBlocksToTarget(blocks: VmBlock[], targetId: string): Promise<void>;
   setEditingTarget(targetId: string): void;

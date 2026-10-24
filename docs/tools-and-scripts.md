@@ -12,7 +12,9 @@ format or the system prompt.
   no `execute` on the server: executors are `ToolHandlers` that run in the browser on the live VM, strictly
   one at a time ([tool-runner.ts](../src/client/scratch/tool-runner.ts)).
 - System prompt + all tool instructions form one static block, so it is cached across all kids
-  ([conversation.md](conversation.md)). Anything per-kid or per-turn must not go into it.
+  ([conversation.md](conversation.md)). Anything per-kid or per-turn must not go into it. `INSTRUCTIONS_FILE`
+  replaces the whole block, so the game harness ([eval/games](../eval/games/README.md)) can compare prompt
+  variants. Check a prompt or tool wording change there before shipping it.
 
 ## Why the nested-JSON script format
 

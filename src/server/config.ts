@@ -8,6 +8,10 @@ export interface Config {
   /** the product owner's key is identity-linked and needs this header on every request */
   anthropicWorkspaceId: string | undefined;
   model: string;
+  /** the chat's thinking effort */
+  effort: Effort;
+  /** replaces the built-in system prompt + tool instructions (eval/games tries prompt variants with it) */
+  instructions: string | undefined;
   /** TypeSafe key for the kids-protection guard (Jev) */
   jevApiKey: string;
   /** pinned: the guard thresholds are tuned against this version */
@@ -22,6 +26,15 @@ export interface Config {
   /** the deployed git commit (the Docker build sets APP_VERSION); shown by /healthz */
   version: string;
 }
+
+export const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const;
+export type Effort = (typeof EFFORTS)[number];
+
+const effortOf = (value: string | undefined): Effort => {
+  const effort = value?.trim() || 'high';
+  if (!(EFFORTS as readonly string[]).includes(effort)) throw new Error(`EFFORT must be one of ${EFFORTS.join(', ')}`);
+  return effort as Effort;
+};
 
 const required = (env: NodeJS.ProcessEnv, name: string): string => {
   const value = env[name]?.trim();
@@ -39,6 +52,8 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): Config => {
     anthropicApiKey: required(env, 'ANTHROPIC_API_KEY'),
     anthropicWorkspaceId: env.ANTHROPIC_WORKSPACE_ID?.trim() || undefined,
     model: env.MODEL?.trim() || 'claude-haiku-5-5',
+    effort: effortOf(env.EFFORT),
+    instructions: env.INSTRUCTIONS_FILE?.trim() ? fs.readFileSync(env.INSTRUCTIONS_FILE.trim(), 'utf8') : undefined,
     jevApiKey: required(env, 'JEV_API_KEY'),
     jevModel: env.JEV_MODEL?.trim() || 'jev-1.13.0',
     accessCodes,

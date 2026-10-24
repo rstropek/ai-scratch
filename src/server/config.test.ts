@@ -15,3 +15,13 @@ test('an unresolved Key Vault reference stops the server with a clear message', 
     }),
   ).toThrow('ANTHROPIC_API_KEY is an unresolved Key Vault reference');
 });
+
+test('effort and a replacement prompt are optional; a wrong effort stops the server', () => {
+  const base = { ACCESS_CODES: 'schule1', ANTHROPIC_API_KEY: 'k', JEV_API_KEY: 'j' };
+  expect(loadConfig(base)).toMatchObject({ effort: 'high', instructions: undefined });
+  expect(loadConfig({ ...base, EFFORT: 'medium', INSTRUCTIONS_FILE: 'package.json' })).toMatchObject({
+    effort: 'medium',
+    instructions: expect.stringContaining('digiferien'),
+  });
+  expect(() => loadConfig({ ...base, EFFORT: 'mittel' })).toThrow('EFFORT must be one of');
+});

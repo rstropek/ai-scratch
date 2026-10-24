@@ -7,3 +7,8 @@ playwright-report/
 
 # impeccable skill engine: the wrapper downloads a version-pinned, checksum-verified copy on first use
 .claude/skills/impeccable/scripts/bin/
+
+# game harness: runs and the generated reference games (node eval/games/reference.ts)
+eval/games/runs/
+eval/games/sessions/
+eval/games/reference/

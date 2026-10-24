@@ -8,5 +8,5 @@
     "types": ["node", "vite/client", "@testing-library/jest-dom/vitest"],
     "paths": { "@/*": ["./src/client/*"] }
   },
-  "include": ["src", "test", "e2e"]
+  "include": ["src", "test", "e2e", "eval/games"]
 }
