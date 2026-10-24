@@ -42,8 +42,12 @@ GUI elements have CSS-module classes like `green-flag_green-flag_1kiAo`: match t
 ## Traps found the hard way
 
 - **Editor and VM can disagree.** When the editor can't load a block it silently drops every later script of
-  that sprite (the error only reaches the console). `add_scripts` therefore compares the workspace with the
-  VM afterwards and warns the model ([project-tools.ts](../src/shared/tools/project-tools.ts)).
+  that sprite, or shows a script's top block without the rest (the error only reaches the console).
+  `add_scripts` therefore compares every block of the workspace with the VM afterwards and warns the model
+  ([project-tools.ts](../src/shared/tools/project-tools.ts)).
+- **A custom block's prototype needs an argument reporter per parameter** in its inputs, or the editor shows
+  the definition as a bare prototype (it looks like a call) and drops its body;
+  [script-dsl.ts](../src/shared/scratch/script-dsl.ts) adds them.
 - **Fields that reference a variable, list or broadcast need their variable type**, or the editor fails to
   load the sprite's workspace (see the trap above); [sb3-blocks.ts](../src/shared/scratch/sb3-blocks.ts) sets it.
 - **New scripts land on top of each other** unless the editor tidies up; `add_scripts` runs Scratch's own

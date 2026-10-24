@@ -132,13 +132,18 @@ export const compileScripts = (
         return id;
       }
       const protoId = newId('procedures_prototype');
+      // the editor needs an argument reporter per parameter in the prototype, or it drops the whole definition
+      const protoInputs: Record<string, Sb3Input> = {};
+      p.argIds.forEach((argId, i) => {
+        protoInputs[argId] = [1, shadowBlock('argument_reporter_string_number', 'VALUE', p.argNames[i] ?? '', protoId)];
+      });
       blocks[protoId] = {
         opcode: 'procedures_prototype',
         parent: id,
         next: null,
         shadow: true,
         topLevel: false,
-        inputs: {},
+        inputs: protoInputs,
         fields: {},
         mutation: {
           tagName: 'mutation',

@@ -92,20 +92,27 @@ export const cleanUpScripts = async (vm: VirtualMachine, store: GuiStore): Promi
   }
 };
 
-/** The shown sprite's scripts that run in the VM but are missing in the editor, as opcodes of their
- * top blocks. When the editor can't load a block it stops and drops every script after it, and the
- * error only reaches the console; this catches any such cause. */
+/** The shown sprite's scripts that run in the VM but are missing in the editor, completely or in part,
+ * as opcodes of their top blocks. When the editor can't load a block it stops and drops every script
+ * after it, or shows a script's top block without the rest (a custom block definition it can't read),
+ * and the error only reaches the console; this catches any such cause. */
 export const scriptsMissingInEditor = (vm: VirtualMachine): string[] => {
   const target = vm.editingTarget;
   if (!target) return [];
-  const shown = new Set(
-    workspace()
-      .getTopBlocks()
-      .map((b) => b.id),
+  const ws = workspace();
+  const rootOf = (id: string) => {
+    let block = target.blocks.getBlock(id);
+    while (block?.parent) block = target.blocks.getBlock(block.parent);
+    return block?.id ?? id;
+  };
+  const incomplete = new Set(
+    Object.values(target.blocks._blocks)
+      .filter((b) => !b.shadow && !ws.getBlockById(b.id))
+      .map((b) => rootOf(b.id)),
   );
   return target.blocks
     .getScripts()
-    .filter((id) => !shown.has(id))
+    .filter((id) => incomplete.has(id))
     .map((id) => target.blocks.getBlock(id)?.opcode ?? id);
 };
 

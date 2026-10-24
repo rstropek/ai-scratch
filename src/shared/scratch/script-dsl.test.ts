@@ -51,6 +51,49 @@ describe('compileScripts', () => {
     expect(Number(findVariable(vm, 'Punkte')?.value)).toBe(1);
   });
 
+  test('a custom block can call itself', async () => {
+    const vm = await createVm();
+    const n = { op: 'argument', name: 'n' };
+    await createProjectTools(vm).add_scripts?.({
+      sprite: 'Sprite1',
+      scripts: [
+        [
+          { op: 'event_whenflagclicked' },
+          { op: 'data_setvariableto', VARIABLE: 'Ergebnis', VALUE: 1 },
+          { op: 'procedures_call', name: 'Fakultät', args: [5] },
+        ],
+        [
+          { op: 'procedures_definition', name: 'Fakultät', params: ['n'] },
+          {
+            op: 'control_if',
+            CONDITION: { op: 'operator_gt', OPERAND1: n, OPERAND2: 1 },
+            SUBSTACK: [
+              {
+                op: 'data_setvariableto',
+                VARIABLE: 'Ergebnis',
+                VALUE: { op: 'operator_multiply', NUM1: { op: 'data_variable', VARIABLE: 'Ergebnis' }, NUM2: n },
+              },
+              { op: 'procedures_call', name: 'Fakultät', args: [{ op: 'operator_subtract', NUM1: n, NUM2: 1 }] },
+            ],
+          },
+        ],
+      ],
+    });
+    await runGreenFlag(vm, 500);
+    expect(Number(findVariable(vm, 'Ergebnis')?.value)).toBe(120);
+  });
+
+  test('the prototype of a definition has an argument reporter per parameter', () => {
+    // without them the editor shows the definition as a bare prototype and drops its body
+    const { blocks } = compileScripts([[{ op: 'procedures_definition', name: 'Springe', params: ['Höhe', 'Zeit'] }]]);
+    const proto = Object.values(blocks).find((b) => b.opcode === 'procedures_prototype');
+    const reporters = Object.values(proto?.inputs ?? {}).map((input) => blocks[String(input[1])]);
+    expect(reporters.map((r) => [r?.opcode, r?.shadow, r?.fields?.VALUE?.[0]])).toEqual([
+      ['argument_reporter_string_number', true, 'Höhe'],
+      ['argument_reporter_string_number', true, 'Zeit'],
+    ]);
+  });
+
   test('helpful errors instead of silently broken blocks', () => {
     const { errors } = compileScripts([
       [
