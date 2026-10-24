@@ -18,7 +18,8 @@ export interface TargetState {
   look: string;
   /** stage coordinates of the drawn image */
   bounds: { left: number; right: number; top: number; bottom: number } | null;
-  /** has a "Wenn diese Figur angeklickt wird" script (clones share their sprite's scripts) */
+  /** reacts to clicks: a "Wenn diese Figur angeklickt wird" script, or polling for a mouse click on itself
+   * (clones share their sprite's scripts) */
   clickable: boolean;
 }
 
@@ -44,8 +45,12 @@ export type Policy =
   | { kind: 'none' }
   /** hold these keys (with key repeat) and keep the mouse at a stage position */
   | { kind: 'hold'; keys: string[]; mouse?: [x: number, y: number] }
-  /** move `catcher` (arrow keys + mouse) under the lowest falling object, or away from it */
-  | { kind: 'catch' | 'avoid'; catcher: string };
+  /** move `catcher` (arrow keys + mouse) under the lowest falling object, or away from everything falling */
+  | { kind: 'catch' | 'avoid'; catcher: string }
+  /** like catch, and taps `key` (default space) to shoot at it */
+  | { kind: 'shoot'; catcher: string; key?: string }
+  /** steer `mover` (arrow keys + mouse) towards `target`, one axis at a time */
+  | { kind: 'seek'; mover: string; target: string };
 
 declare global {
   interface Window {
@@ -110,8 +115,18 @@ const installPlayer = () => {
   };
   // biome-ignore lint/suspicious/noExplicitAny: VM target
   const clickable = (t: any) => {
-    const blocks = (t.sprite?.blocks ?? t.blocks)._blocks as Record<string, { opcode: string; topLevel: boolean }>;
-    return Object.values(blocks).some((b) => b.topLevel && b.opcode === 'event_whenthisspriteclicked');
+    const blocks = Object.values(
+      (t.sprite?.blocks ?? t.blocks)._blocks as Record<
+        string,
+        { opcode: string; topLevel: boolean; fields: Record<string, { value: string }> }
+      >,
+    );
+    if (blocks.some((b) => b.topLevel && b.opcode === 'event_whenthisspriteclicked')) return true;
+    // polling: "wird Maus gedrückt?" together with "wird Mauszeiger berührt?"
+    return (
+      blocks.some((b) => b.opcode === 'sensing_mousedown') &&
+      blocks.some((b) => b.fields.TOUCHINGOBJECTMENU?.value === '_mouse_')
+    );
   };
   // biome-ignore lint/suspicious/noExplicitAny: VM target
   const targetState = (t: any) => {
@@ -185,6 +200,22 @@ const installPlayer = () => {
     }
     // biome-ignore lint/suspicious/noExplicitAny: VM targets
     const targets = runtime.targets as any[];
+    if (policy.kind === 'seek') {
+      const mover = targets.find((t) => t.isOriginal && t.getName() === policy.mover);
+      const target = targets.find((t) => t.isOriginal && t.getName() === policy.target);
+      if (!mover || !target) return;
+      const dx = target.x - mover.x;
+      const dy = target.y - mover.y;
+      const keys =
+        Math.abs(dx) < 5 && Math.abs(dy) < 5
+          ? []
+          : Math.abs(dx) > Math.abs(dy)
+            ? [dx > 0 ? 'ArrowRight' : 'ArrowLeft']
+            : [dy > 0 ? 'ArrowUp' : 'ArrowDown'];
+      hold(keys);
+      mouseTo(Math.max(-235, Math.min(235, target.x)), Math.max(-175, Math.min(175, target.y)));
+      return;
+    }
     const catcher = targets.find((t) => t.isOriginal && t.getName() === policy.catcher);
     if (!catcher) return;
     const falling = targets.filter(
@@ -192,16 +223,31 @@ const installPlayer = () => {
     );
     const next = falling.sort((a, b) => a.y - b.y)[0];
     let goal = catcher.x;
-    if (next) goal = policy.kind === 'catch' ? next.x : next.x > 0 ? -200 : 200;
+    if (next && policy.kind !== 'avoid') goal = next.x;
+    // avoid: the place farthest from everything falling in the lower part of the stage
+    const near = falling.filter((t) => t.y < catcher.y + 250);
+    if (near.length && policy.kind === 'avoid') {
+      const room = (x: number) => Math.min(...near.map((t) => Math.abs(t.x - x)));
+      for (let x = -200; x <= 200; x += 25) if (room(x) > room(goal) + 10) goal = x;
+    }
     const dx = goal - catcher.x;
-    hold(Math.abs(dx) < 8 ? [] : dx > 0 ? ['ArrowRight'] : ['ArrowLeft']);
+    const tap = policy.kind === 'shoot' && frame % 10 < 3 ? [policy.key ?? ' '] : [];
+    hold([...(Math.abs(dx) < 8 ? [] : dx > 0 ? ['ArrowRight'] : ['ArrowLeft']), ...tap]);
     mouseTo(Math.max(-235, Math.min(235, goal)), catcher.y);
   };
   const lastY = new Map<string, number>();
 
+  // seeded only while the VM steps: the editor's own code (React, the GUI) runs in between and would use
+  // up the sequence at its own pace
+  let seeded = false;
   const step = () => {
     clock.now = Math.max(clock.now, clock.base + frame * STEP);
-    runtime._step();
+    if (seeded) Math.random = random;
+    try {
+      runtime._step();
+    } finally {
+      Math.random = realRandom;
+    }
     frame += 1;
     events.maxClones = Math.max(
       events.maxClones,
@@ -224,7 +270,7 @@ const installPlayer = () => {
     greenFlag(runSeed: number) {
       runtime.quit();
       seed = runSeed;
-      Math.random = random;
+      seeded = true;
       clock.manual = true;
       clock.base = clock.now - frame * STEP;
       events.says = [];
@@ -236,25 +282,33 @@ const installPlayer = () => {
       flagFrame = frame;
       vm.greenFlag();
     },
-    /** runs n frames; the policy steers before each frame; returns states sampled every `sample` frames */
+    /**
+     * runs n frames; the policy steers before each frame; returns states sampled every `sample` frames.
+     * Blocks that wait on the browser ("spiele Klang ganz") finish in real time, so while a script waits
+     * on one, frames run at real speed; otherwise the loop only yields now and then for browser events.
+     */
     // biome-ignore lint/suspicious/noExplicitAny: policy object from the test
-    frames(n: number, policy: any = { kind: 'none' }, sample = 0) {
+    async frames(n: number, policy: any = { kind: 'none' }, sample = 0) {
       runtime.quit();
       clock.manual = true;
       const samples = [];
+      const PROMISE_WAIT = 1; // Thread.STATUS_PROMISE_WAIT
       for (let i = 0; i < n; i++) {
         steer(policy);
         for (const t of runtime.targets) lastY.set(t.id, t.y);
         step();
         if (sample && i % sample === sample - 1) samples.push(state());
+        if (runtime.threads.some((t: { status: number }) => t.status === PROMISE_WAIT))
+          await new Promise((r) => setTimeout(r, STEP));
+        else if (i % 30 === 29) await new Promise((r) => setTimeout(r, 0));
       }
       hold([]);
       return samples;
     },
-    /** a mouse click on stage coordinates (down, one frame, up), like a click in the stage */
+    /** a mouse click on stage coordinates, like a click in the stage */
     click(x: number, y: number) {
       vm.postIOData('mouse', { ...toClient(x, y), isDown: true });
-      step();
+      for (let i = 0; i < 3; i++) step(); // a real click lasts about 100 ms
       vm.postIOData('mouse', { ...toClient(x, y), isDown: false });
       step();
     },
@@ -264,11 +318,14 @@ const installPlayer = () => {
     /** hands time and randomness back to the editor */
     release() {
       clock.manual = false;
-      Math.random = realRandom;
+      seeded = false;
       vm.stopAll();
     },
   };
 };
+
+/** Chromium flags for the app pages: "spiele Klang ganz" waits for the sound to end, so audio must run without a click. */
+export const BROWSER_ARGS = ['--autoplay-policy=no-user-gesture-required'];
 
 export class Player {
   readonly page: Page;

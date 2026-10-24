@@ -1,88 +1,26 @@
 // The games the harness builds: the kid's brief and the checks that play the result with a bot.
 // Checks find the parts of the game by behaviour (what falls, what the arrow keys move, which variable
 // counts), not by the names the brief suggests, because the model and the kid may name things differently.
+import {
+  type CheckResult,
+  fallingNames,
+  findVar,
+  type Game,
+  num,
+  onStage,
+  overlap,
+  result,
+  type Shot,
+} from './checks.ts';
+import { fangMich, minesweeper, spaceShooter } from './coderdojo.ts';
 import type { Player, StageState, TargetState } from './player.ts';
 
-export type CheckStatus = 'pass' | 'fail' | 'skip';
-
-export interface CheckResult {
-  id: string;
-  title: string;
-  status: CheckStatus;
-  /** what the bot measured (English, for the report) */
-  detail: string;
-  /** what a kid trying the game would notice (German, goes to the simulated kid) */
-  kid: string;
-}
-
-export interface Shot {
-  label: string;
-  png: Buffer;
-}
-
-export interface CheckRun {
-  checks: CheckResult[];
-  shots: Shot[];
-}
-
-export interface Game {
-  id: string;
-  title: string;
-  /** the game the simulated kid has in mind (German) */
-  brief: string;
-  check(player: Player, sb3: Buffer): Promise<CheckRun>;
-}
-
-const result = (
-  id: string,
-  title: string,
-  ok: boolean | undefined,
-  detail: string,
-  kid: [pass: string, fail: string],
-): CheckResult => ({
-  id,
-  title,
-  status: ok === undefined ? 'skip' : ok ? 'pass' : 'fail',
-  detail,
-  kid: ok === undefined ? '' : ok ? kid[0] : kid[1],
-});
-
-const num = (v: string | number | undefined): number | undefined => {
-  const n = Number(v);
-  return v === undefined || v === '' || Number.isNaN(n) ? undefined : n;
-};
-const findVar = (s: StageState, pattern: RegExp) =>
-  Object.keys(s.variables).find((name) => pattern.test(name) && num(s.variables[name]) !== undefined);
-
-const overlap = (a: TargetState, b: TargetState): number => {
-  if (!a.bounds || !b.bounds) return 0;
-  const w = Math.min(a.bounds.right, b.bounds.right) - Math.max(a.bounds.left, b.bounds.left);
-  const h = Math.min(a.bounds.top, b.bounds.top) - Math.max(a.bounds.bottom, b.bounds.bottom);
-  if (w <= 0 || h <= 0) return 0;
-  const area = (t: TargetState) => (t.bounds ? (t.bounds.right - t.bounds.left) * (t.bounds.top - t.bounds.bottom) : 1);
-  return (w * h) / Math.min(area(a), area(b));
-};
-const onStage = (t: TargetState) =>
-  !t.bounds || (t.bounds.left >= -245 && t.bounds.right <= 245 && t.bounds.bottom >= -185 && t.bounds.top <= 185);
+export type { CheckResult, CheckRun, CheckStatus, Game, Shot } from './checks.ts';
 
 // --- Fangspiel ---------------------------------------------------------------------------------------
 
 const POINTS = /punkt|score|treffer|gefangen|fang/i;
 const LIVES = /leben|herz|lives|versuch/i;
-
-/** Sprites (or clones of them) that moved down by at least 40 since they were first seen visible. */
-const fallingNames = (samples: StageState[]): Set<string> => {
-  const names = new Set<string>();
-  const top = new Map<string, number>();
-  for (const s of samples) {
-    for (const t of s.targets.filter((x) => x.visible)) {
-      const first = top.get(t.id) ?? t.y;
-      if (first - t.y >= 40) names.add(t.name);
-      top.set(t.id, Math.max(first, t.y));
-    }
-  }
-  return names;
-};
 
 export const fangspiel: Game = {
   id: 'fangspiel',
@@ -536,4 +474,10 @@ export const memory: Game = {
   },
 };
 
-export const GAMES: Record<string, Game> = { memory, fangspiel };
+export const GAMES: Record<string, Game> = {
+  memory,
+  fangspiel,
+  [fangMich.id]: fangMich,
+  [spaceShooter.id]: spaceShooter,
+  minesweeper,
+};

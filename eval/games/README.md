@@ -12,10 +12,16 @@ production build, the real model, the real Scratch editor in headless Chromium).
 changed the project, a **bot plays the game** and checks it. Use it to compare system prompts, models and
 efforts.
 
+The games: Memory and Fangspiel ([games.ts](games.ts)), and three CoderDojo Linz classics, Fang mich, Space
+Shooter and Minesweeper ([coderdojo.ts](coderdojo.ts); the exercises are on linz.coderdojo.net). Each game
+has **core checks** (its basic idea; all passing = green) and **extras** (details of the classic version,
+reported but not required), because there are many ways to build the same game. The briefs simplify a rule
+where that makes it testable (Minesweeper is won by opening all safe cells, flags are an extra).
+
 ```bash
 npm run build                                   # the harness serves dist/, like production
-node eval/games/reference.ts                    # once: the hand-built reference games
-npm run eval:games -- --references              # the checks against them (no model calls)
+node eval/games/reference.ts                    # once: the reference games (downloads the CoderDojo originals)
+npm run eval:games -- --references              # the checks against them (no model calls; --games filters)
 npm run eval:games -- --games memory --report   # one Memory run with a Markdown report
 npm run eval:games -- --model claude-haiku-5-5,claude-sonnet-5-5 --reps 3   # compare models
 npm run eval:games -- --dump-prompt my.txt      # write the built-in prompt, edit it, then:
@@ -49,21 +55,29 @@ research log of every variant (`logs-N/`), and one folder per run. Each run fold
     however long the bot thinks.
   - `Math.random` is seeded per green flag, so a run plays the same way every time.
   - 30 s of Fangspiel take about 0.3 s, and a whole check run about 1.5 s.
-- **The checks** ([games.ts](games.ts)) find the game's parts by behaviour, not by name:
-  - what falls by itself, what the arrow keys move;
-  - which variable counts (by name pattern: Punkte, Leben…);
-  - which sprites have a click script (the cards).
+- **The checks** ([games.ts](games.ts), [coderdojo.ts](coderdojo.ts), helpers in [checks.ts](checks.ts)) find
+  the game's parts by behaviour, not by name:
+  - what falls or swims by itself, what the arrow keys move, what flies up after the space key;
+  - which variable counts (by name pattern: Punkte, Leben, Treffer…);
+  - which sprites react to clicks (a „Wenn diese Figur angeklickt wird“ script, or polling „Maus gedrückt?“
+    with „wird Mauszeiger berührt?“).
+
+  Bot policies ([player.ts](player.ts)): hold keys, catch or avoid what falls, shoot at it, steer one sprite
+  towards another. Minesweeper learns the board by playing it cell by cell (the same seed gives the same
+  board), then compares every number with the bombs around it. It reads numbers and bombs from the
+  costume names („1“, „bomb“…), because the bot can't read the drawing.
 - **The judge** (with `--report`): Claude reads the transcript and rates the teaching mode (1–5) with findings.
 - **Cost:** the app's calls come from the run's research log, the kid's and the judge's from the AI SDK
   ([pricing.ts](pricing.ts)). The kid and the judge on Opus usually cost more than the app on Haiku.
 
 ## Adding a game
 
-Add a `Game` to [games.ts](games.ts): a German brief and a `check(player, sb3)` that plays it and returns
-checks. Each check has a pass and a fail sentence for the kid. Build a working version and one broken
-version per check in [reference.ts](reference.ts), and run `--references`: the working one must pass
-everything, and each broken one must fail its check. A check that fails on the reference is wrong, not the
-game.
+Add a `Game` (a German brief and a `check(player, sb3)` that plays it and returns checks) and register it in
+`GAMES` in [games.ts](games.ts). Each check has a pass and a fail sentence for the kid; mark the ones that
+aren't the basic idea as extras. Build a working version and one broken version per check in
+[reference.ts](reference.ts): by hand with the assistant's tools, or from a finished `.sb3` with one value
+changed in `project.json` (the CoderDojo games). Run `--references`: the working one must pass everything,
+and each broken one must fail its check. A check that fails on the reference is wrong, not the game.
 
 ## Traps
 
@@ -73,5 +87,11 @@ game.
 - Scratch keeps sprites on the stage ("fencing"): a falling object never gets below about y = -165. So
   `wiederhole bis y < -170` never ends. That's a real kid bug; the Fangspiel checks catch it as „Leben
   gehen nicht weg“.
+- Blocks that wait on the browser („spiele Klang ganz“) need its event loop and real time: while a script
+  waits on one, the bot runs frames at real speed, and Chromium starts with autoplay allowed (otherwise the
+  sound never ends and the game never gets to „stoppe alles“).
+- A broken copy that renames a message must change its id too: the VM finds a broadcast by id first.
+- The original CoderDojo Minesweeper picks bomb positions from 0 to 99, but list items start at 1. A bomb at 0
+  is lost, and that game can never be won. The reference picks from 1 to 100.
 - Runs never log to Azure Blob (the server gets `LOG_BLOB_URL=''`), so eval sessions don't mix with the
   kids' research data.

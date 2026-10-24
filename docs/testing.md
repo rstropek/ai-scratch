@@ -35,9 +35,10 @@ Prefer the lowest layer that can show the bug: unit > component > e2e.
 
 Can the assistant build a real game with a kid? The **game harness** ([eval/games](../eval/games/README.md))
 answers that with the production build, the real model and the real editor in headless Chromium. After
-every answer that changed the project, a bot plays the game and runs checks (Memory, Fangspiel). The test
-steps the VM frame by frame on a virtual clock with seeded randomness, so even fast games are tested
-reliably and the same way every run.
+every answer that changed the project, a bot plays the game and runs checks (Memory, Fangspiel, and the
+CoderDojo classics Fang mich, Space Shooter and Minesweeper). Core checks test the basic idea; extras test
+details of the classic version, since rule variations are fine. The test steps the VM frame by frame on a
+virtual clock with seeded randomness, so even fast games are tested reliably and the same way every run.
 
 - **When:** after changes to the prompt, the tool wording or tools, or the model or effort; and before the
   event. It costs real money (Haiku: about a cent per turn).
@@ -46,6 +47,7 @@ reliably and the same way every run.
   `session.ts`; every command returns the answer, the tool calls and the check results as text.
   - One subagent per game, each on its own `--port`.
   - Test „Rückgängig“ when the assistant makes a mistake.
+  - Try the game by hand with `try` (clicks, keys) when a check can't tell, and record it with `note`.
   - Finish with `report --judge`; `report.md` has the prompts, answers, screenshots and findings.
 - **Comparing variants** (models, efforts, prompts from `--dump-prompt`): `npm run eval:games` with a
   simulated kid and `--reps`, then read the reports of the bad runs.

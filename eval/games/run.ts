@@ -10,7 +10,7 @@ import { buildInstructions, PROJECT_CHANGING_TOOLS } from '../../src/shared/tool
 import { ChatDriver } from './chat.ts';
 import { GAMES, type Game } from './games.ts';
 import { DONE, judge, type KidTurn, nextKidMessage } from './kid.ts';
-import { Player } from './player.ts';
+import { BROWSER_ARGS, Player } from './player.ts';
 import { appCost, callCost } from './pricing.ts';
 import {
   allGreen,
@@ -77,7 +77,7 @@ for (const v of variants) if (v.prompt && !fs.existsSync(v.prompt)) throw new Er
 
 const outDir = path.resolve(args.out, stamp());
 fs.mkdirSync(outDir, { recursive: true });
-const browser: Browser = await chromium.launch({ headless: !args.headed });
+const browser: Browser = await chromium.launch({ headless: !args.headed, args: BROWSER_ARGS });
 const servers: RunningServer[] = [];
 
 const pool = async <T>(items: T[], size: number, run: (item: T) => Promise<void>) => {
@@ -95,8 +95,12 @@ const checkReferences = async (url: string) => {
   const dir = new URL('./reference/', import.meta.url);
   if (!fs.existsSync(dir)) throw new Error('No reference games: run `node eval/games/reference.ts` first');
   for (const file of fs.readdirSync(dir).sort()) {
-    const game = GAMES[file.replace(/\.sb3$/, '').split('-')[0] ?? ''];
-    if (!game) continue;
+    // reference files are named <game id>[-<variant>].sb3; ids may contain dashes themselves
+    const name = file.replace(/\.sb3$/, '');
+    const game = Object.values(GAMES)
+      .filter((g) => name === g.id || name.startsWith(`${g.id}-`))
+      .sort((a, b) => b.id.length - a.id.length)[0];
+    if (!game || !games.includes(game)) continue;
     const { checks } = await game.check(player, fs.readFileSync(new URL(file, dir)));
     console.log(`\n${file}: ${checkScore(checks)}`);
     for (const c of checks) console.log(`  ${c.status.padEnd(4)} ${c.id.padEnd(10)} ${c.detail}`);

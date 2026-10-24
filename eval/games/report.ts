@@ -47,6 +47,8 @@ export interface RunRecord {
   cost: { app: number; kid: number; judge: number };
   appCalls: number;
   verdict?: Verdict;
+  /** what an agent tester checked by hand (session `note`); the checks can't see everything */
+  notes?: { afterTurn: number; text: string }[];
 }
 
 export const variantLabel = (v: Variant) =>
@@ -54,9 +56,15 @@ export const variantLabel = (v: Variant) =>
 
 const passed = (checks: CheckResult[]) => checks.filter((c) => c.status === 'pass').length;
 const scored = (checks: CheckResult[]) => checks.filter((c) => c.status !== 'skip').length;
+/** Core checks (the basic idea) decide; extras (details of the classic version) are listed after them. */
 export const checkScore = (checks: CheckResult[]) => {
-  const skipped = checks.length - scored(checks);
-  return `${passed(checks)}/${scored(checks)}${skipped ? ` (${skipped} not testable yet)` : ''}`;
+  const core = checks.filter((c) => !c.extra);
+  const extras = checks.filter((c) => c.extra);
+  const skipped = core.length - scored(core);
+  return (
+    `${passed(core)}/${scored(core)}${skipped ? ` (${skipped} not testable yet)` : ''}` +
+    (extras.length ? `, extras ${passed(extras)}/${extras.length}` : '')
+  );
 };
 const usd = (n: number) => `$${n.toFixed(n < 0.1 ? 3 : 2)}`;
 const mins = (ms: number) => `${Math.round(ms / 60_000)} min`;
@@ -95,8 +103,8 @@ const findings = (r: RunRecord): string[] => {
   const out: string[] = [];
   if (r.crash) out.push(`**Harness crash:** \`${r.crash}\``);
   for (const c of r.finalChecks.filter((x) => x.status === 'fail'))
-    out.push(`**Game:** ${c.title} fails (${c.detail})`);
-  if (r.endReason === 'kid-done' && r.finalChecks.some((c) => c.status === 'fail'))
+    out.push(`**${c.extra ? 'Extra' : 'Game'}:** ${c.title} fails (${c.detail})`);
+  if (r.endReason === 'kid-done' && r.finalChecks.some((c) => c.status === 'fail' && !c.extra))
     out.push('**Kid gave up or was satisfied early:** it said FERTIG while checks still fail');
   for (const t of r.turns) {
     for (const tool of t.answer.tools.filter((x) => !x.ok))
@@ -139,12 +147,14 @@ export const writeRunReport = (dir: string, r: RunRecord): void => {
   const judged = (r.verdict?.findings ?? []).map(
     (f) => `**${f.severity}**${f.turn ? ` (turn ${f.turn})` : ''}: ${f.text}`,
   );
-  if (!own.length && !judged.length) lines.push('None.');
-  for (const f of [...own, ...judged]) lines.push(`- ${f}`);
+  if (!own.length && !judged.length && !r.notes?.length) lines.push('None.');
+  const notes = (r.notes ?? []).map((n) => `**Tester** (after turn ${n.afterTurn}): ${n.text}`);
+  for (const f of [...notes, ...own, ...judged]) lines.push(`- ${f}`);
   lines.push('');
 
   lines.push('## The finished game', '', '| | Check | Measured |', '|---|---|---|');
-  for (const c of r.finalChecks) lines.push(`| ${ICON[c.status]} | ${c.title} | ${c.detail.replaceAll('|', '\\|')} |`);
+  for (const c of r.finalChecks)
+    lines.push(`| ${ICON[c.status]} | ${c.title}${c.extra ? ' (extra)' : ''} | ${c.detail.replaceAll('|', '\\|')} |`);
   lines.push('');
   for (const s of r.finalShots) lines.push(`![${s.label}](${s.file})`);
   lines.push('');
@@ -197,8 +207,10 @@ export const writeSummary = (dir: string, records: { dir: string; record: RunRec
   return text;
 };
 
-export const allGreen = (checks: CheckResult[]) =>
-  checks.length > 0 && scored(checks) === checks.length && passed(checks) === checks.length;
+export const allGreen = (checks: CheckResult[]) => {
+  const core = checks.filter((c) => !c.extra);
+  return core.length > 0 && passed(core) === core.length;
+};
 
 /** The conversation as the judge reads it. */
 export const transcript = (r: RunRecord, brief?: string): string =>
@@ -220,6 +232,9 @@ export const transcript = (r: RunRecord, brief?: string): string =>
     ),
     r.finalChecks.length
       ? `--- Final test results:\n${r.finalChecks.map((c) => `${c.title}: ${c.status} (${c.detail})`).join('\n')}`
+      : '',
+    r.notes?.length
+      ? `--- The tester's own notes (checked by hand; where they disagree with the automatic results, trust them):\n${r.notes.map((n) => `after turn ${n.afterTurn}: ${n.text}`).join('\n')}`
       : '',
   ]
     .filter(Boolean)

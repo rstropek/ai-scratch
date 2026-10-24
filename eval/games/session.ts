@@ -3,8 +3,9 @@
 // paths) instead of the agent clicking and screenshotting through a browser. See SKILL.md (game-test).
 //   node eval/games/session.ts serve --game memory [--model … --effort … --prompt file --port 3040 --headed]
 //   node eval/games/session.ts send "Ich will ein Memory-Spiel bauen!"
-//   node eval/games/session.ts check [--turn n] | play [seconds] [--turn n] | project | shot | undo | compact
-//                              | report [--judge] | stop
+//   node eval/games/session.ts check [--turn n] | play [seconds] [--turn n] | try <action>… [--turn n]
+//                              | project | shot | undo | compact | note "<text>" | report [--judge] | stop
+//   try actions: click:<sprite>[#n] or click:<x>,<y> · key:<space|left|right|up|down|a…>[:seconds] · wait:<seconds>
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
@@ -15,9 +16,10 @@ import { PROJECT_CHANGING_TOOLS } from '../../src/shared/tools/index.ts';
 import { projectSnapshot } from '../../src/shared/tools/project-tools.ts';
 import { createVm } from '../../test/support/headless-vm.ts';
 import { type Answer, ChatDriver } from './chat.ts';
+import { settle } from './checks.ts';
 import { type CheckResult, GAMES } from './games.ts';
 import { judge } from './kid.ts';
-import { Player } from './player.ts';
+import { BROWSER_ARGS, type PlayEvents, Player, type StageState } from './player.ts';
 import { appCost, callCost } from './pricing.ts';
 import { allGreen, checkScore, type RunRecord, type TurnRecord, transcript, writeRunReport } from './report.ts';
 import { EVAL_CODE, startServer } from './server.ts';
@@ -38,17 +40,100 @@ const { values: args, positionals } = parseArgs({
   },
 });
 const [command = 'help', ...rest] = positionals;
+const ROOT = new URL('../../', import.meta.url);
 const port = Number(args.port);
 const control = `http://127.0.0.1:${port + 1}`;
 
 const ICON = { pass: '✅', fail: '❌', skip: '➖' } as const;
 const checkLines = (checks: CheckResult[]) =>
-  checks.map((c) => `${ICON[c.status]} ${c.id}: ${c.title}${c.status === 'pass' ? '' : ` (${c.detail})`}`).join('\n');
+  checks
+    .map(
+      (c) =>
+        `${ICON[c.status]} ${c.id}${c.extra ? ' (extra)' : ''}: ${c.title}${c.status === 'pass' ? '' : ` (${c.detail})`}`,
+    )
+    .join('\n');
 const toolLines = (a: Answer) =>
   a.tools.map((t) => `${t.ok ? '✓' : '✗'} ${t.name}${t.ok ? '' : `: ${clip(t.error ?? 'no result')}`}`).join('\n');
 /** tool errors can carry the whole tool input (kilobytes of JSON); the start says what went wrong */
 const clip = (s: string, n = 400) =>
   s.length > n ? `${s.slice(0, n)}… (${s.length} chars, full text in result.json)` : s;
+
+// --- trying a game by hand (`try`) -------------------------------------------------------------------
+
+const KEYS: Record<string, string> = {
+  space: ' ',
+  left: 'ArrowLeft',
+  right: 'ArrowRight',
+  up: 'ArrowUp',
+  down: 'ArrowDown',
+};
+/** Visible targets with this name in reading order (top left first): `Karte#2` is the second. */
+const named = (s: StageState, name: string) =>
+  s.targets.filter((t) => t.visible && t.name === name).sort((a, b) => b.y - a.y || a.x - b.x);
+const label = (s: StageState, id: string) => {
+  const t = s.targets.find((x) => x.id === id);
+  if (!t) return id;
+  const same = named(s, t.name);
+  return same.length > 1 ? `${t.name}#${same.findIndex((x) => x.id === id) + 1}` : t.name;
+};
+const clickPoint = (s: StageState, arg: string) => {
+  const xy = arg.match(/^(-?\d+),(-?\d+)$/);
+  if (xy) return { x: Number(xy[1]), y: Number(xy[2]) };
+  const [name = '', n = '1'] = arg.split('#');
+  const t = named(s, name)[Number(n) - 1];
+  const b = t?.bounds;
+  return t && (b ? { x: (b.left + b.right) / 2, y: (b.top + b.bottom) / 2 } : { x: t.x, y: t.y });
+};
+const summary = (s: StageState) => {
+  const sprites = s.targets
+    .filter((t) => !t.clone)
+    .map((t) => `${t.name} @${t.x},${t.y} ${t.visible ? t.costume : 'hidden'}`)
+    .join('; ');
+  const clones = s.targets.filter((t) => t.clone).length;
+  return `${sprites}${clones ? ` (+${clones} clones)` : ''} · variables ${JSON.stringify(s.variables)}`;
+};
+/** What changed between two states, in a line. */
+const changes = (a: StageState, b: StageState, said: PlayEvents) => {
+  const out: string[] = [];
+  const looks: string[] = [];
+  for (const t of b.targets) {
+    const was = a.targets.find((x) => x.id === t.id);
+    if (!was) continue;
+    if (was.visible !== t.visible) looks.push(`${label(b, t.id)} ${t.visible ? `shown (${t.costume})` : 'hidden'}`);
+    else if (t.visible && was.look !== t.look) looks.push(`${label(b, t.id)}: ${was.costume} → ${t.costume}`);
+    else if (!t.clone && Math.hypot(t.x - was.x, t.y - was.y) > 5) looks.push(`${t.name} → ${t.x},${t.y}`);
+  }
+  out.push(...looks.slice(0, 10), ...(looks.length > 10 ? [`(+${looks.length - 10} more)`] : []));
+  const clones = (s: StageState) => s.targets.filter((t) => t.clone).length;
+  if (clones(a) !== clones(b)) out.push(`clones ${clones(a)} → ${clones(b)}`);
+  for (const [name, v] of Object.entries(b.variables))
+    if (a.variables[name] !== v) out.push(`${name} ${a.variables[name]} → ${v}`);
+  for (const x of said.says) out.push(`${x.sprite} says "${x.text}"`);
+  for (const x of said.broadcasts) out.push(`broadcast ${x.name}`);
+  if (said.stopAll.length) out.push('stop all');
+  return out.join('; ') || 'nothing changed';
+};
+
+/** dist/ is what the harness serves: warn when the client code is newer. */
+const staleBuild = () => {
+  const built = (() => {
+    try {
+      return fs.statSync(new URL('dist/client/index.html', ROOT)).mtimeMs;
+    } catch {
+      return 0;
+    }
+  })();
+  const newer = ['src/client', 'src/editor', 'src/shared'].flatMap((d) =>
+    fs
+      .readdirSync(new URL(d, ROOT), { recursive: true, withFileTypes: true })
+      .filter((e) => e.isFile() && !e.name.includes('.test.'))
+      .map((e) => path.join(e.parentPath, e.name))
+      .filter((f) => fs.statSync(f).mtimeMs > built),
+  );
+  return newer.length
+    ? `⚠ dist/ is older than ${newer.length} client file(s), e.g. ${path.relative(ROOT.pathname, newer[0] as string)}: stop, run \`npm run build\`, start again`
+    : '';
+};
 
 // --- the daemon --------------------------------------------------------------------------------------
 
@@ -57,13 +142,18 @@ const serve = async () => {
   const game = args.game === 'none' ? undefined : GAMES[args.game];
   if (args.game !== 'none' && !game)
     throw new Error(`Unknown game ${args.game}; known: ${Object.keys(GAMES).join(', ')}, none`);
-  const stamp = new Date().toISOString().slice(0, 19).replace(/[-:]/g, '').replace('T', '-');
+  const d = new Date();
+  const p2 = (n: number) => String(n).padStart(2, '0');
+  const stamp = `${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}`;
+  const stale = staleBuild();
+  /** goes in front of the first reply: a stale build, and where the session's files are */
+  let banner = '';
   const dir = path.resolve(args.out, `${stamp}-${args.game}`);
   fs.mkdirSync(dir, { recursive: true });
   const logDir = path.join(dir, 'logs');
   const prompt = args.prompt ? path.resolve(args.prompt) : undefined;
   const server = await startServer({ port, logDir, model: args.model, effort: args.effort, instructionsFile: prompt });
-  const browser = await chromium.launch({ headless: !args.headed });
+  const browser = await chromium.launch({ headless: !args.headed, args: BROWSER_ARGS });
   const context = await browser.newContext({ viewport: { width: 1600, height: 900 } });
   const chat = await ChatDriver.open(await context.newPage(), server.url, EVAL_CODE);
   const player = await Player.open(await context.newPage(), server.url);
@@ -143,7 +233,7 @@ const serve = async () => {
     },
     check: async (_params, options) => {
       const checks = await runChecks(await projectOf(options.turn));
-      if (!checks) return 'no game set (serve --game memory|fangspiel)';
+      if (!checks) return `no game set (serve --game ${Object.keys(GAMES).join('|')})`;
       return `Checks ${checkScore(checks.checks)}:\n${checkLines(checks.checks)}\n\nShots: ${checks.files.map((f) => path.join(dir, f.file)).join(' ')}`;
     },
     play: async ([seconds = '3'], options) => {
@@ -166,6 +256,54 @@ const serve = async () => {
         `Said: ${events.says.map((s) => `${s.sprite}: ${s.text}`).join(' | ') || '-'}; broadcasts: ${events.broadcasts.map((b) => b.name).join(', ') || '-'}; scripts running: ${state.threads}`,
         `Stage: ${path.join(dir, file)}`,
       ].join('\n');
+    },
+    try: async (actions, options) => {
+      if (!actions.length)
+        return 'usage: try <action>… (click:<sprite>[#n] | click:<x>,<y> | key:<key>[:seconds] | wait:<seconds>)';
+      await player.load(await projectOf(options.turn));
+      await player.greenFlag(1);
+      let before = await settle(player, 5, 1);
+      const lines = [`After the green flag: ${summary(before)}`];
+      for (const action of actions) {
+        const [kind = '', arg = '', extra] = action.split(':');
+        const e0 = await player.events();
+        if (kind === 'click') {
+          const at = clickPoint(before, arg);
+          if (!at) {
+            lines.push(
+              `- ${action}: no visible sprite "${arg}" (names: ${[...new Set(before.targets.filter((t) => t.visible).map((t) => t.name))].join(', ')})`,
+            );
+            continue;
+          }
+          await player.click(at.x, at.y);
+          await player.seconds(1);
+        } else if (kind === 'key')
+          await player.seconds(Number(extra ?? 0.5), { kind: 'hold', keys: [KEYS[arg] ?? arg] });
+        else if (kind === 'wait') await player.seconds(Number(arg || 1));
+        else {
+          lines.push(`- ${action}: unknown action`);
+          continue;
+        }
+        const after = await player.state();
+        const e = await player.events();
+        const said = {
+          says: e.says.slice(e0.says.length),
+          broadcasts: e.broadcasts.slice(e0.broadcasts.length),
+          stopAll: e.stopAll.slice(e0.stopAll.length),
+          maxClones: e.maxClones,
+        };
+        lines.push(`- ${action} → ${changes(before, after, said)}`);
+        before = after;
+      }
+      lines.push(`Stage: ${path.join(dir, save('try', await player.screenshot()))}`);
+      await player.release();
+      return lines.join('\n');
+    },
+    note: async ([text]) => {
+      if (!text) return 'usage: note "<what you checked by hand>"';
+      record.notes = [...(record.notes ?? []), { afterTurn: record.turns.length, text }];
+      fs.writeFileSync(path.join(dir, 'result.json'), JSON.stringify(record, null, 2));
+      return `noted (after turn ${record.turns.length}); it goes into the report and to the judge`;
     },
     project: async () => {
       const json = await chat.editor.evaluate(() => window.ki?.vm.toJSON() ?? '');
@@ -244,7 +382,9 @@ const serve = async () => {
       queue = queue.then(async () => {
         const run = commands[name];
         try {
-          res.end(run ? await run(params, options) : `unknown command ${name}`);
+          const text = run ? await run(params, options) : `unknown command ${name}`;
+          res.end(banner ? `${banner}\n\n${text}` : text);
+          banner = '';
         } catch (e) {
           res.statusCode = 500;
           res.end(`error: ${e instanceof Error ? e.message : String(e)}`);
@@ -256,6 +396,8 @@ const serve = async () => {
   console.log(
     `session ready: app ${server.url} (${args.model}, ${args.effort}${prompt ? `, ${prompt}` : ''}), game ${args.game}, files in ${dir}`,
   );
+  if (stale) console.log(stale);
+  banner = [stale, `Session folder: ${dir}`].filter(Boolean).join('\n');
 };
 
 // --- the client --------------------------------------------------------------------------------------
@@ -267,7 +409,7 @@ if (command === 'serve') {
     fs
       .readFileSync(new URL(import.meta.url), 'utf8')
       .split('\n')
-      .slice(0, 8)
+      .slice(0, 9)
       .join('\n'),
   );
 } else {
