@@ -41,7 +41,11 @@ Browser                                         Server (Hono, Azure)            
   "Zusammenfassen" or "Neu anfangen". Both teach that AI isn't free or unlimited.
 - **"Rückgängig"** under every AI answer that changed the project puts the project back to how it was before
   that answer (Scratch's own undo can't undo AI changes).
-- **Right: the Scratch 3 editor**, unmodified.
+- **Right: the Scratch 3 editor**, unmodified, plus one block category of ours: **KI** with
+  `frage KI [ ]`, so kids can build their own chatbot (first one question at a time, then one that remembers
+  by joining the conversation into a variable). Each question costs a heart, like a chat message, and is
+  screened like one. Projects with this block open only in this app, not on scratch.mit.edu.
+  Details: [docs/ki-block.md](docs/ki-block.md).
 - Until the school's **access code** is entered (or comes with the link as `?code=`), only the chat is locked;
   Scratch works.
 
@@ -55,7 +59,7 @@ colours with the app. The app serves the built deck at **`/slides/`** without an
 ## Keeping kids safe and costs bounded
 
 - **Adults supervise** every session; the technical layers are deliberately lean.
-- **Kids protection:** every kid message is screened by TypeSafe's Jev before it reaches Claude. Flagged
+- **Kids protection:** every kid message (and every text of the "frage KI" block) is screened by TypeSafe's Jev before it reaches Claude. Flagged
   messages get a fixed German answer, for example a kid in distress is sent to an adult. What was tested:
   [docs/kids-protection.md](docs/kids-protection.md).
 - **Limits:** hearts per kid, the Gedächtnis limit, a cap on answer length and on AI steps per message.
@@ -138,9 +142,9 @@ Operations (`az login` with Owner on the subscription; both scripts are safe to 
 ```
 index.html, editor.html   host page, editor iframe page
 src/shared/               runs in the browser and in Node: script format, block catalog, tools, prompt
-src/editor/               inside the iframe: mounts Scratch, UI pointer, exposes window.ki
+src/editor/               inside the iframe: mounts Scratch, UI pointer, "frage KI" block, exposes window.ki
 src/client/               React host: chat panel, access gate, tool runner
-src/server/               Hono: /api/chat, access code, guards, research log, stats
+src/server/               Hono: /api/chat, /api/ask, access code, guards, research log, stats
 test/support/             headless scratch-vm, fake Anthropic streams, fixtures
 e2e/                      Playwright specs
 eval/guard/               labelled kid messages + runner for the kids-protection guard

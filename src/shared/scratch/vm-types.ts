@@ -153,8 +153,18 @@ export interface CostumeInit {
   skinId: null;
 }
 
+/** Loads block extensions; the private members are how built-in extensions register (ki-extension.ts). */
+export interface ExtensionManager {
+  isExtensionLoaded(id: string): boolean;
+  /** registers an extension object in this window and returns its service name */
+  _registerInternalExtension(extension: object): string;
+  /** extension id → service name */
+  _loadedExtensions: Map<string, string>;
+}
+
 export interface VirtualMachine {
   runtime: Runtime;
+  extensionManager: ExtensionManager;
   editingTarget: Target | null;
   toJSON(): string;
   /** the project as an .sb3 file, like Datei > Speichern */

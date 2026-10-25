@@ -101,7 +101,7 @@ Pages are sparse: one heading, at most a few short lines, one to three stickers.
 - Lilita One for display, Lexend for text; three sizes.
 - One entry gesture: the sticker "sticks" when the page opens.
 
-**Where the build differs from the direction contract:** not every sticker sits in a slot. Topic stickers do (pages 2, 3, 4, 7, 10); scene stickers stay loose on the page (the cover cat, the Haiku cat and mouse, the muscle arm on page 4, the chatting cat and chip on page 6, the robot on page 8, the running cat and the green flag on page 11). Page 4 breaks the one-to-three-stickers rule on purpose: 24 small chips fill one slot, so the size of the big model shows as a count. Name plates appear only on page 3; page 2 uses print captions. Page 8 is one big sticker beside a display-size sentence: the robot (`public/art/robot.svg`) carries the deck's chip in its head, labelled KI, and wires run from it to two yellow grippers, the tools; a pulse flows along the wires (a CSS animation inside the SVG, off under reduced motion). The key word takes the grippers' yellow. Page 9 reuses those wires as free cables (navy casing, light-blue core, the same pulse; an inline SVG under the stickers) from the KI chip (`chip-ki.svg`) to two drawn tools, a Scratch script and a code editor showing the same program. Page 11 kicks off the day with no h1: the running cat says "Los gehts!" in a speech bubble at display size, heading for Scratch's green flag (`green-flag.svg`). Slot numerals are set at text size, not print.
+**Where the build differs from the direction contract:** not every sticker sits in a slot. Topic stickers do (pages 2, 3, 4, 7, 10); scene stickers stay loose on the page (the cover cat, the Haiku cat and mouse, the muscle arm on page 4, the chatting cat and chip on page 6, the robot on page 8, the KI chip beside the closing line on page 10, the running cat and the green flag on page 11). Page 4 breaks the one-to-three-stickers rule on purpose: 24 small chips fill one slot, so the size of the big model shows as a count. Name plates appear on pages 3 and 10; page 2 uses print captions. Page 8 is one big sticker beside a display-size sentence: the robot (`public/art/robot.svg`) carries the deck's chip in its head, labelled KI, and wires run from it to two yellow grippers, the tools; a pulse flows along the wires (a CSS animation inside the SVG, off under reduced motion). The key word takes the grippers' yellow. Page 9 reuses those wires as free cables (navy casing, light-blue core, the same pulse; an inline SVG under the stickers) from the KI chip (`chip-ki.svg`) to two drawn tools, a Scratch script and a code editor showing the same program. Page 11 kicks off the day with no h1: the running cat says "Los gehts!" in a speech bubble at display size, heading for Scratch's green flag (`green-flag.svg`). Slot numerals are set at text size, not print.
 
 ## Colors
 
@@ -128,7 +128,7 @@ The grounds are Scratch 3's own block-category colours, so the deck sits in the 
 ### Named Rules
 **The One Block Colour Rule.** A page has exactly one ground, chosen from the Scratch block colours. No gradients, no second ground colour, no white slides.
 
-**The Ink Follows The Ground Rule.** Looks Purple takes white ink; every lighter ground (motion, events, operators, myblocks, sound) takes `ink: dark`. All chrome (dot raster, slot outlines, slot numbers, page badge) derives from the current ink, never from a hard-coded colour.
+**The Ink Follows The Ground Rule.** Looks Purple takes white ink; every lighter ground (motion, events, operators, myblocks, sound, control) takes `ink: dark`. All chrome (dot raster, slot outlines, slot numbers, page badge) derives from the current ink, never from a hard-coded colour.
 
 ## Typography
 
@@ -149,7 +149,7 @@ The grounds are Scratch 3's own block-category colours, so the deck sits in the 
 
 A fixed 1280x720 Slidev canvas (`canvasWidth: 1280`, 16:9), `slide-left` transition between pages. No responsive behaviour: the deck is recorded as video.
 
-Each page's content is a single root block with its own scoped grid or flex, filling the page height with margins of `page-x` left and right, `page-top` above and `page-bottom` below (the cover uses 88/88/40). Headings sit top-left or left column; stickers and slots take the right or lower part. Loose scenes (the Haiku) position stickers absolutely on the page.
+Each page's content is a single root block with its own scoped grid or flex, filling the page height with margins of `page-x` left and right, `page-top` above and `page-bottom` below (the cover uses 88/88/40). Headings sit top-left or left column; stickers and slots take the right or lower part. Loose scenes (the Haiku, the chat on page 6, the tools on page 9, "Los gehts!" on page 11) position stickers absolutely on the page.
 
 Difficulty is shown as one climbing staircase of slots (page 2): each step rises 44px.
 
@@ -218,4 +218,4 @@ Order on a page: stickers first (staggered by ~150ms), then bubble or stamp. All
 - **Don't** use white slides, title bars or bullet lists.
 - **Don't** put a second ground colour, gradient or neutral-black shadow on a page.
 - **Don't** use dashed borders for anything but slots.
-- **Don't** add looping or fast motion beyond the one entry gesture per element; the only loop is the agent video.
+- **Don't** add looping or fast motion beyond the one entry gesture per element; the only loops are the agent video and the wire pulse on pages 8 and 9.

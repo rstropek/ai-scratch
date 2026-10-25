@@ -18,7 +18,7 @@ Prefer the lowest layer that can show the bug: unit > component > e2e.
   editor. `/api/chat` is mocked per test with streams the **AI SDK itself encodes**
   ([mock-chat.ts](../e2e/helpers/mock-chat.ts)), so the wire format can't drift from the SDK. The server gets
   dummy keys, so a test without a mock can never call (and pay for) the model. **Any page error fails the
-  test** ([app.ts](../e2e/helpers/app.ts)).
+  test** ([app.ts](../e2e/helpers/app.ts)). `/api/ask` (the "frage KI" block) is mocked with `page.route`.
 
 ## What the tests can't show
 
@@ -49,7 +49,9 @@ virtual clock with seeded randomness, so even fast games are tested reliably and
   `session.ts`; every command returns the answer, the tool calls and the check results as text.
   - One subagent per game, each on its own `--port`.
   - Test „Rückgängig“ when the assistant makes a mistake.
-  - Try the game by hand with `try` (clicks, keys) when a check can't tell, and record it with `note`.
+  - Try the game by hand with `try` (clicks, keys, `answer:` for a question box) when a check can't tell,
+    and record it with `note`. A chatbot built with the "frage KI" block is tested with `--game none` and
+    `try answer:…`; the player page has the harness's `admin_` code, so the block really asks.
   - Finish with `report --judge`; `report.md` has the prompts, answers, screenshots and findings.
 - **Comparing variants** (models, efforts, prompts from `--dump-prompt`): `npm run eval:games` with a
   simulated kid and `--reps`, then read the reports of the bad runs.

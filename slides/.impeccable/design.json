@@ -340,12 +340,12 @@
       },
       {
         "name": "The Ink Follows The Ground Rule",
-        "body": "Looks Purple takes white ink; every lighter ground (motion, events, operators, myblocks, sound) takes `ink: dark`. All chrome (dot raster, slot outlines, slot numbers, page badge) derives from the current ink, never from a hard-coded colour.",
+        "body": "Looks Purple takes white ink; every lighter ground (motion, events, operators, myblocks, sound, control) takes `ink: dark`. All chrome (dot raster, slot outlines, slot numbers, page badge) derives from the current ink, never from a hard-coded colour.",
         "section": "colors"
       },
       {
         "name": "The Three Sizes Rule",
-        "body": "New content uses display, text or print, nothing else. Rank within a size comes from weight and colour. (The Haiku's 62px poem is the only exception and is an open decision.)",
+        "body": "New content uses display, text or print, nothing else. Rank within a size comes from weight and colour. (The Haiku's 62px poem is the one approved exception.)",
         "section": "typography"
       },
       {
@@ -365,7 +365,7 @@
       "Don't use white slides, title bars or bullet lists.",
       "Don't put a second ground colour, gradient or neutral-black shadow on a page.",
       "Don't use dashed borders for anything but slots.",
-      "Don't add looping or fast motion beyond the one entry gesture per element; the only loop is the agent video."
+      "Don't add looping or fast motion beyond the one entry gesture per element; the only loops are the agent video and the wire pulse on pages 8 and 9."
     ]
   }
 }

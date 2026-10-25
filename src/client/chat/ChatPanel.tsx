@@ -13,16 +13,15 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from 'react';
 import { Splitter } from '@/components/Splitter';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ACCESS_CODE_HEADER, type ChatMessage, SESSION_HEADER } from '../../shared/chat-types.ts';
 import {
-  type Bucket,
   CONTEXT_LIMIT,
   contextOf,
-  fullBucket,
   HEARTS,
   hasHistory,
   heartsLeft,
@@ -30,9 +29,9 @@ import {
   memoryFull,
   nextHeartIn,
   refill,
-  take,
 } from '../../shared/energy.ts';
 import type { ProjectBackup, ProjectBackups } from '../../shared/scratch/project-backup.ts';
+import type { HeartsStore } from '../hearts.ts';
 import type { ToolRunner } from '../scratch/tool-runner.ts';
 import { INPUT_HEIGHT, type UiPrefs } from '../ui-prefs.ts';
 import { ChatTopBar } from './ChatTopBar.tsx';
@@ -44,6 +43,8 @@ import { backupIdFor, changedProject, markUndone } from './undo.ts';
 export interface ChatPanelProps {
   accessCode: string;
   sessionId: string;
+  /** shared with the "frage KI" block */
+  hearts: HeartsStore;
   /** undefined while Scratch is still loading */
   runTool: ToolRunner | undefined;
   /** undefined while Scratch is still loading */
@@ -101,6 +102,7 @@ const useNow = (active: boolean, everyMs = 500) => {
 export const ChatPanel = ({
   accessCode,
   sessionId,
+  hearts: heartsStore,
   runTool,
   backups,
   prefs,
@@ -158,15 +160,15 @@ export const ChatPanel = ({
   // KI-Energie (src/shared/energy.ts): the server enforces the same rules; this keeps the kid from
   // running into its refusals
   const admin = isAdminCode(accessCode);
-  const [bucket, setBucket] = useState<Bucket>(() => fullBucket(Date.now()));
+  const bucket = useSyncExternalStore(heartsStore.subscribe, heartsStore.bucket);
   const now = useNow(!admin && refill(bucket, Date.now()).hearts < HEARTS.max);
   const hearts = admin ? HEARTS.max : heartsLeft(bucket, now);
   const waitMs = nextHeartIn(bucket, now);
   // if the server refused a message for lack of hearts anyway, its clock wins
   useEffect(() => {
     const wait = retryInMs(error);
-    if (wait !== undefined) setBucket({ hearts: Math.max(0, 1 - wait / HEARTS.refillMs), at: Date.now() });
-  }, [error]);
+    if (wait !== undefined) heartsStore.sync(wait);
+  }, [error, heartsStore]);
 
   // Gedächtnis: measured by every turn; after freeing it the gauge shows an estimate until the next turn
   const baseContext = useRef<number | undefined>(undefined);
@@ -197,7 +199,7 @@ export const ChatPanel = ({
   const canSend = ready && !busy && !compacting && !full && hearts > 0;
   const sendText = async (text: string) => {
     if (!text.trim() || !canSend) return;
-    if (!admin) setBucket((b) => take(b, Date.now()) ?? b);
+    if (!admin) heartsStore.take();
     setActionError(undefined);
     const id = crypto.randomUUID();
     // the project before this answer, for its undo button

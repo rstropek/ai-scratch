@@ -8,6 +8,9 @@ format or the system prompt.
 - Three families: **project** (read, add, remove and clear scripts, green flag, `test_run`), **ui** ("show, don't do": select a
   sprite, switch tabs, point at blocks and GUI elements) and **asset** (library sprites/backdrops/costumes,
   SVG drawings). Index: [tools/index.ts](../src/shared/tools/index.ts).
+- Not a tool: the "frage KI" block ([ki-block.md](ki-block.md)) is a block kids use in their own programs.
+  The model builds it like any block (`ki_ask`, added to the catalog by hand), and the prompt has a short
+  section on chatbots.
 - Definitions and prompt text live in `src/shared/tools`; the server sends them to the model. The tools have
   no `execute` on the server: executors are `ToolHandlers` that run in the browser on the live VM, strictly
   one at a time ([tool-runner.ts](../src/client/scratch/tool-runner.ts)).

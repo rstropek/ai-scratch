@@ -6,6 +6,7 @@
 //   node eval/games/session.ts check [--turn n] | play [seconds] [--turn n] | try <action>… [--turn n]
 //                              | project | shot | undo | compact | note "<text>" | report [--judge] | stop
 //   try actions: click:<sprite>[#n] or click:<x>,<y> · key:<space|left|right|up|down|a…>[:seconds] · wait:<seconds>
+//                · answer:<text> (types into the question box of "frage … und warte")
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
@@ -156,7 +157,7 @@ const serve = async () => {
   const browser = await chromium.launch({ headless: !args.headed, args: BROWSER_ARGS });
   const context = await browser.newContext({ viewport: { width: 1600, height: 900 } });
   const chat = await ChatDriver.open(await context.newPage(), server.url, EVAL_CODE);
-  const player = await Player.open(await context.newPage(), server.url);
+  const player = await Player.open(await context.newPage(), server.url, EVAL_CODE);
   const started = Date.now();
   const record: RunRecord = {
     game: game?.id ?? 'none',
@@ -260,7 +261,7 @@ const serve = async () => {
     },
     try: async (actions, options) => {
       if (!actions.length)
-        return 'usage: try <action>… (click:<sprite>[#n] | click:<x>,<y> | key:<key>[:seconds] | wait:<seconds>)';
+        return 'usage: try <action>… (click:<sprite>[#n] | click:<x>,<y> | key:<key>[:seconds] | wait:<seconds> | answer:<text>)';
       await player.load(await projectOf(options.turn));
       await player.greenFlag(1);
       let before = await settle(player, 5, 1);
@@ -281,10 +282,18 @@ const serve = async () => {
         } else if (kind === 'key')
           await player.seconds(Number(extra ?? 0.5), { kind: 'hold', keys: [KEYS[arg] ?? arg] });
         else if (kind === 'wait') await player.seconds(Number(arg || 1));
-        else {
+        else if (kind === 'answer') {
+          if (!(await player.answer(action.slice('answer:'.length)))) {
+            lines.push(`- ${action}: no question is shown on the stage`);
+            continue;
+          }
+          await player.seconds(0.5);
+        } else {
           lines.push(`- ${action}: unknown action`);
           continue;
         }
+        // "frage KI" answers in real time (Jev + the model): wait for it, up to 20 s
+        for (let i = 0; i < 40 && (await player.waiting()); i++) await player.seconds(0.5);
         const after = await player.state();
         const e = await player.events();
         const said = {

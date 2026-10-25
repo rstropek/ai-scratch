@@ -348,6 +348,8 @@ const installPlayer = () => {
       });
     },
     pressKeys: (keys: string[]) => hold(keys),
+    /** a script waits on the browser, e.g. for the answer of "frage KI" */
+    waiting: () => runtime.threads.some((t: { status: number }) => t.status === 1), // Thread.STATUS_PROMISE_WAIT
     state,
     events: () => JSON.parse(JSON.stringify(events)),
     /** hands time and randomness back to the editor */
@@ -370,9 +372,12 @@ export class Player {
     this.editor = editor;
   }
 
-  /** Opens the app without an access code (the chat stays locked, Scratch works) and installs the player. */
-  static async open(page: Page, baseUrl: string): Promise<Player> {
-    await page.goto(`${baseUrl}/`);
+  /**
+   * Opens the app and installs the player. Without an access code the chat stays locked (Scratch works);
+   * with one, the "frage KI" block can ask the AI.
+   */
+  static async open(page: Page, baseUrl: string, code?: string): Promise<Player> {
+    await page.goto(code ? `${baseUrl}/?code=${code}` : `${baseUrl}/`);
     let editor: Frame | undefined;
     for (let i = 0; i < 300 && !editor; i++) {
       editor = page.frames().find((f) => /editor\.html/.test(f.url()));
@@ -380,6 +385,7 @@ export class Player {
     }
     if (!editor) throw new Error('editor iframe missing');
     await editor.waitForFunction(() => (window.ki?.vm.runtime.targets.length ?? 0) > 1, undefined, { timeout: 60_000 });
+    if (code) await editor.waitForFunction(() => window.ki?.ask !== undefined, undefined, { timeout: 30_000 });
     await editor.evaluate(installPlayer);
     return new Player(page, editor);
   }
@@ -396,6 +402,15 @@ export class Player {
   state = (): Promise<StageState> => this.editor.evaluate(() => window.__player.state());
   events = (): Promise<PlayEvents> => this.editor.evaluate(() => window.__player.events());
   release = () => this.editor.evaluate(() => window.__player.release());
+  waiting = (): Promise<boolean> => this.editor.evaluate(() => window.__player.waiting());
+  /** types into the stage's question box ("frage … und warte"); false when no question is shown */
+  async answer(text: string): Promise<boolean> {
+    const input = this.editor.locator('[class*="question_question-input"] input').first();
+    if (!(await input.isVisible())) return false;
+    await input.fill(text);
+    await input.press('Enter');
+    return true;
+  }
 
   /** The stage as the kid sees it. */
   async screenshot(path?: string): Promise<Buffer> {

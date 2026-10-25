@@ -12,6 +12,7 @@ written for coding agents (and humans) who change this app; read [AGENTS.md](../
 | [limits-and-safety.md](limits-and-safety.md) | access codes, hearts, the kids-protection guard or the output limits |
 | [research-log.md](research-log.md) | logging, `/api/stats`, cost, or the stored logs in Azure |
 | [deployment.md](deployment.md) | the Dockerfile, the workflows, `scripts/azure`, any Azure setting, or how `/slides/` is served |
+| [ki-block.md](ki-block.md) | the "frage KI" block in kids' own programs, `/api/ask` or its guard |
 | [testing.md](testing.md) | tests, or when debugging a real session from the logs |
 
 More files, not architecture notes:

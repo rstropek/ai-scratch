@@ -8,9 +8,11 @@ codes, hearts, the guard or the output limits.
 1. **Adults in the room.** The kids are always supervised. Every other layer is deliberately lean because of
    this (Rainer's stance); don't add hardening the event doesn't need.
 2. **Access code** per school: without one the chat is locked, Scratch still works.
-3. **Hearts:** 3 messages, one refills every 20 s.
+3. **Hearts:** 3 messages, one refills every 20 s. A question from the "frage KI" block costs one too
+   ([ki-block.md](ki-block.md)).
 4. **Gedächtnis:** the 80k context limit ([conversation.md](conversation.md)).
-5. **Kids-protection guard (Jev):** screens every new kid message before Claude sees it.
+5. **Kids-protection guard (Jev):** screens every new kid message, and every text of the "frage KI" block,
+   before Claude sees it.
 6. **Output limits:** visible text per answer and model calls per turn.
 7. **Budget:** 200 €/month on the Anthropic key. The emergency stop is disabling the key.
 
@@ -68,7 +70,9 @@ changing questions or thresholds (it calls the real Jev, so it is not part of `n
 - **Fail open:** if Jev errors or takes over 3 s, the message goes through. The event must not stop because of
   a third party, Claude refuses harmful requests on its own, and adults are present. Outages are logged and
   counted in `/api/stats`.
-- Messages over 2000 characters are refused in code, without asking Jev.
+- Messages over 2000 characters are refused in code, without asking Jev. The "frage KI" block keeps the
+  last 3000 characters of its text instead, and is screened with its own description of a chatbot (role
+  play passes): [ki-block.md](ki-block.md).
 - The Jev model version is pinned (`JEV_MODEL`): the thresholds are tuned against it.
 - **Logs:** a message flagged as personal data is stored as a placeholder, never verbatim.
 

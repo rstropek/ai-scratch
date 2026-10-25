@@ -3,7 +3,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
+import { ASK_PATH } from '../shared/ki-block.ts';
 import { requireAccessCode } from './access.ts';
+import { createAskHandler } from './ask.ts';
 import { createChatHandler } from './chat.ts';
 import { createCompactHandler } from './compact.ts';
 import type { Config } from './config.ts';
@@ -30,6 +32,7 @@ export const createApp = ({ config, sink, fetch }: AppDeps): Hono => {
   app.get('/api/access', (c) => c.body(null, 204));
   app.post('/api/chat', createChatHandler(deps));
   app.post('/api/compact', createCompactHandler(deps));
+  app.post(ASK_PATH, createAskHandler(deps));
   app.get('/api/stats', (c) => c.json(stats));
   app.all('/api/*', (c) => c.json({ error: 'Nicht gefunden' }, 404));
 

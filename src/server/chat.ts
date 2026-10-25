@@ -14,12 +14,12 @@ import {
   toUIMessageStream,
 } from 'ai';
 import type { Context } from 'hono';
-import { type ChatMessage, type ChatMetadata, SESSION_HEADER } from '../shared/chat-types.ts';
+import { type ChatMessage, type ChatMetadata, type GuardCategory, SESSION_HEADER } from '../shared/chat-types.ts';
 import { isAdminCode, memoryFull } from '../shared/energy.ts';
 import { buildInstructions, toolDefinitions } from '../shared/tools/index.ts';
 import { accessCodeOf } from './access.ts';
 import type { Config } from './config.ts';
-import { FIXED_ANSWERS, screen } from './guard.ts';
+import { FIXED_ANSWERS, type Screening, screen } from './guard.ts';
 import type { Hearts } from './hearts.ts';
 import { buildModelInput, turnNumber } from './model-input.ts';
 import {
@@ -81,7 +81,7 @@ const textOf = (m: ChatMessage | undefined): string =>
   (m?.parts ?? []).flatMap((p) => (p.type === 'text' ? [p.text] : [])).join('\n');
 
 export const MEMORY_FULL = 'Mein Gedächtnis ist voll. Klicke auf „Zusammenfassen“ oder „Neu anfangen“.';
-const heartsEmpty = (retryInMs: number) =>
+export const heartsEmpty = (retryInMs: number) =>
   `Deine Herzen sind leer. In ${Math.ceil(retryInMs / 1000)} Sekunden kommt ein neues.`;
 
 /** A fixed answer instead of a model call, streamed like one. */
@@ -101,19 +101,20 @@ const fixedAnswer = (messages: ChatMessage[], text: string, metadata?: ChatMetad
     }),
   });
 
-/** Kids protection for a new kid message: the fixed answer if the guard flags it, else undefined. */
-const guardNewMessage = async (
-  messages: ChatMessage[],
+/** Screens a kid's text with the kids-protection guard and records it; the category if the guard flags it. */
+export const screenAndRecord = async (
+  text: string,
+  previous: string | undefined,
   ctx: CallContext,
   { config, sink, stats, fetch: baseFetch }: ChatDeps,
-): Promise<Response | undefined> => {
-  const text = textOf(messages.at(-1));
-  const previous = textOf(messages.findLast((m) => m.role === 'assistant'));
-  const result = await screen(text, previous || undefined, {
-    apiKey: config.jevApiKey,
-    model: config.jevModel,
-    fetch: baseFetch,
-  });
+  screening?: Screening,
+): Promise<GuardCategory | undefined> => {
+  const result = await screen(
+    text,
+    previous,
+    { apiKey: config.jevApiKey, model: config.jevModel, fetch: baseFetch },
+    screening,
+  );
   recordGuard(stats, result.category, result.error);
   sink.appendGuard({
     ts: new Date().toISOString(),
@@ -125,7 +126,19 @@ const guardNewMessage = async (
     model: result.model,
     error: result.error,
   });
-  return result.category && fixedAnswer(messages, FIXED_ANSWERS[result.category], { guard: result.category });
+  return result.category;
+};
+
+/** Kids protection for a new kid message: the fixed answer if the guard flags it, else undefined. */
+const guardNewMessage = async (
+  messages: ChatMessage[],
+  ctx: CallContext,
+  deps: ChatDeps,
+): Promise<Response | undefined> => {
+  const text = textOf(messages.at(-1));
+  const previous = textOf(messages.findLast((m) => m.role === 'assistant'));
+  const category = await screenAndRecord(text, previous || undefined, ctx, deps);
+  return category && fixedAnswer(messages, FIXED_ANSWERS[category], { guard: category });
 };
 
 export const createChatHandler =

@@ -93,7 +93,9 @@ and each broken one must fail its check. A check that fails on the reference is 
   gehen nicht weg“.
 - Blocks that wait on the browser („spiele Klang ganz“) need its event loop and real time: while a script
   waits on one, the bot runs frames at real speed, and Chromium starts with autoplay allowed (otherwise the
-  sound never ends and the game never gets to „stoppe alles“).
+  sound never ends and the game never gets to „stoppe alles“). The same holds for „frage KI“: the bot's
+  page has the `admin_eval` code, so the block really asks, and `try` waits for its answers. `try answer:…`
+  types into the stage's question box („frage … und warte“), so a chatbot can be tested.
 - A broken copy that renames a message must change its id too: the VM finds a broadcast by id first.
 - The original CoderDojo Minesweeper picks bomb positions from 0 to 99, but list items start at 1. A bomb at 0
   is lost, and that game can never be won. The reference picks from 1 to 100.

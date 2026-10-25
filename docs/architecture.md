@@ -19,6 +19,9 @@ browser, so the server never runs an agent loop and stays stateless between requ
 AI SDK was chosen over CopilotKit and Mastra (ki-scratch report §8): it lets the server build every request
 itself and round-trips signed thinking blocks through the browser intact.
 
+The "frage KI" block in a kid's own program takes a shorter path: one `POST /api/ask` per question, with the
+same code, hearts and guard, and a plain JSON answer ([ki-block.md](ki-block.md)).
+
 ## Who owns what
 
 - **Browser:** the conversation (all messages, with tool calls and signed thinking) and the project (the VM in

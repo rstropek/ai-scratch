@@ -1,5 +1,5 @@
 // Live counters since the server started (GET /api/stats): Anthropic calls, the kids-protection guard,
-// the output guard and KI-Energie.
+// the output guard, KI-Energie and the "frage KI" block.
 import type { GuardCategory } from '../shared/chat-types.ts';
 import { type AnthropicUsage, costOf } from './cost.ts';
 
@@ -16,6 +16,8 @@ export interface Stats {
   outputCaps: { textCuts: number; stepLimits: number; toolCuts: number; thinkingCuts: number };
   /** messages refused without hearts or with a full memory, conversations summarized */
   energy: { heartsEmpty: number; memoryFull: number; compacts: number };
+  /** questions the "frage KI" block got answered by the AI */
+  asks: number;
 }
 
 export const createStats = (): Stats => ({
@@ -29,6 +31,7 @@ export const createStats = (): Stats => ({
   guard: { checks: 0, errors: 0, byCategory: {} },
   outputCaps: { textCuts: 0, stepLimits: 0, toolCuts: 0, thinkingCuts: 0 },
   energy: { heartsEmpty: 0, memoryFull: 0, compacts: 0 },
+  asks: 0,
 });
 
 export const recordCall = (stats: Stats, usage: AnthropicUsage, ok: boolean): void => {

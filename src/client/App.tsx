@@ -10,12 +10,16 @@ import { AccessGate } from './chat/AccessGate.tsx';
 import { ChatPanel } from './chat/ChatPanel.tsx';
 import { OFFLINE } from './chat/errors.ts';
 import { Splitter } from './components/Splitter.tsx';
+import { createHeartsStore } from './hearts.ts';
+import { createAsk } from './ki-ask.ts';
 import { cn } from './lib/utils.ts';
 import { createToolRunner } from './scratch/tool-runner.ts';
 import { useScratchBridge } from './scratch/use-scratch-bridge.ts';
 import { CHAT_WIDTH, maxChatWidth, useUiPrefs } from './ui-prefs.ts';
 
 const sessionId = crypto.randomUUID();
+/** KI-Energie for this page load, used by the chat and the "frage KI" block */
+const hearts = createHeartsStore();
 
 // read once per page load: the link's code wins over the remembered one
 const linkCode = takeLinkCode();
@@ -115,6 +119,16 @@ export const App = () => {
   const maxWidth = maxChatWidth(useViewportWidth());
   const chatWidth = Math.min(prefs.chatWidth, maxWidth);
 
+  // the "frage KI" block in the kid's program asks with the same code, session and hearts as the chat
+  const openCode = access.state === 'open' ? access.code : undefined;
+  useEffect(() => {
+    if (!bridge || !openCode) return;
+    bridge.ask = createAsk({ accessCode: openCode, sessionId, hearts, onAccessDenied: deny });
+    return () => {
+      delete bridge.ask;
+    };
+  }, [bridge, openCode, deny]);
+
   // Warn before closing/reloading the tab: the Scratch project only lives in this tab.
   useEffect(() => {
     const warn = (e: BeforeUnloadEvent) => e.preventDefault();
@@ -130,6 +144,7 @@ export const App = () => {
           <ChatPanel
             accessCode={access.code}
             sessionId={sessionId}
+            hearts={hearts}
             runTool={runTool}
             backups={backups}
             prefs={prefs}

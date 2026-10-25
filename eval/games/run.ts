@@ -131,7 +131,7 @@ const runOne = async (game: Game, variant: Variant, rep: number, server: Running
   let session = '';
   try {
     const chat = await ChatDriver.open(await context.newPage(), server.url, EVAL_CODE);
-    const player = await Player.open(await context.newPage(), server.url);
+    const player = await Player.open(await context.newPage(), server.url, EVAL_CODE);
     const kidTurns: KidTurn[] = [];
     let errors = 0;
     let lastChecks: TurnRecord['checks'];

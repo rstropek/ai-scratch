@@ -63,6 +63,8 @@ GUI elements have CSS-module classes like `green-flag_green-flag_1kiAo`: match t
 - **Sprite thumbnails:** the GUI throttles thumbnail renders and drops an update that follows another
   within about 500 ms, so a drawn sprite keeps the "?" placeholder. `draw_sprite` repeats the update later.
   Only the real browser showed this ([e2e/pictures.spec.ts](../e2e/pictures.spec.ts)).
+- **Our own block extension** ("frage KI") is registered in-process, before any project loads; its traps
+  (load order, `color3`, scratch.mit.edu can't open such projects) are in [ki-block.md](ki-block.md).
 - **`requestAnimationFrame` never fires in background tabs:** every wait in the ui-guide races it against
   a timer, so a UI helper can never block the turn.
 
@@ -70,7 +72,8 @@ GUI elements have CSS-module classes like `green-flag_green-flag_1kiAo`: match t
 
 - Unit tests use the Node build of scratch-vm as a headless VM
   ([headless-vm.ts](../test/support/headless-vm.ts)); it needs the postinstall workaround
-  [fix-vm-node.ts](../scripts/fix-vm-node.ts).
+  [fix-vm-node.ts](../scripts/fix-vm-node.ts). It registers the "frage KI" extension like the editor, so
+  projects with KI blocks load (otherwise scratch-vm tries to load an unknown extension in a Worker).
 - Keep `@scratch/scratch-vm` and `@scratch/scratch-storage` (headless tests) on the same pinned version as
   `@scratch/scratch-gui` (the app).
 

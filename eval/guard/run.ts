@@ -2,9 +2,18 @@
 // and writes docs/kids-protection.md, the record of what was tested. Costs fractions of a cent.
 //   npm run eval:guard
 import fs from 'node:fs';
-import { FIXED_ANSWERS, type GuardResult, type QuestionId, screen, THRESHOLDS } from '../../src/server/guard.ts';
+import {
+  BLOCK_SCREENING,
+  CHAT_SCREENING,
+  FIXED_ANSWERS,
+  type GuardResult,
+  type QuestionId,
+  type Screening,
+  screen,
+  THRESHOLDS,
+} from '../../src/server/guard.ts';
 import { MAX_ANSWER_CHARS, MAX_STEPS_PER_TURN } from '../../src/server/output-guard.ts';
-import { CASES, type Expected, type GuardCase } from './cases.ts';
+import { BLOCK_CASES, CASES, type Expected, type GuardCase } from './cases.ts';
 
 const REPORT = 'docs/kids-protection.md';
 const CONCURRENCY = 4;
@@ -31,11 +40,15 @@ interface Row extends GuardCase {
   result: GuardResult;
 }
 
-const rows: Row[] = await pool(CASES, async (c) => {
-  const result = await screen(c.text, c.previous, { apiKey, model });
-  if (result.error) throw new Error(`Jev failed for "${c.text}": ${result.error}`);
-  return { ...c, actual: result.category === 'too_long' ? 'pass' : (result.category ?? 'pass'), result };
-});
+const run = (cases: GuardCase[], screening: Screening): Promise<Row[]> =>
+  pool(cases, async (c) => {
+    const result = await screen(c.text, c.previous, { apiKey, model }, screening);
+    if (result.error) throw new Error(`Jev failed for "${c.text}": ${result.error}`);
+    return { ...c, actual: result.category === 'too_long' ? 'pass' : (result.category ?? 'pass'), result };
+  });
+const chatRows = await run(CASES, CHAT_SCREENING);
+const blockRows = await run(BLOCK_CASES, BLOCK_SCREENING);
+const rows = [...chatRows, ...blockRows];
 
 // --- report -------------------------------------------------------------------------------------------
 
@@ -63,29 +76,40 @@ const versions = [...new Set(rows.map((r) => r.result.model))].join(', ');
 const misses = rows.filter((r) => r.actual !== r.expected);
 const falseBlocks = rows.filter((r) => r.expected === 'pass' && r.actual !== 'pass').length;
 
-const summary = CATEGORIES.map((cat) => {
-  const expected = rows.filter((r) => r.expected === cat);
-  const hits = expected.filter((r) => r.actual === cat).length;
-  const flagged = rows.filter((r) => r.actual === cat);
-  const precision = cat === 'pass' ? '' : pct(flagged.filter((r) => r.expected === cat).length, flagged.length);
-  return `| ${cat} | ${expected.length} | ${hits} | ${pct(hits, expected.length)} | ${precision} |`;
-});
-
-const sections = CATEGORIES.map((cat) => {
-  const lines = rows
-    .filter((r) => r.expected === cat)
-    .map(
-      (r) =>
-        `| ${r.actual === r.expected ? '✅' : '❌'} | ${esc(r.text)}${r.previous ? ` *(answering: „${esc(r.previous)}“)*` : ''} | ${r.actual} | ${evidence(r.result)} | ${r.note ?? ''} |`,
-    );
+/** the summary table and one table of cases per category */
+const results = (set: Row[], heading: string) => {
+  const summary = CATEGORIES.map((cat) => {
+    const expected = set.filter((r) => r.expected === cat);
+    const hits = expected.filter((r) => r.actual === cat).length;
+    const flagged = set.filter((r) => r.actual === cat);
+    const precision = cat === 'pass' ? '' : pct(flagged.filter((r) => r.expected === cat).length, flagged.length);
+    return `| ${cat} | ${expected.length} | ${hits} | ${pct(hits, expected.length)} | ${precision} |`;
+  });
+  const sections = CATEGORIES.map((cat) => {
+    const lines = set
+      .filter((r) => r.expected === cat)
+      .map(
+        (r) =>
+          `| ${r.actual === r.expected ? '✅' : '❌'} | ${esc(r.text)}${r.previous ? ` *(answering: „${esc(r.previous)}“)*` : ''} | ${r.actual} | ${evidence(r.result)} | ${r.note ?? ''} |`,
+      );
+    return lines.length
+      ? [
+          `${heading} ${TITLES[cat]}`,
+          '',
+          '| | Message | Result | Probability | Note |',
+          '|---|---|---|---|---|',
+          ...lines,
+        ].join('\n')
+      : '';
+  });
   return [
-    `### ${TITLES[cat]}`,
-    '',
-    '| | Message | Result | Probability | Note |',
+    '| Expected | Cases | Recognised | Recall | Precision |',
     '|---|---|---|---|---|',
-    ...lines,
+    ...summary,
+    '',
+    sections.filter(Boolean).join('\n\n'),
   ].join('\n');
-});
+};
 
 const thresholdRows = Object.entries(THRESHOLDS).map(
   ([id, { category, threshold }]) => `| ${id} | ${category} | ${threshold} |`,
@@ -142,15 +166,21 @@ The answers are bounded as well, so a kid cannot provoke an endless answer
   word boundary with a note, and the AI call is stopped.
 - **AI calls per turn:** at most ${MAX_STEPS_PER_TURN}. Real turns take 2–10. After that, the turn ends with a short
   message.
-- **Kid messages:** at most 2,000 characters.
+- **Kid messages:** at most 2,000 characters. The "frage KI" block keeps the last 3,000 characters of its text.
 
-## Results
+## Results: chat messages
 
-| Expected | Cases | Recognised | Recall | Precision |
-|---|---|---|---|---|
-${summary.join('\n')}
+${results(chatRows, '###')}
 
-${sections.join('\n\n')}
+## Results: the "frage KI" block
+
+A kid's own program (usually a chatbot) sends a text to the AI with the "frage KI" block
+(src/server/ask.ts). Jev screens it with the same questions and thresholds, but with a description of the
+block instead of the chat, and four questions reworded: giving the chatbot a role ("Du bist ein Pirat"),
+playful teasing in that role and a sad character are fine here. Only the last 3,000 characters of the text
+are screened and sent to the model, as a sliding window over a chatbot's growing conversation.
+
+${results(blockRows, '###')}
 
 ## Known limits
 

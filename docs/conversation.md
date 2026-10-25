@@ -35,6 +35,9 @@ Expected misses, by design: the project snapshot is new each turn; "Zusammenfass
 kid idle for over 5 minutes loses their history cache (tools and system stay warm through the other kids).
 A 1-hour TTL would double every cache write and isn't worth it.
 
+The "frage KI" block has its own small caching scheme for a chatbot's growing text
+([ki-block.md](ki-block.md)).
+
 To check caching, read the `usage` of consecutive calls of one session in the research log
 ([research-log.md](research-log.md)): `cache_read_input_tokens` should cover everything but the new part.
 

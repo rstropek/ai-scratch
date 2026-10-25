@@ -20,13 +20,13 @@ The look is a **sticker album** (direction and reasoning: `.impeccable/surfaces/
 `PRODUCT.md`):
 
 - every slide is an album page in one Scratch block colour: `layout: page` with `color:` one of `looks`, `motion`,
-  `events`, `operators`, `myblocks`, `sound`, `control`, and `ink: dark` on the light grounds (yellow, green,
-  pink, blue) so the text keeps its contrast;
+  `events`, `operators`, `myblocks`, `sound`, `control`, and `ink: dark` on every ground except `looks` so the text
+  keeps its contrast;
 - pictures are stickers: `<Sticker src alt width rotate delay />` (white die-cut edge, pressed on when the slide
   opens); empty slots are `<Slot number size label />`, a `Slot` with a `Sticker` inside is a filled one;
 - `<SpeechBubble>` is Scratch's own "sagen" bubble (`long` for a whole sentence at text size; `tail="left"`/`"right"` for chat bubbles); `<StickerVideo src />` plays a looping video only while its
   slide is open;
-- two text sizes only: `h1` (display) and body text; `.print` is for small captions.
+- three text sizes: `h1` (display), body text and `.print` for small captions (the Haiku poem is the one exception).
 
 Adding a slide: copy one of the existing ones in `slides.md`, change `color:`, keep one idea per page.
 

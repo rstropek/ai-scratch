@@ -49,6 +49,13 @@ catalog.data_variable ??= {
   fields: { VARIABLE: { dynamic: true } },
 };
 catalog.data_listcontents ??= { shape: 'reporter', label: '[LIST]', inputs: {}, fields: { LIST: { dynamic: true } } };
+// The "frage KI" block (src/editor/ki-extension.ts) is our own extension, not in the captured palette.
+catalog.ki_ask ??= {
+  shape: 'reporter',
+  label: 'frage KI (QUESTION)',
+  inputs: { QUESTION: { kind: 'value', shadow: 'text', shadowField: 'TEXT', default: 'Erzähl mir einen Witz' } },
+  fields: {},
+};
 
 // Menus whose options depend on the selected sprite (the catalog was captured on one target):
 // allow the special values *or* any sprite name.

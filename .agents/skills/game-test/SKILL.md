@@ -25,7 +25,8 @@ reply names the session folder (`eval/games/sessions/<local time>-<game>/`).
 
 - `--game memory|fangspiel|fang-mich|space-shooter|minesweeper|none`: which automatic checks run after
   every change; each game's brief is in `eval/games/games.ts` and `coderdojo.ts` (the last three are
-  CoderDojo Linz exercises). With `none`, test any game idea with `try`, `play` and the screenshots.
+  CoderDojo Linz exercises). With `none`, test any game idea with `try`, `play` and the screenshots,
+  e.g. a chatbot with the „frage KI“ block: chat with it through `try answer:…`.
 - `--model`, `--effort`, `--prompt <file>` set the variant under test. Write the current prompt to a file
   with `npm run eval:games -- --dump-prompt my.txt`, then edit it.
 - `--port 3040` (default). Parallel sessions, such as one subagent per game, need different ports:
@@ -39,7 +40,7 @@ reply names the session folder (`eval/games/sessions/<local time>-<game>/`).
 | `send "<kid message>"` | the AI's answer text, every tool call (✓/✗ with error), and if the project changed: the checks (✅/❌ with what the bot measured), what a kid would notice (German), and stage screenshot paths |
 | `check [--turn n]` | the checks again, with fresh screenshots; `--turn n` checks the project as it was after turn n (saved after every change) |
 | `play [seconds] [--turn n]` | green flag, no input: sprites, positions, variables, speech, broadcasts, a stage screenshot |
-| `try <action>… [--turn n]` | green flag, then plays like a kid: `click:Karte#2` (the 2nd visible `Karte`, top left first), `click:0,-100` (stage position), `key:space`, `key:left:2` (hold 2 s), `wait:3`. After each action: what changed (costumes, positions, variables, speech, broadcasts) |
+| `try <action>… [--turn n]` | green flag, then plays like a kid: `click:Karte#2` (the 2nd visible `Karte`, top left first), `click:0,-100` (stage position), `key:space`, `key:left:2` (hold 2 s), `wait:3`, `answer:Hallo du` (types into the question box of „frage … und warte“; it then waits for „frage KI“ answers). After each action: what changed (costumes, positions, variables, speech, broadcasts) |
 | `project` | every sprite with costumes and variables, and its scripts in the assistant's script format |
 | `shot` | a screenshot of the whole app (chat + editor) as the kid sees it *before* clicking the green flag: no clones, start positions not set yet. To see the game running, use `play` or `check` |
 | `undo` | clicks „Rückgängig“ under the last answer that changed the project |

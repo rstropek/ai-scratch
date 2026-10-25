@@ -3,6 +3,8 @@
 // scripts instead of comparing JSON.
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
+import { registerKiExtension } from '../../src/editor/ki-extension.ts';
+import type { Ask } from '../../src/shared/ki-block.ts';
 import type { Target, Variable, VirtualMachine } from '../../src/shared/scratch/vm-types.ts';
 import type { LibraryItem, LibraryKind, LoadLibrary } from '../../src/shared/tools/asset-tools.ts';
 
@@ -31,8 +33,14 @@ export interface TestVm extends VirtualMachine {
 export const loadFixture = (name: string): string =>
   fs.readFileSync(new URL(`./fixtures/${name}.json`, import.meta.url), 'utf8');
 
-export const createVm = async (projectJson = loadFixture('default-project')): Promise<TestVm> => {
+/** `ask` answers the "frage KI" blocks (without one they say that the code is missing). */
+export const createVm = async (
+  projectJson = loadFixture('default-project'),
+  { ask }: { ask?: Ask } = {},
+): Promise<TestVm> => {
   const vm = Object.assign(new VM(), { says: [] as Said[], path: [] as TestVm['path'] });
+  // like the editor: projects with KI blocks load only where the extension is registered
+  registerKiExtension(vm, () => ask);
   await vm.loadProject(projectJson);
   vm.runtime.on('SAY', (target: Target, type: string, text: unknown) =>
     vm.says.push({ sprite: target.getName(), type, text: String(text) }),

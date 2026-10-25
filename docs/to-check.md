@@ -13,6 +13,7 @@ Open checks, not yet done. Tick them off (or delete them) when done.
   - the project snapshot is new each turn by design;
   - "Zusammenfassen" replaces the history;
   - a kid idle for over 5 minutes loses their history cache, but tools and system stay warm through the other kids. A 1-hour TTL doubles every write and isn't worth it.
+- [ ] **Video: the "frage KI" block** (docs/ki-block.md). Projects with it open only in this app, not on scratch.mit.edu; worth one sentence if kids take projects home. Each question costs a heart, shared with the chat.
 - [ ] **Azure: SSE streaming** is not buffered by App Service (answers must stream, not arrive at once).
 - [ ] **Azure: app settings** contain the real `ACCESS_CODES` (one per school plus the `admin_` code, without `test`), `JEV_API_KEY` and the Anthropic keys.
 - [x] **Azure: instances** (decided 2026-10-23). Hearts live in memory per instance (`src/server/hearts.ts`). ARR affinity is on, so scaling out keeps each kid on one instance; losing affinity only refills a kid's hearts.

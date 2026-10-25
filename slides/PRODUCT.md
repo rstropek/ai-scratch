@@ -10,7 +10,7 @@ web
 
 ## Stack
 
-Slidev (https://sli.dev), as a completely independent Node app in `slides/` with its own package.json; how far it shares code or assets with the app is delegated. Runs locally only (`npm run dev`, exports on Rainer's machine); no deployment.
+Slidev (https://sli.dev), as a completely independent Node app in `slides/` with its own package.json; how far it shares code or assets with the app is delegated. Rainer presents and records from `npm run dev` locally. `npm run build` also bakes the deck into the app's Docker image, which serves it at `/slides/` (ai-scratch.azurewebsites.net/slides).
 
 ## Users
 
@@ -35,7 +35,7 @@ The deck lives in the same world as the app the kids use all day: the Scratch 3 
 
 - All kid-facing text is German, age-appropriate, short. Code and comments in English.
 - Scratch library art (sprites, backdrops; CC BY-SA 2.0 by the Scratch Team) may be reused, with credit.
-- The "KI Agent" slide plays a looping video that another agent is producing; its file is not available yet.
+- The "KI Agent" slide plays a looping video (`public/videos/ki-agent-loop.mp4`, 6 s).
 - Wording of the slides Rainer gave is a starting point and may be improved.
 
 ## Brand Commitments

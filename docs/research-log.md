@@ -15,7 +15,8 @@ Every Anthropic call and every guard screening is stored for research. Read befo
 - A call cut off by the output limit or a closed connection is logged with what arrived, marked `aborted`.
 - Each record carries the access code (school), the session (page load) and the turn number (it keeps
   counting across "Zusammenfassen": the summary message carries the number of turns it replaced); summary calls
-  carry `purpose: 'compact'`.
+  carry `purpose: 'compact'`, questions of the "frage KI" block `purpose: 'ask'` with turn 0
+  ([ki-block.md](ki-block.md)).
 - **Prefix dedup:** system prompt + tools (~50 KB) are the same in every call, so they are stored once under a
   hash, and each call record references the hash. Both sinks use the same hash, so local and Azure logs mix.
 - Logging never delays or fails a chat: it runs after the response is handed on, and errors only reach the
@@ -50,7 +51,7 @@ Every Anthropic call and every guard screening is stored for research. Read befo
 ## Live stats
 
 - `GET /api/stats` (any valid access code): calls, errors, tokens incl. cache reads and writes, cost, guard
-  categories and outages, output caps, refusals for hearts and memory, summaries.
+  categories and outages, output caps, refusals for hearts and memory, summaries, answers of the "frage KI" block (`asks`).
 - In memory, **per instance**, since its last start: a restart or a swap resets them, and with several
   instances each shows its own share. The research log is the record; stats are for watching the event.
 - [cost.ts](../src/server/cost.ts) has the Claude Haiku 5.5 prices hard-coded. Update them when `MODEL` changes,

@@ -35,7 +35,12 @@ export default defineConfig({
         test: {
           name: 'unit',
           environment: 'node',
-          include: ['src/shared/**/*.test.ts', 'src/server/**/*.test.ts', 'src/client/**/*.test.ts'],
+          include: [
+            'src/shared/**/*.test.ts',
+            'src/server/**/*.test.ts',
+            'src/client/**/*.test.ts',
+            'src/editor/**/*.test.ts',
+          ],
           testTimeout: 20_000,
         },
       },
