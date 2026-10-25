@@ -36,7 +36,7 @@ const { values: args } = parseArgs({
     concurrency: { type: 'string', default: '2' },
     report: { type: 'boolean', default: false },
     'skip-judge': { type: 'boolean', default: false },
-    'kid-model': { type: 'string', default: 'claude-opus-5-5' },
+    'kid-model': { type: 'string', default: 'claude-sonnet-5-5' },
     'judge-model': { type: 'string', default: 'claude-opus-5-5' },
     out: { type: 'string', default: 'eval/games/runs' },
     headed: { type: 'boolean', default: false },

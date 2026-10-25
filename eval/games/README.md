@@ -17,6 +17,8 @@ Shooter and Minesweeper ([coderdojo.ts](coderdojo.ts); the exercises are on linz
 has **core checks** (its basic idea; all passing = green) and **extras** (details of the classic version,
 reported but not required), because there are many ways to build the same game. The briefs simplify a rule
 where that makes it testable (Minesweeper is won by opening all safe cells, flags are an extra).
+`minesweeper-mini` is the tutorial's simpler version (5 × 5, 4 bombs, no flags, no cascade): the same
+checks without those two extras, so its reference is the full game.
 
 ```bash
 npm run build                                   # the harness serves dist/, like production
@@ -31,7 +33,7 @@ npm run eval:games -- --prompt default,my.txt --reps 3
 Options: `--games memory,fangspiel`, `--model`, `--effort` and `--prompt` (comma lists; every
 combination is a variant with its own server), `--reps`, `--max-turns` (30), `--concurrency` (2 runs at
 once), `--report` (Markdown + screenshots + the judge), `--skip-judge`, `--kid-model` and `--judge-model`
-(both `claude-opus-5-5`), `--headed` (watch it), `--out`.
+(`claude-sonnet-5-5` and `claude-opus-5-5`; the Opus kid was ~75 % of a run's cost), `--headed` (watch it), `--out`.
 
 Output: `eval/games/runs/<time>/` (git-ignored; sessions go to `eval/games/sessions/`). The folder holds `summary.md` (one row per run), the
 research log of every variant (`logs-N/`), and one folder per run. Each run folder has `result.json`,
@@ -68,7 +70,7 @@ research log of every variant (`logs-N/`), and one folder per run. Each run fold
   costume names („1“, „bomb“…), because the bot can't read the drawing.
 - **The judge** (with `--report`): Claude reads the transcript and rates the teaching mode (1–5) with findings.
 - **Cost:** the app's calls come from the run's research log, the kid's and the judge's from the AI SDK
-  ([pricing.ts](pricing.ts)). The kid and the judge on Opus usually cost more than the app on Haiku.
+  ([pricing.ts](pricing.ts)). The kid and the judge usually cost more than the app on Haiku.
 
 ## Adding a game
 

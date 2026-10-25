@@ -52,3 +52,30 @@ test('a failing tool call is reported back to the model instead of breaking the 
   await expect(page.getByTestId('tool-call')).toContainText(/Did you mean: motion_movesteps/);
   expect(JSON.stringify(requests[1])).toContain('"state":"output-error"');
 });
+
+test('test_run plays the game in the real stage: clicks hit the sprite, keys reach the scripts', async ({ page }) => {
+  const requests = await mockChat(page, [
+    toolCall('add_scripts', {
+      sprite: 'Sprite1',
+      scripts: [
+        [{ op: 'event_whenthisspriteclicked' }, { op: 'looks_say', MESSAGE: 'Getroffen' }],
+        [
+          { op: 'event_whenkeypressed', KEY_OPTION: 'space' },
+          { op: 'motion_changexby', DX: 30 },
+        ],
+      ],
+    }),
+    toolCall('test_run', { seconds: 2, actions: ['click:Sprite1', 'key:space'] }),
+    answer('Ich habe es ausprobiert.'),
+  ]);
+  await openApp(page);
+  await send(page, 'Die Katze reagiert nicht');
+  await expect(page.getByTestId('assistant-text')).toHaveText(/ausprobiert/);
+
+  const body = requests[2] as { messages: { parts: { type: string; output?: { timeline: string[] } }[] }[] };
+  const run = body.messages.at(-1)?.parts.find((p) => p.type === 'tool-test_run');
+  const timeline = run?.output?.timeline.join('\n') ?? '';
+  expect(timeline).toContain('kid clicks Sprite1#1');
+  expect(timeline).toContain('Sprite1 says "Getroffen"');
+  expect(timeline).toContain('Sprite1 x 0→30');
+});

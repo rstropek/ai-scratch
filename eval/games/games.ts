@@ -12,7 +12,7 @@ import {
   result,
   type Shot,
 } from './checks.ts';
-import { fangMich, minesweeper, spaceShooter } from './coderdojo.ts';
+import { fangMich, minesweeper, minesweeperMini, spaceShooter } from './coderdojo.ts';
 import type { Player, StageState, TargetState } from './player.ts';
 
 export type { CheckResult, CheckRun, CheckStatus, Game, Shot } from './checks.ts';
@@ -348,8 +348,17 @@ export const memory: Game = {
     const events = await player.events();
     shots.push({ label: 'Alle Paare gefunden?', png: await player.screenshot() });
     // the brief: 3 pairs, every picture exactly twice
+    // grouped like sameFace: two drawings of the same fruit with the same costume name are a pair to the
+    // kid (and to the game's own matching); a generic name like "costume1" says nothing
+    const picture = (f: { look: string; costume: string }) =>
+      f.costume && !/^(costume|kostüm)\d*$/i.test(f.costume) ? `name:${f.costume}` : f.look;
     const groups = new Map<string, number>();
-    for (const f of faces.values()) groups.set(f.look, (groups.get(f.look) ?? 0) + 1);
+    const names = new Map<string, string>();
+    for (const f of faces.values()) {
+      groups.set(picture(f), (groups.get(picture(f)) ?? 0) + 1);
+      names.set(picture(f), f.costume);
+    }
+    const odd = [...groups].filter(([, n]) => n !== 2).map(([k, n]) => `${names.get(k) || 'ein Bild'} (${n}×)`);
     const allKnown = faces.size === game.cards.length;
     const threePairs = allKnown && groups.size === game.cards.length / 2 && [...groups.values()].every((n) => n === 2);
     const matches = pairs.filter((p) => p.match);
@@ -369,7 +378,7 @@ export const memory: Game = {
           matches.length === 0
             ? 'Ich finde keine zwei gleichen Karten.'
             : allKnown && !threePairs
-              ? 'Die Bilder passen nicht: nicht jedes Bild ist genau zweimal da.'
+              ? `Die Bilder passen nicht: nicht jedes Bild ist genau zweimal da, z.B. ${odd.slice(0, 2).join(', ')}.`
               : !pointsVar
                 ? 'Es gibt keine Punkte-Anzeige.'
                 : matches.some((p) => !p.stayed)
@@ -481,4 +490,5 @@ export const GAMES: Record<string, Game> = {
   [fangMich.id]: fangMich,
   [spaceShooter.id]: spaceShooter,
   minesweeper,
+  [minesweeperMini.id]: minesweeperMini,
 };

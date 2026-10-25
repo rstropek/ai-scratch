@@ -998,3 +998,20 @@ export const minesweeper: Game = {
 
 const onStageCell = (t: TargetState) =>
   !t.bounds || (t.bounds.left >= -242 && t.bounds.right <= 242 && t.bounds.bottom >= -182 && t.bounds.top <= 182);
+
+/** The simpler version for the tutorial (Rainer, 2026-10-25): small board, no flags, no cascade. */
+export const minesweeperMini: Game = {
+  id: 'minesweeper-mini',
+  title: 'Minesweeper (klein)',
+  brief: `Du willst ein kleines Minesweeper bauen:
+- Ein Spielfeld aus 5 mal 5 Kästchen, am Anfang sind alle verdeckt. Darunter sind 4 Bomben versteckt, jedes
+  Spiel an anderen Stellen.
+- Klickst du ein Kästchen an, wird es aufgedeckt. Ist da eine Bombe, hast du verloren („Verloren“).
+- Sonst zeigt das Kästchen, wie viele Bomben rundherum liegen (eine Zahl von 0 bis 8).
+- Sind alle Kästchen ohne Bombe aufgedeckt, hast du gewonnen („Gewonnen“).
+- Wenn man die grüne Flagge klickt, fängt ein neues Spiel an.`,
+  async check(player, sb3) {
+    const run = await minesweeper.check(player, sb3);
+    return { ...run, checks: run.checks.filter((c) => c.id !== 'cascade' && c.id !== 'flag') };
+  },
+};

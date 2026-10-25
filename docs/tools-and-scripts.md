@@ -39,6 +39,13 @@ format or the system prompt.
   ([architecture.md](architecture.md)). In the next harness round (10 games) the model used
   `remove_scripts` 61 times and `clear_scripts` never, and broken `add_scripts` inputs that reached it
   fell from 14 to 4. Rainer decided on 2026-10-25 to keep it; `clear_scripts` stays for a full rebuild.
+- **`test_run` lets the assistant see a bug instead of guessing** (Rainer's decision, 2026-10-25). It plays
+  the project on the live VM in real time (green flag, then the kid's keys and clicks) and returns a timeline
+  of what changed, sampled every 0.5 s, plus speech, broadcasts and „stoppe alles“. The kid watches it run.
+  Teaching mode: the prompt allows it only when the kid says something doesn't work, not to check every
+  change. It changes no scripts, so it can't be undone and needn't be; the game is stopped at the end.
+  Clicks go through the renderer at a point where the sprite is drawn on top (the headless VM has none, so
+  only e2e tests clicks).
 - **The snapshot replaces the first `get_project`.** Each kid message carries the project as it was when sent,
   with a note that `get_project` isn't needed; the system prompt says the same (read the `<projekt>` block,
   `get_project` only to see the state after its own changes). Keep the two texts in line.
@@ -77,4 +84,5 @@ easy to switch (for example, the ui tools without `add_scripts`).
 
 The Scratch tips and „Wenn etwas nicht geht“ in the prompt are technical, not pedagogy: they come from
 game-harness runs. Without the second, Haiku answered bug reports with „die Skripte sehen richtig aus“,
-blamed the kid's keyboard or screen and kept guessing for 10–20 turns.
+blamed the kid's keyboard or screen and kept guessing for 10–20 turns. Its first rule says to take the
+kid's observation seriously and check it with `test_run`, not to believe it blindly: real kids misreport too.

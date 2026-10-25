@@ -131,3 +131,33 @@ Before these fixes, a single wrong check sentence cost a whole run. In round 2 t
 - **D6:** keep the `THOUGHT_TOO_LONG` text.
 - **Older items:** Sonnet for the simulated kid (the judge stays on Opus).
 - **Next:** commit these fixes first, then build the decisions.
+
+## Round 6 (2026-10-25 morning): the decisions built
+
+Built after the decisions above:
+- `test_run` (D1, `src/shared/tools/test-run.ts`);
+- the softer first rule (D2);
+- `minesweeper-mini` (D4);
+- the Sonnet kid.
+
+Run `20261025-0808`: Memory, Fangspiel, Fang mich, Space Shooter and `minesweeper-mini`, two runs each, 148 turns, $0.37 app / $2.50 total.
+
+- **9/10 green, and 10/10 with a corrected check.**
+  - Memory run 2 failed only „Bilder passen“. The model drew the cherry twice, so the two cards are slightly different drawings, both with the costume name „Kirsche“.
+  - The game pairs them by name, and a kid sees two cherries. So the check now groups pictures the way it matches pairs: by image, or by a costume name that isn't generic. When pictures really don't pair up, the kid message names the odd ones out.
+  - The final project then passes 7/7.
+- **Minesweeper (klein): 2/2 green, in 11 and 12 turns,** with teaching scores of 3/5. Full Minesweeper took 26–30 turns.
+- **No 400s** in 348 model calls; the fix from round 5 holds.
+- **`test_run`: 46 calls in 9 of 10 runs.**
+  - It helped: in Fang mich and Space Shooter the model found regressions by playing them. In Memory run 2 it correctly saw that Sprite1 was still there when the kid said it had deleted it.
+  - It costs time: up to 10 s per call, and some answers ran two.
+  - **Teaching mode: about a third of the calls came without a bug report** (the model checked its own new work, e.g. Minesweeper turn 2, Space Shooter turns 3 and 6), despite the prompt line and the tool description. See D7.
+  - Its timeline shows costume names, not images, so it couldn't see the two different cherries.
+- **The Sonnet kid is weaker than the Opus kid:**
+  - it quoted the harness („unter ‚Beim Ausprobieren‘ steht …“, „auf dem Bild“);
+  - it claimed to have deleted the cat;
+  - it kept saying the game-over sign never appears, because the stage picture is taken just after the green flag (Fangspiel run 2: green after turn 7, but 27 turns).
+  - The kid prompt now forbids both; not measured yet.
+- **Kids ask to delete the cat in almost every run,** and the assistant can only explain the right-click. See D8.
+
+Rainer's decisions on round 6: D7, keep `test_run` as it is (he wants to try it himself first); D8, no delete tool.

@@ -3,6 +3,7 @@ import { catalogReference } from '../scratch/block-catalog.ts';
 import { sb3BlocksToVm } from '../scratch/sb3-blocks.ts';
 import { compileScripts, type DslScript, decompileBlocks, type ProcedureInfo } from '../scratch/script-dsl.ts';
 import { findTarget, type Sb3Blocks, type Target, type VirtualMachine } from '../scratch/vm-types.ts';
+import { TEST_RUN_MAX_SECONDS, testRun } from './test-run.ts';
 import { fn, jsonArg, stringArg, type ToolDefinition, type ToolHandlers } from './tool-types.ts';
 
 export const projectToolDefinitions: ToolDefinition[] = [
@@ -38,6 +39,22 @@ export const projectToolDefinitions: ToolDefinition[] = [
   ),
   fn('clear_scripts', 'Deletes all scripts of a sprite.', { sprite: { type: 'string' } }, ['sprite']),
   fn('green_flag', 'Starts the project (like clicking the green flag).'),
+  fn(
+    'test_run',
+    'Plays the project for a few seconds like a kid trying it (green flag, then the actions in order) and reports what happened: ' +
+      'moves, costumes, clones, variables, speech, broadcasts and "stop all". ' +
+      'Use it when the kid says something does not work, to see what really happens before you change anything. ' +
+      "Don't use it to check every change: trying the game is the kid's part. The game is stopped afterwards.",
+    {
+      seconds: { type: 'number', description: `how long to play, 1 to ${TEST_RUN_MAX_SECONDS} (default 3)` },
+      actions: {
+        type: 'array',
+        items: { type: 'string' },
+        description:
+          'what the kid does after the green flag: "key:space" (tap), "key:left:2" (hold 2 s), "click:Karte" (the first visible Karte, top left first), "click:Karte#3", "click:100,-50" (a stage position), "wait:1"',
+      },
+    },
+  ),
 ];
 
 const DSL_FORMAT = `
@@ -328,4 +345,5 @@ export const createProjectTools = (
     vm.greenFlag();
     return { ok: true };
   },
+  test_run: (args) => testRun(vm, args),
 });

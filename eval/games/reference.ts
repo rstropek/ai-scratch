@@ -553,6 +553,8 @@ export const coderdojo = async (): Promise<Record<string, Buffer>> => {
       ),
     ),
     minesweeper: mines,
+    // the small version's checks are a subset: the full game must pass them
+    'minesweeper-mini': mines,
     // a 1 shows the costume of a 2
     'minesweeper-wrong-numbers': await mutate(mines, (p) => {
       block(p, 'Zelle', (b) => b.opcode === 'looks_costume' && b.fields.COSTUME?.[0] === '1').fields.COSTUME = [

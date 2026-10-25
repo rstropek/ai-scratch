@@ -87,12 +87,17 @@ export interface Target {
   size: number;
   visible: boolean;
   currentCostume: number;
+  drawableID: number;
+  /** graphic effects by name, e.g. ghost 0..100 */
+  effects: Record<string, number>;
   blocks: Blocks;
   variables: Record<string, Variable>;
   getName(): string;
   getCostumes(): Costume[];
   setCostume(index: number): void;
   getSounds(): Sound[];
+  /** e.g. 'Scratch.looks': { type: 'say' | 'think', text } of its bubble */
+  getCustomState(name: string): unknown;
   createVariable(id: string, name: string, type: string): void;
   on(event: string, listener: (target: Target) => void): void;
 }
@@ -114,12 +119,25 @@ export interface Storage {
   ): void;
 }
 
+/** The stage renderer (null in the headless VM); client coordinates are relative to the canvas. */
+export interface Renderer {
+  canvas: HTMLCanvasElement;
+  /** the drawable on top at a client point */
+  pick(x: number, y: number): number;
+  getBounds(drawableID: number): { left: number; right: number; top: number; bottom: number };
+}
+
 export interface Runtime {
   targets: Target[];
   storage: Storage;
+  /** the running scripts */
+  threads: unknown[];
+  renderer?: Renderer | null;
   getTargetForStage(): Target;
+  startHats(opcode: string, fields?: Record<string, unknown>, target?: Target): unknown;
   on(event: string, listener: (...args: never[]) => void): void;
   once(event: string, listener: (...args: never[]) => void): void;
+  removeListener(event: string, listener: (...args: never[]) => void): void;
 }
 
 /** Costume/backdrop metadata as passed to addCostume/addBackdrop (what the library dialogs pass). */
