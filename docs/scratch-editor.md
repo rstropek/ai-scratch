@@ -13,6 +13,10 @@ the UI tools or the build of the Scratch bundle.
   ([bridge.ts](../src/editor/bridge.ts)); the host polls for it.
 - **Mount once, never unmount:** the editor crashes on unmount (Blockly focus manager). This is one reason
   for the iframe, and why the chat, not the editor, is what folds away.
+- **Keys need focus in the iframe:** the GUI listens for game keys on the iframe's `document`, but the stage
+  calls `preventDefault()` on mousedown, so a click on it never moves focus out of the chat input.
+  [main.ts](../src/editor/main.ts) focuses the iframe window on any mousedown there
+  ([e2e/keyboard.spec.ts](../e2e/keyboard.spec.ts)).
 - **Web root:** the bundle loads its files from `/` (webpack publicPath), see
   [vite.config.ts](../vite.config.ts) and [prepare-scratch.ts](../scripts/prepare-scratch.ts). In production
   [app.ts](../src/server/app.ts) serves `dist/client` first, then `dist/scratch`, both at `/`: a host file
