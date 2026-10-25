@@ -66,6 +66,12 @@ format or the system prompt.
   the kid to create them in the editor.
 - **Library first, drawing second:** the prompt sends the model to `search_library` (English keywords) before
   it draws SVG; drawings are checked cheaply (viewBox, size) and the editor's SVG loader sanitizes the rest.
+- **The kid picks library items by picture** (Rainer's decision, 2026-10-25, instead of a question tool):
+  a kid can't tell "Shark" from "Shark 2" by name. The chat shows what `search_library` found as pictures
+  from the Scratch CDN, always, not only in the tool view
+  ([LibraryPictures.tsx](../src/client/chat/LibraryPictures.tsx)). They are not clickable; the kid answers in
+  text. The tool result keeps names only (pictures would cost the model tokens); the client looks the
+  pictures up in the same library files. The prompt says: if several fit, add none yet and ask which one.
 
 ## Robustness
 

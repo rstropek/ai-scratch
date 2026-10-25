@@ -168,7 +168,11 @@ const runOne = async (game: Game, variant: Variant, rep: number, server: Running
         .join('\n');
       kidTurns.push({
         kid: kid.text,
-        answer: answer.error ? `${answer.text}\n(Im Chat steht eine Fehlermeldung: ${answer.error})` : answer.text,
+        answer: [
+          ...(answer.pictures ? [`(Im Chat zeigt die KI Bilder: ${answer.pictures.join(', ')})`] : []),
+          answer.text,
+          ...(answer.error ? [`(Im Chat steht eine Fehlermeldung: ${answer.error})`] : []),
+        ].join('\n'),
         ...(observed ? { observed } : {}),
         ...(stage ? { stage } : {}),
       });

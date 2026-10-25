@@ -206,6 +206,7 @@ const serve = async () => {
         `## Turn ${n} (${Math.round(answer.ms / 1000)} s)${compacted ? ' – the harness clicked „Zusammenfassen“ first' : ''}`,
         `KI: ${answer.text || '(no answer text)'}`,
       ];
+      if (answer.pictures) out.push(`Pictures in the chat: ${answer.pictures.join(', ')}`);
       if (answer.error) out.push(`⚠ chat error: ${answer.error}`);
       if (answer.tools.length) out.push(`Tools:\n${toolLines(answer)}`);
       if (changed) fs.writeFileSync(path.join(dir, `turn-${String(n).padStart(2, '0')}.sb3`), await chat.sb3());

@@ -47,6 +47,7 @@ research log of every variant (`logs-N/`), and one folder per run. Each run fold
   drag blocks, so it asks the assistant to do it. It writes `FERTIG` when everything works.
 - **The chat** ([chat.ts](chat.ts)): Playwright types into the real chat and waits until the Stopp button is
   gone. It reads the answer from the page and the tool calls from the app's `/api/chat` request bodies.
+  The names of the library pictures the chat shows go to the kid as text (it can't see them).
   When the Gedächtnis is full, it clicks „Zusammenfassen“ like a kid would. The access code is
   `admin_eval`, so there are no hearts.
 - **The bot** ([player.ts](player.ts)): plays the saved project in a second page of the app, in the real

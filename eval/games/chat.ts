@@ -12,6 +12,8 @@ export interface ToolCall {
 
 export interface Answer {
   text: string;
+  /** names of the library pictures the chat showed (what search_library found) */
+  pictures?: string[];
   tools: ToolCall[];
   /** the chat showed an error instead of (or after) an answer */
   error?: string;
@@ -92,11 +94,19 @@ export class ChatDriver {
     const count = await messages.count();
     const answerText =
       count > before ? (await messages.last().getByTestId('assistant-text').allInnerTexts()).join('\n\n') : '';
+    const pictures =
+      count > before ? await messages.last().getByTestId('library-pictures').locator('figcaption').allInnerTexts() : [];
     const last = this.requests.at(-1)?.at(-1);
     const tools = last?.role === 'assistant' ? last.parts.flatMap((p) => toolOf(p) ?? []) : [];
     const alert = this.page.locator('[data-testid="messages"] [role="alert"]');
     const error = (await alert.count()) ? (await alert.last().textContent())?.trim() : undefined;
-    return { text: answerText.trim(), tools, ...(error ? { error } : {}), ms: Date.now() - started };
+    return {
+      text: answerText.trim(),
+      ...(pictures.length ? { pictures } : {}),
+      tools,
+      ...(error ? { error } : {}),
+      ms: Date.now() - started,
+    };
   }
 
   /** "Zusammenfassen" when the memory gauge asks for it; returns whether it did. */

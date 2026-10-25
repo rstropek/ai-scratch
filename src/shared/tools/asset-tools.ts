@@ -18,7 +18,7 @@ export interface LibraryItem {
   rotationCenterX?: number;
   rotationCenterY?: number;
   bitmapResolution?: number;
-  costumes?: { name: string }[];
+  costumes?: { name: string; md5ext?: string }[];
   sounds?: { name: string }[];
   [key: string]: unknown;
 }
@@ -34,7 +34,8 @@ export const assetToolDefinitions: ToolDefinition[] = [
   fn(
     'search_library',
     'Searches the Scratch library by English words (name or tags, e.g. "bat", "space", "underwater"). ' +
-      'Returns matching item names; sprites also list their costumes and sounds.',
+      'Returns matching item names; sprites also list their costumes and sounds. ' +
+      'The kid already sees the found items as pictures with their names, above your answer.',
     {
       kind: { type: 'string', enum: Object.keys(KINDS) },
       query: { type: 'string', description: 'English search words' },
@@ -93,6 +94,8 @@ export const assetToolDefinitions: ToolDefinition[] = [
 
 export const assetToolsPrompt =
   'Bilder: Für Figuren und Hintergründe suche zuerst in der Scratch-Bibliothek (search_library, englische Suchwörter). ' +
+  'Das Kind sieht die Treffer schon über deiner Antwort als Bilder mit Namen, beschreib sie also nicht: ' +
+  'passen mehrere, füg noch keines hinzu und frag nur, welches es will. ' +
   'Nur wenn das Kind ausdrücklich eine eigene Zeichnung will oder nichts Passendes da ist, zeichne selbst (draw_sprite, draw_costume): ' +
   'einfache, kräftige Formen im Cartoon-Stil wie Scratch-Figuren, die Bühne ist 480x360.';
 
@@ -101,6 +104,12 @@ export const fetchLibrary: LoadLibrary = async (kind) => {
   const response = await fetch(`/libraries/${KINDS[kind]}.json`);
   if (!response.ok) throw new Error(`Could not load the ${kind} library (HTTP ${response.status})`);
   return (await response.json()) as LibraryItem[];
+};
+
+/** The picture of a library item on the Scratch CDN, as the library dialogs show it: a sprite's first costume. */
+export const libraryPictureUrl = (item: LibraryItem): string | undefined => {
+  const md5ext = item.md5ext ?? item.costumes?.[0]?.md5ext;
+  return md5ext && `https://cdn.assets.scratch.mit.edu/internalapi/asset/${md5ext}/get/`;
 };
 
 const tokens = (s: unknown) =>

@@ -166,6 +166,7 @@ export const writeRunReport = (dir: string, r: RunRecord): void => {
     else lines.push('> *(no answer text)*', '');
     const meta = [
       toolLine(t.answer) && `Tools: ${toolLine(t.answer)}`,
+      t.answer.pictures && `Pictures: ${t.answer.pictures.join(', ')}`,
       t.checks &&
         `Checks: ${checkScore(t.checks)}${
           t.checks.some((c) => c.status === 'fail')

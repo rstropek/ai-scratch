@@ -1,14 +1,16 @@
 // One chat message. Assistant text is Markdown in a Scratch "say" speech bubble, the kid's text
 // plain in a light purple bubble. Tool calls and token usage only show when the tool toggle is on; otherwise a
-// single friendly status line says that the AI is working on the project. An answer that changed the project
-// ends with its undo button (undo.ts).
+// single friendly status line says that the AI is working on the project. What search_library found always
+// shows as pictures. An answer that changed the project ends with its undo button (undo.ts).
 import { type DynamicToolUIPart, getToolName, isToolUIPart, type ToolUIPart } from 'ai';
 import { Brain, Check, Hammer, LoaderCircle, NotebookPen, Undo2, Wrench, X } from 'lucide-react';
-import { type ReactNode, useMemo } from 'react';
+import { Fragment, type ReactNode, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { ChatMessage } from '../../shared/chat-types.ts';
 import { repeatedTexts } from '../../shared/repeated-text.ts';
+import type { LibraryKind } from '../../shared/tools/asset-tools.ts';
+import { LibraryPictures } from './LibraryPictures.tsx';
 import { renderMarkdown } from './markdown.ts';
 
 // Arguments of these tools are long (scripts, SVG): show only the tool name.
@@ -144,6 +146,16 @@ const ToolLine = ({ part }: { part: ToolPart }) => {
   );
 };
 
+/** The names a finished search_library call found, and in which library. */
+const searchResult = (part: ToolPart): { kind: LibraryKind; names: string[] } | undefined => {
+  if (getToolName(part) !== 'search_library' || part.state !== 'output-available') return undefined;
+  const kind = (part.input as { kind?: unknown } | undefined)?.kind;
+  const found = (part.output as { found?: { name?: unknown }[] } | undefined)?.found;
+  if (typeof kind !== 'string' || !Array.isArray(found)) return undefined;
+  const names = found.flatMap((f) => (typeof f?.name === 'string' ? [f.name] : []));
+  return names.length ? { kind: kind as LibraryKind, names } : undefined;
+};
+
 export interface UndoProps {
   onUndo: () => void;
   /** a turn is in progress */
@@ -210,8 +222,14 @@ export const MessageView = ({
         // without the tool view, "thinking" only shows while it happens
         if (part.type === 'reasoning' && (showTools || (live && part.state === 'streaming')))
           return <Thinking key={key} />;
-        if (showTools && isToolUIPart(part)) return <ToolLine key={key} part={part} />;
-        return null;
+        if (!isToolUIPart(part)) return null;
+        const found = searchResult(part);
+        return (
+          <Fragment key={key}>
+            {showTools && <ToolLine part={part} />}
+            {found && <LibraryPictures kind={found.kind} names={found.names} />}
+          </Fragment>
+        );
       })}
       {working && (
         <StatusLine className="animate-in fade-in-0 duration-200" data-testid="working">

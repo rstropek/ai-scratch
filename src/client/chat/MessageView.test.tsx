@@ -98,4 +98,37 @@ describe('kidFriendlyError', () => {
     expect(screen.queryByRole('button', { name: /Rückgängig/ })).not.toBeInTheDocument();
     expect(screen.getByTestId('undone')).toHaveTextContent('rückgängig gemacht');
   });
+
+  test('what search_library found shows as pictures from the Scratch CDN, also with tools hidden', async () => {
+    const sprites = [
+      { name: 'Shark', tags: [], costumes: [{ name: 'Shark-a', md5ext: 'aaa.svg' }] },
+      { name: 'Shark 2', tags: [], costumes: [{ name: 'Shark2-a', md5ext: 'bbb.svg' }] },
+    ];
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify(sprites)));
+    vi.stubGlobal('fetch', fetchMock);
+    const found = {
+      id: 'a2',
+      role: 'assistant',
+      parts: [
+        {
+          type: 'tool-search_library',
+          toolCallId: 's1',
+          state: 'output-available',
+          input: { kind: 'sprite', query: 'shark' },
+          output: { found: [{ name: 'Shark' }, { name: 'Shark 2' }] },
+        },
+        { type: 'text', text: 'Welchen Hai willst du?' },
+      ],
+    } as ChatMessage;
+    render(<MessageView message={found} showTools={false} />);
+
+    const pictures = screen.getByTestId('library-pictures');
+    expect(pictures).toHaveTextContent('SharkShark 2');
+    expect(await within(pictures).findByAltText('Shark 2')).toHaveAttribute(
+      'src',
+      'https://cdn.assets.scratch.mit.edu/internalapi/asset/bbb.svg/get/',
+    );
+    expect(fetchMock).toHaveBeenCalledWith('/libraries/sprites.json');
+    vi.unstubAllGlobals();
+  });
 });
