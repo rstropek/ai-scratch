@@ -45,6 +45,13 @@ Browser                                         Server (Hono, Azure)            
 - Until the school's **access code** is entered (or comes with the link as `?code=`), only the chat is locked;
   Scratch works.
 
+## The slide deck
+
+The slides Rainer records into the video tutorial live in [slides/](slides/README.md): a standalone
+[Slidev](https://sli.dev) app in a sticker-album look, with its own packages, sharing only the Scratch
+colours with the app. The app serves the built deck at **`/slides/`** without an access code
+(https://ai-scratch.azurewebsites.net/slides/, presenter view at `/slides/presenter/`).
+
 ## Keeping kids safe and costs bounded
 
 - **Adults supervise** every session; the technical layers are deliberately lean.
@@ -99,7 +106,7 @@ npm run dev            # http://localhost:5173/?code=<one of your access codes>
 | `npm start` | production server: API + `dist/` on :3000 (the slide deck at `/slides/` once `npm run build --prefix slides` has run before `npm run build`) |
 | `npm test` | unit and component tests (Vitest, headless scratch-vm, no network) |
 | `npm run e2e` | Playwright against the production build, model mocked |
-| `npm run eval:games` | a simulated kid builds Memory/Fangspiel with the real app and model, a bot plays and checks each version ([eval/games](eval/games/README.md)); costs real money |
+| `npm run eval:games` | a simulated kid builds a game (Memory, Fangspiel, Fang mich, Space Shooter, Minesweeper) with the real app and model, a bot plays and checks each version ([eval/games](eval/games/README.md)); costs real money |
 | `npm run eval:guard` | runs the labelled kid messages against the real Jev guard, writes [docs/kids-protection.md](docs/kids-protection.md) |
 | `npm run check` | Biome + TypeScript |
 | `npm run lint:fix` | Biome with fixes |
@@ -113,7 +120,7 @@ restarts production and interrupts kids mid-answer. The reasons behind the setup
 
 | What | Where |
 |---|---|
-| Web app | `ai-scratch` in RG `2026-digitalferien`, on the existing P0v3 plan `ts-web-playground`: https://ai-scratch.azurewebsites.net, staging https://ai-scratch-staging.azurewebsites.net; `GET /healthz` shows the running commit |
+| Web app | `ai-scratch` in RG `2026-digitalferien`, on the existing P0v3 plan `ts-web-playground`: https://ai-scratch.azurewebsites.net, staging https://ai-scratch-staging.azurewebsites.net; `GET /healthz` shows the running commit, `/slides/` the slide deck |
 | Secrets | Key Vault `kv-digiferien`, read by the app's managed identity |
 | Research logs | storage account `stdigiferien`, container `logs`: one JSON blob per AI call and per guard check. No retention rule; Rainer deletes them by hand |
 | Image | `acrars2025.azurecr.io/ai-scratch:<commit>` |
@@ -138,6 +145,7 @@ test/support/             headless scratch-vm, fake Anthropic streams, fixtures
 e2e/                      Playwright specs
 eval/guard/               labelled kid messages + runner for the kids-protection guard
 eval/games/               game harness: simulated kid + real app + a bot that plays the result
+slides/                   the Slidev deck for the video tutorial (own packages), served at /slides/
 docs/                     architecture notes per topic, kids-protection report, pre-event checklist
 scripts/                  postinstall workaround, Scratch bundle preparation, Azure setup (scripts/azure)
 ```

@@ -28,6 +28,8 @@ Prefer the lowest layer that can show the bug: unit > component > e2e.
 - **The model.** Nothing in `npm test` or e2e calls Claude. See [Game tests](#game-tests-the-real-model).
 - **Jev.** `npm run eval:guard` calls the real guard model and rewrites
   [kids-protection.md](kids-protection.md); run it after changing guard questions or thresholds.
+- **The slide deck** has no tests of its own; only its `/slides` route is tested (server tests). Look at a
+  deck change in the browser (`npm run dev` in `slides/`).
 - **CI runs only** `npm run check` and the unit/component tests. Run `npm run e2e` locally before pushing UI
   changes.
 

@@ -11,13 +11,19 @@ written for coding agents (and humans) who change this app; read [AGENTS.md](../
 | [conversation.md](conversation.md) | the model input, prompt caching, "Zusammenfassen" or the Gedächtnis gauge |
 | [limits-and-safety.md](limits-and-safety.md) | access codes, hearts, the kids-protection guard or the output limits |
 | [research-log.md](research-log.md) | logging, `/api/stats`, cost, or the stored logs in Azure |
-| [deployment.md](deployment.md) | the Dockerfile, the workflows, `scripts/azure` or any Azure setting |
+| [deployment.md](deployment.md) | the Dockerfile, the workflows, `scripts/azure`, any Azure setting, or how `/slides/` is served |
 | [testing.md](testing.md) | tests, or when debugging a real session from the logs |
 
-Two more files, not architecture notes:
+More files, not architecture notes:
 
 - [kids-protection.md](kids-protection.md) is **generated** by `npm run eval:guard`; never edit it by hand.
 - [to-check.md](to-check.md) is Rainer's checklist of open checks before the event.
+- [night-test-2026-10-24.md](night-test-2026-10-24.md): the game-harness rounds before the event, what each
+  found and what changed.
+
+The slide deck for the video has its own notes: [slides/README.md](../slides/README.md) (how it is built) and
+[slides/DESIGN.md](../slides/DESIGN.md) (its design system); how the app serves it is in
+[deployment.md](deployment.md#image).
 
 Keep these notes current: when a change alters a decision or a trap described here, update the doc in the
 same change. Keep them short, and don't retell what a source file shows.

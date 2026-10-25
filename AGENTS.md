@@ -71,7 +71,8 @@ Commands and folder overview: [README.md](README.md).
   - `src/shared`: browser and Node;
   - `src/editor`: inside the Scratch iframe;
   - `src/client`: the React host;
-  - `src/server`: Hono.
+  - `src/server`: Hono;
+  - `slides/`: the Slidev deck for the video tutorial, a standalone app with its own packages, served at `/slides/` (`slides/README.md`).
 - **Relative imports end in `.ts`/`.tsx`.** Node runs the server's TypeScript directly (type stripping, no build step), so only erasable syntax is allowed: no enums, namespaces or parameter properties.
 - **Tools come in families** (project, ui, asset):
   - definitions + prompt text live in `src/shared/tools` (the server sends them to the model);

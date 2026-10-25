@@ -5,7 +5,7 @@ format or the system prompt.
 
 ## Families and where they run
 
-- Three families: **project** (read, add, remove and clear scripts, green flag), **ui** ("show, don't do": select a
+- Three families: **project** (read, add, remove and clear scripts, green flag, `test_run`), **ui** ("show, don't do": select a
   sprite, switch tabs, point at blocks and GUI elements) and **asset** (library sprites/backdrops/costumes,
   SVG drawings). Index: [tools/index.ts](../src/shared/tools/index.ts).
 - Definitions and prompt text live in `src/shared/tools`; the server sends them to the model. The tools have
@@ -49,9 +49,9 @@ format or the system prompt.
 - **The snapshot replaces the first `get_project`.** Each kid message carries the project as it was when sent,
   with a note that `get_project` isn't needed; the system prompt says the same (read the `<projekt>` block,
   `get_project` only to see the state after its own changes). Keep the two texts in line.
-- **Tool wording and shapes were measured** in the prototype eval. Change them deliberately; the model eval is
-  not ported yet (it needs rebuilding on the server's request builder), so a change can only be checked by
-  hand or by replaying logs.
+- **Tool wording and shapes were measured** in the prototype eval. Change them deliberately, and check a
+  change with the game harness ([testing.md](testing.md#game-tests-the-real-model)); the prototype's eval
+  was not ported.
 - **Deterministic checks beat prompt text.** In a replayed session ("Fang mich") Haiku ignored the prompt's
   Scratch tips while building, but it fixed the pitfalls as soon as an `add_scripts` result carried a
   warning. So `add_scripts` checks the result (scripts missing in the editor, two sprites testing the same

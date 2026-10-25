@@ -17,7 +17,8 @@ the UI tools or the build of the Scratch bundle.
   [vite.config.ts](../vite.config.ts) and [prepare-scratch.ts](../scripts/prepare-scratch.ts). In production
   [app.ts](../src/server/app.ts) serves `dist/client` first, then `dist/scratch`, both at `/`: a host file
   whose path matches a Scratch file (`static/`, `libraries/`, `chunks/` …) silently shadows it. Host HTML is
-  `no-cache`, Scratch files are cached for a day.
+  `no-cache`, Scratch files are cached for a day. The slide deck sits under `/slides/`, before both
+  ([deployment.md](deployment.md#image)).
 - **Library pictures** come from Scratch's CDN (`cdn.assets.scratch.mit.edu`); only the library index
   (`/libraries/*.json`) is ours. A school network that blocks that host breaks `add_library_*`, not the rest.
 - scratch-vm ships no types; the subset we use is **typed by hand** in
@@ -76,6 +77,6 @@ GUI elements have CSS-module classes like `green-flag_green-flag_1kiAo`: match t
 ## Upgrading Scratch
 
 Not during the event season. Otherwise: bump all three `@scratch/*` packages together; re-extract the block catalog and diff it; run
-unit, e2e (they cover the internal paths) and, once it is rebuilt, the model eval. The catalog
+unit, e2e (they cover the internal paths) and the game harness ([testing.md](testing.md#game-tests-the-real-model)). The catalog
 ([block-catalog.json](../src/shared/scratch/block-catalog.json)) was extracted from the live palette in the
 ki-scratch prototype; that extractor is not in this repo.
