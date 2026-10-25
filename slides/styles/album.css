@@ -93,3 +93,92 @@
   font-weight: 500;
   letter-spacing: 0.01em;
 }
+
+/* told again: a marker stroke over what has to be repeated to someone who doesn't remember */
+.album-page mark {
+  padding: 0 4px;
+  border-radius: 6px;
+  background: #ffd84d;
+  color: inherit;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+/* a chat down the page (pages 10 and 11): you on the left ask, the others on the right answer,
+   one message per row, so the order reads top-down */
+.album-page .chat {
+  display: grid;
+  grid-template-columns: 80px 1fr 88px;
+  grid-template-rows: auto 1fr repeat(6, auto) 1fr;
+  column-gap: 40px; /* room for the bubble tails */
+  height: 100%;
+  padding: 44px 96px 28px 64px; /* the speakers on the right keep clear of the page badge */
+  --size-text: 30px; /* six messages fit on one page */
+}
+.album-page .chat h1 {
+  grid-column: 1 / 4;
+  margin-bottom: 8px;
+}
+.album-page .chat .turn1 {
+  grid-row: 3;
+}
+.album-page .chat .turn2 {
+  grid-row: 4;
+}
+.album-page .chat .turn3 {
+  grid-row: 5;
+}
+.album-page .chat .turn4 {
+  grid-row: 6;
+}
+.album-page .chat .turn5 {
+  grid-row: 7;
+}
+.album-page .chat .turn6 {
+  grid-row: 8;
+}
+.album-page .chat .q {
+  grid-column: 2;
+  justify-self: start;
+}
+.album-page .chat .q:not(.turn1) {
+  margin-top: 10px;
+}
+.album-page .chat .a {
+  grid-column: 2;
+  justify-self: end;
+  margin-top: 6px;
+  white-space: nowrap;
+}
+.album-page .chat .me {
+  grid-column: 1;
+  grid-row: 3 / 9;
+  align-self: center;
+}
+/* zero height, so a speaker doesn't stretch its row */
+.album-page .chat .who {
+  grid-column: 3;
+  align-self: center;
+  height: 0;
+}
+.album-page .chat .me,
+.album-page .chat .who {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.album-page .chat .name {
+  font-weight: 600;
+}
+.album-page .chat .nb {
+  white-space: nowrap;
+}
+
+/* behind a click: hold the entrance animation, so it plays when the click reveals the element */
+.album-page .slidev-vclick-hidden,
+.album-page .slidev-vclick-hidden * {
+  /* biome-ignore lint/complexity/noImportantStyles: must beat the components' scoped animation rules */
+  animation: none !important;
+}

@@ -353,6 +353,130 @@ KI kann auf vielen Stufen helfen: etwas erklären, einen Fehler finden, ein Skri
 
 ---
 layout: page
+color: operators
+ink: dark
+---
+
+<div class="chat">
+  <h1>Jedes Mal von vorn</h1>
+  <div class="me">
+    <Sticker src="/scratch/dani.svg" alt="Du" :width="56" :rotate="-3" />
+    <div class="name print">Du</div>
+  </div>
+  <div v-click="1" class="q turn1"><SpeechBubble long tail="left">Gehst du mit ins Kino?</SpeechBubble></div>
+  <div v-click="2" class="a turn2"><SpeechBubble long tail="right">Ja, den <span class="nb">Dino-Film</span>!</SpeechBubble></div>
+  <div v-click="3" class="q turn3"><SpeechBubble long tail="left"><mark>Mia und ich gehen in den <span class="nb">Dino-Film</span>.</mark> Gehst du mit?</SpeechBubble></div>
+  <div v-click="4" class="a turn4"><SpeechBubble long tail="right">Ja, um 18 Uhr!</SpeechBubble></div>
+  <div v-click="5" class="q turn5"><SpeechBubble long tail="left"><mark>Mia, Tom und ich: <span class="nb">Dino-Film</span> um 18 Uhr.</mark> Gehst du mit?</SpeechBubble></div>
+  <div v-click="6" class="a turn6"><SpeechBubble long tail="right">Klar, bin dabei!</SpeechBubble></div>
+  <div v-for="(f, i) in friends" :key="f.name" v-click="2 * i + 2" class="who" :class="`turn${2 * i + 2}`">
+    <Sticker :src="f.src" :alt="f.name" :width="f.width" :rotate="f.rotate" />
+    <div class="name print">{{ f.name }}</div>
+  </div>
+</div>
+
+<script setup>
+const friends = [
+  // widths give all three the same height (104px)
+  { name: 'Mia', src: '/scratch/avery.svg', width: 49, rotate: -4 },
+  { name: 'Tom', src: '/scratch/devin.svg', width: 49, rotate: 3 },
+  { name: 'Lea', src: '/scratch/abby.svg', width: 33, rotate: -3 },
+];
+</script>
+
+<!--
+Stell dir vor, du planst einen Kinoabend und rufst deine Freunde an, einen nach dem anderen.
+Mia will den Dino-Film sehen. Dann rufst du Tom an: Er weiß nichts von deinem Gespräch mit Mia, also erzählst du es ihm noch einmal (gelb markiert). Bei Lea musst du schon alles von Mia und Tom wiederholen. Die Anrufe werden immer länger.
+Bildnachweis: Dani, Avery, Devin und Abby aus der Scratch-Bibliothek (Scratch Foundation, CC BY-SA 2.0).
+-->
+
+---
+layout: page
+color: motion
+ink: dark
+---
+
+<div class="chat ki">
+  <h1>Bei der KI genauso</h1>
+  <div class="me">
+    <Sticker src="/scratch/dani.svg" alt="Du" :width="56" :rotate="-3" />
+    <div class="name print">Du</div>
+  </div>
+  <div v-click="1" class="q turn1"><SpeechBubble long tail="left">Was ist die Hauptstadt von Österreich?</SpeechBubble></div>
+  <div v-click="2" class="a turn2"><SpeechBubble long tail="right">Wien.</SpeechBubble></div>
+  <div v-click="3" class="q turn3">
+    <p class="how print">Nur die neue Frage:</p>
+    <SpeechBubble long tail="left">Und von Deutschland?</SpeechBubble>
+  </div>
+  <div v-click="4" class="a turn4"><SpeechBubble long tail="right">Was meinst du?</SpeechBubble></div>
+  <div v-click="5" class="q turn5">
+    <p class="how print">Mit dem ganzen Gespräch:</p>
+    <SpeechBubble long tail="left"><mark>Was ist die Hauptstadt von Österreich? Wien.</mark> <span class="nb">Und von Deutschland?</span></SpeechBubble>
+  </div>
+  <div v-click="6" class="a turn6"><SpeechBubble long tail="right">Berlin.</SpeechBubble></div>
+  <div v-for="i in 3" :key="i" v-click="2 * i" class="who" :class="`turn${2 * i}`">
+    <Sticker src="/art/chip-ki.svg" alt="KI-Chip" :width="76" :rotate="[-4, 3, -3][i - 1]" />
+  </div>
+</div>
+
+<style>
+/* the captions sit over the bubble, beside the answer before it */
+.chat.ki .how { margin: -26px 0 4px 8px; font-weight: 600; }
+</style>
+
+<!--
+Und bei der KI? Sie ist wie ein neuer Freund bei jedem Anruf: Sie merkt sich nichts.
+Zuerst fragen wir nach der Hauptstadt von Österreich: Wien.
+Schicken wir dann nur „Und von Deutschland?“, versteht sie nichts. Woher soll sie wissen, dass es um Hauptstädte geht?
+Darum schickt die App bei jeder Frage das ganze Gespräch noch einmal mit (gelb markiert). Dann weiß die KI, was gemeint ist: Berlin.
+-->
+
+---
+layout: page
+color: looks
+clicks: 1
+---
+
+<div class="window">
+  <h1>Das Kontextfenster</h1>
+  <p>Bei jeder Frage bekommt die KI das ganze Gespräch noch einmal. Aber nur so viel, wie ins Fenster passt.</p>
+  <div class="row">
+    <ContextWindow :messages="1" label="1. Frage" :delay="300" />
+    <ContextWindow :messages="3" label="2. Frage" :delay="800" />
+    <ContextWindow :messages="5" label="3. Frage" :delay="1300" />
+    <span class="more" aria-hidden="true"><i></i><i></i><i></i></span>
+    <div class="full">
+      <ContextWindow :messages="9" label="viel später" :delay="2000" />
+      <!-- mounted on the click, so the thump plays then -->
+      <div v-if="$clicks >= 1" class="stamp-at"><Stamp :delay="0">voll!</Stamp></div>
+    </div>
+  </div>
+</div>
+
+<style>
+.window {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 56px 88px 64px;
+}
+.window h1 { margin-bottom: 16px; }
+.window p { max-width: 900px; }
+.window .row { flex: 1; display: flex; align-items: center; gap: 36px; padding-top: 12px; }
+.window .more { display: flex; gap: 10px; padding: 0 6px; }
+.window .more i { width: 14px; height: 14px; border-radius: 50%; background: var(--fg); }
+.window .full { position: relative; }
+.window .stamp-at { position: absolute; right: -64px; top: 64px; }
+</style>
+
+<!--
+Darum schickt die App bei jeder Frage das ganze Gespräch noch einmal mit, gelb ist das, was die KI schon einmal gehört hat. Weiß ist die neue Frage.
+Das Gespräch wird immer länger. Aber die KI kann nur so viel auf einmal lesen, wie in ihr Kontextfenster passt. [click] Irgendwann ist es voll.
+In unserer App seht ihr das oben im Chat als „Gedächtnis“. Ist es voll, könnt ihr „Zusammenfassen“ (die KI schreibt das Wichtigste kurz auf) oder „Neu anfangen“.
+-->
+
+---
+layout: page
 color: control
 ink: dark
 ---
