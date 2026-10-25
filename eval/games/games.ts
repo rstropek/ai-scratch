@@ -11,6 +11,7 @@ import {
   overlap,
   result,
   type Shot,
+  seenBriefly,
 } from './checks.ts';
 import { fangMich, minesweeper, minesweeperMini, spaceShooter } from './coderdojo.ts';
 import type { Player, StageState, TargetState } from './player.ts';
@@ -161,7 +162,10 @@ export const fangspiel: Game = {
         'No lives left ends the game',
         over,
         `stop all: ${events.stopAll.length ? 'yes' : 'no'}, scripts running: ${last.threads}, message: ${message ?? '-'}, still falling: ${stillFalling}`,
-        ['Wenn alle Leben weg sind, ist das Spiel aus.', 'Auch ohne Leben geht das Spiel immer weiter.'],
+        [
+          `Wenn alle Leben weg sind, ist das Spiel aus.${seenBriefly(events.says, /game ?over|verloren|ende|vorbei|aus\b/i)}`,
+          'Auch ohne Leben geht das Spiel immer weiter.',
+        ],
       ),
     );
 

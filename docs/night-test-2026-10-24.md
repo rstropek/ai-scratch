@@ -15,6 +15,7 @@ The fixes were committed on 2026-10-25 after Rainer's review (not pushed or swap
 | 5 | `20261025-0246` | 6/10 | 192 | 1 | 0 / 94 | $0.72 / $6.51 |
 | 6 | `20261025-0808` | 10/10 (with the corrected Memory check) | 148 | – | – | $0.37 / $2.50 |
 | 7 | `20261025-0901` | 10/10 (with the corrected Minesweeper check) | 199 | 2 | 4 / 84 | $0.69 / $4.19 |
+| 8 | `20261025-0957` | 10/10 | 148 | – | 0 / 71 | $0.38 / $2.61 |
 
 "Green" means every core check passes at the end. In each round, every run's `report.md` holds the conversation, the checks per turn and the judge's findings, and the folder's `summary.md` has one row per run. One run costs the app 1–20 ct. The total per run, $0.15–1.30, is mostly the Opus kid. The whole night cost about $24.
 
@@ -179,3 +180,12 @@ Run `20261025-0901`: the same five games as round 6, two runs each. 199 turns, $
 - **The cat again:** Space Shooter 1 asked nine times; the model hid it with a script only in turn 15 (Fang mich 2: turn 11, after the kid suggested it).
 - **Leaked reasoning:** Space Shooter 2 talked about „dem Kind“ in the third person in three answers.
 - Teaching scores 2–3/5; the judges' main complaints are the loops above and guessed rebuilds.
+
+## Round 8 (2026-10-25): the round-7 harness fixes, pictures once per answer
+
+Run `20261025-0957`: the same games, 148 turns, $0.38 app / $2.61 total, 355 model calls, all 200.
+
+- **10/10 green, 9 of them ended by the kid („FERTIG“) after 7–20 turns.** Teaching scores 3–4/5, up from 2–3.
+- **Fangspiel 2 still ran 30 turns on „kein Game Over“.** This time the kid saw the end picture, but the game says „Game Over“ for 3 s and then „stoppe alles“, which clears every speech bubble, so the picture taken after it has none. A kid at the screen would have seen it. From turn 14 on it was also real: the basket repeats „Punkte: …“ in a loop and overwrote the Game Over bubble; the model never found that.
+  - Harness: the kid's sentence now names what the game said („Dabei sagt Korb „Game Over““), and the kid prompt says that what it was told counts even when a picture no longer shows it.
+  - Not changed in the app (Rainer, 2026-10-25: small agent mistakes are fine, kids may spot them). An `add_scripts` warning for „sage“ directly before „stoppe alles“ was tried and dropped: no round ever had that pattern (the model uses „sage … für 2 Sekunden“).

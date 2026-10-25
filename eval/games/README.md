@@ -108,7 +108,8 @@ and each broken one must fail its check. A check that fails on the reference is 
   („Gewonnen!“), and the points variable is the one shown on the stage, not an unused leftover.
 - The kid only knows what it is shown. With only the picture after the green flag it never saw a game end
   and reported „kein Game Over“ for 20 turns, and without a picture on unchanged turns it misremembered
-  the Memory cards as one row. A Minesweeper bomb that opens like a safe cell („offen“ plus „Verloren!“)
+  the Memory cards as one row. The pictures come after „stoppe alles“, which clears every speech bubble, so
+  the kid's sentence names what the game said („Dabei sagt Korb „Game Over““). A Minesweeper bomb that opens like a safe cell („offen“ plus „Verloren!“)
   is still a bomb; counting it as a number told the kid „Ich finde keine Bomben“ for 20 turns.
 - Runs never log to Azure Blob (the server gets `LOG_BLOB_URL=''`), so eval sessions don't mix with the
   kids' research data.

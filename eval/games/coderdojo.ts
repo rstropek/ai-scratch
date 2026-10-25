@@ -13,6 +13,7 @@ import {
   overlap,
   result,
   type Shot,
+  seenBriefly,
   settle,
   signal,
   WON,
@@ -519,7 +520,7 @@ export const spaceShooter: Game = {
         over,
         `meteor touched the ship: ${touched}; stop all: ${crashEvents.stopAll.length ? 'yes' : 'no'}, scripts running: ${end.threads}, message: ${message ?? '-'}, still falling: ${stillFalling}`,
         [
-          'Wenn ein Meteorit mein Raumschiff trifft, ist das Spiel aus.',
+          `Wenn ein Meteorit mein Raumschiff trifft, ist das Spiel aus.${seenBriefly(crashEvents.says, LOST)}`,
           'Wenn ein Meteorit mein Raumschiff trifft, passiert nichts, das Spiel geht einfach weiter.',
         ],
       ),

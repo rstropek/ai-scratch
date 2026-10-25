@@ -101,6 +101,16 @@ export const signal = (pattern: RegExp, events: Awaited<ReturnType<Player['event
   s?.monitors.find((m) => pattern.test(m.value))?.value ??
   (s && pattern.test(s.backdrop) ? `backdrop ${s.backdrop}` : undefined);
 
+/**
+ * The kid's half sentence about a message the game said, e.g. „Game Over“ for 2 s before „stoppe alles“. The
+ * pictures come after it, and „stoppe alles“ clears every bubble, so without this the kid reported a message
+ * it never saw (20 turns in round 8).
+ */
+export const seenBriefly = (says: Awaited<ReturnType<Player['events']>>['says'], pattern: RegExp): string => {
+  const said = says.find((x) => pattern.test(x.text));
+  return said ? ` Dabei sagt ${said.sprite} „${said.text}“.` : '';
+};
+
 /** Finds what the arrow keys (or else the mouse) move: holds → for 1.5 s and compares positions. */
 export const findSteered = async (player: Player, skip: (t: TargetState) => boolean, seed = 1) => {
   const moved = async (policy: Parameters<Player['seconds']>[1]) => {
