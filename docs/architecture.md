@@ -26,7 +26,8 @@ same code, hearts and guard, and a plain JSON answer ([ki-block.md](ki-block.md)
 
 - **Browser:** the conversation (all messages, with tool calls and signed thinking) and the project (the VM in
   the iframe). Nothing is persisted: closing the tab loses both, hence the `beforeunload` warning
-  ([App.tsx](../src/client/App.tsx)). Kids save projects via Scratch's own *Datei* menu.
+  ([App.tsx](../src/client/App.tsx)). Kids save projects via Scratch's *Datei* menu, to a file or to their
+  CoderDojo Locker ([locker.md](locker.md)).
 - **Undo per AI answer** (Rainer's decision, against the model breaking a big sprite when it rewrites all its
   scripts): each kid message saves a copy of the whole project in browser memory; "Rückgängig" under an answer
   that changed the project restores it at once, without asking. That also discards everything after it, the

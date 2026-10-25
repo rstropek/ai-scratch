@@ -10,6 +10,7 @@ import { createChatHandler } from './chat.ts';
 import { createCompactHandler } from './compact.ts';
 import type { Config } from './config.ts';
 import { createHearts } from './hearts.ts';
+import { addLockerRoutes } from './locker.ts';
 import { createStats } from './stats.ts';
 import type { LogSink } from './wire-log.ts';
 
@@ -33,6 +34,7 @@ export const createApp = ({ config, sink, fetch }: AppDeps): Hono => {
   app.post('/api/chat', createChatHandler(deps));
   app.post('/api/compact', createCompactHandler(deps));
   app.post(ASK_PATH, createAskHandler(deps));
+  addLockerRoutes(app, deps);
   app.get('/api/stats', (c) => c.json(stats));
   app.all('/api/*', (c) => c.json({ error: 'Nicht gefunden' }, 404));
 

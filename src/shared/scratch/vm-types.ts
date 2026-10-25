@@ -188,9 +188,10 @@ export interface VirtualMachine {
   postIOData(device: string, data: unknown): void;
 }
 
-/** The redux store of the editor (only dispatch is used). */
+/** The redux store of the editor. */
 export interface GuiStore {
   dispatch(action: { type: string; [key: string]: unknown }): void;
+  getState(): { scratchGui: { projectTitle: string } };
 }
 
 export const findTarget = (vm: VirtualMachine, name: unknown): Target => {

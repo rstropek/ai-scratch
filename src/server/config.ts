@@ -1,6 +1,7 @@
 // Server configuration, read once from the environment (.env in development).
 import fs from 'node:fs';
 import { normalizeCode } from '../shared/access.ts';
+import { LOCKER_SITE } from '../shared/locker.ts';
 
 export interface Config {
   port: number;
@@ -25,6 +26,8 @@ export interface Config {
   distDir: string;
   /** the deployed git commit (the Docker build sets APP_VERSION); shown by /healthz */
   version: string;
+  /** the CoderDojo Locker, where kids save and load their games (locker.ts) */
+  lockerUrl: string;
 }
 
 export const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const;
@@ -61,6 +64,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): Config => {
     logBlobUrl: env.LOG_BLOB_URL?.trim() || undefined,
     distDir: env.DIST_DIR?.trim() || 'dist',
     version: env.APP_VERSION?.trim() || 'dev',
+    lockerUrl: env.LOCKER_URL?.trim() || LOCKER_SITE,
   };
 };
 

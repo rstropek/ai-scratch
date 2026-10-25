@@ -28,6 +28,7 @@ const config: Config = {
   logBlobUrl: undefined,
   distDir: 'does-not-exist',
   version: 'abc123',
+  lockerUrl: 'https://locker.test',
 };
 
 /** Jev's answer: every question 0.01 unless given */

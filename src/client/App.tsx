@@ -4,6 +4,7 @@
 // so a running turn keeps going. Until the school's access code is in, the chat shows the access gate.
 import { MessageCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { LockerAction } from '../shared/locker.ts';
 import { createProjectBackups } from '../shared/scratch/project-backup.ts';
 import { checkCode, forgetCode, storeCode, storedCode, takeLinkCode } from './access.ts';
 import { AccessGate } from './chat/AccessGate.tsx';
@@ -13,6 +14,8 @@ import { Splitter } from './components/Splitter.tsx';
 import { createHeartsStore } from './hearts.ts';
 import { createAsk } from './ki-ask.ts';
 import { cn } from './lib/utils.ts';
+import { LockerDialog } from './locker/LockerDialog.tsx';
+import { createLockerApi, createLockerProject, openLockerPage, storedLockerCode } from './locker/locker.ts';
 import { createToolRunner } from './scratch/tool-runner.ts';
 import { useScratchBridge } from './scratch/use-scratch-bridge.ts';
 import { CHAT_WIDTH, maxChatWidth, useUiPrefs } from './ui-prefs.ts';
@@ -116,6 +119,8 @@ export const App = () => {
   const [busy, setBusy] = useState(false);
   const { access, unlock, deny } = useAccess();
   const [dragging, setDragging] = useState(false);
+  const [lockerAction, setLockerAction] = useState<LockerAction>();
+  const [projectLoads, setProjectLoads] = useState(0);
   const maxWidth = maxChatWidth(useViewportWidth());
   const chatWidth = Math.min(prefs.chatWidth, maxWidth);
 
@@ -128,6 +133,28 @@ export const App = () => {
       delete bridge.ask;
     };
   }, [bridge, openCode, deny]);
+
+  // the Locker entries in Scratch's Datei menu open the Locker dialog (src/editor/locker-menu.ts)
+  const lockerProject = useMemo(
+    () => (bridge ? createLockerProject(bridge, () => setProjectLoads((n) => n + 1)) : undefined),
+    [bridge],
+  );
+  const lockerApi = useMemo(
+    () => (openCode ? createLockerApi({ accessCode: openCode, onAccessDenied: deny }) : undefined),
+    [openCode, deny],
+  );
+  useEffect(() => {
+    if (!bridge) return;
+    bridge.openLocker = (action) => {
+      // with the code from this tab, the Locker's page opens at once (still inside the menu click)
+      const code = storedLockerCode();
+      if (action === 'open' && code && openLockerPage(code)) return;
+      setLockerAction(action);
+    };
+    return () => {
+      delete bridge.openLocker;
+    };
+  }, [bridge]);
 
   // Warn before closing/reloading the tab: the Scratch project only lives in this tab.
   useEffect(() => {
@@ -152,6 +179,7 @@ export const App = () => {
             onFold={() => updatePrefs({ folded: true })}
             onBusyChange={setBusy}
             onAccessDenied={deny}
+            projectLoads={projectLoads}
           />
         ) : (
           <AccessGate
@@ -187,6 +215,15 @@ export const App = () => {
         title="Scratch"
         className={cn('h-full min-w-0 flex-1 border-0', dragging && 'pointer-events-none')}
       />
+      {lockerAction && lockerProject && (
+        <LockerDialog
+          action={lockerAction}
+          api={lockerApi}
+          project={lockerProject}
+          aiBusy={busy}
+          onClose={() => setLockerAction(undefined)}
+        />
+      )}
     </div>
   );
 };

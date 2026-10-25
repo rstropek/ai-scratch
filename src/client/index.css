@@ -33,6 +33,11 @@
   --heart: #e6335f;
   --gauge-warn: #ffab19; /* control-primary */
   --base-knowledge: #4c97ff; /* motion-primary: the part of the memory that is always there */
+  /* the Locker dialog, built like Scratch's own modals */
+  --modal-overlay: hsla(215, 100%, 65%, 0.9); /* ui-modal-overlay */
+  --success: #0fbd8c; /* extensions-primary */
+  --warn-strong: #c25400; /* "Ersetzen" and warning text: white on it reads at 4.6:1 */
+  --warn-strong-hover: #a34700;
 }
 
 @theme inline {
@@ -66,6 +71,10 @@
   --color-heart: var(--heart);
   --color-gauge-warn: var(--gauge-warn);
   --color-base-knowledge: var(--base-knowledge);
+  --color-modal-overlay: var(--modal-overlay);
+  --color-success: var(--success);
+  --color-warn-strong: var(--warn-strong);
+  --color-warn-strong-hover: var(--warn-strong-hover);
 }
 
 @theme {

@@ -13,6 +13,7 @@ written for coding agents (and humans) who change this app; read [AGENTS.md](../
 | [research-log.md](research-log.md) | logging, `/api/stats`, cost, or the stored logs in Azure |
 | [deployment.md](deployment.md) | the Dockerfile, the workflows, `scripts/azure`, any Azure setting, or how `/slides/` is served |
 | [ki-block.md](ki-block.md) | the "frage KI" block in kids' own programs, `/api/ask` or its guard |
+| [locker.md](locker.md) | saving and loading games in the CoderDojo Locker: the Datei menu entries, the dialog, `/api/locker` |
 | [testing.md](testing.md) | tests, or when debugging a real session from the logs |
 
 More files, not architecture notes:

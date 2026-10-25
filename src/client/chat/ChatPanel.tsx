@@ -56,6 +56,8 @@ export interface ChatPanelProps {
   onBusyChange: (busy: boolean) => void;
   /** the server no longer accepts the access code (401) */
   onAccessDenied: () => void;
+  /** counts projects loaded from the Locker: the undo copies belong to the project before */
+  projectLoads?: number;
 }
 
 const WELCOME =
@@ -110,6 +112,7 @@ export const ChatPanel = ({
   onFold,
   onBusyChange,
   onAccessDenied,
+  projectLoads = 0,
 }: ChatPanelProps) => {
   const [input, setInput] = useState('');
   const runToolRef = useRef(runTool);
@@ -180,6 +183,13 @@ export const ChatPanel = ({
   const [compacting, setCompacting] = useState(false);
   // the project as it was when each kid message was sent, by message id
   const saved = useRef(new Map<string, ProjectBackup>());
+  // a project loaded from the Locker replaced the one the copies were taken of: "Rückgängig" would bring
+  // that one back (cleared while rendering, so no undo button shows for one frame)
+  const loadsSeen = useRef(projectLoads);
+  if (loadsSeen.current !== projectLoads) {
+    loadsSeen.current = projectLoads;
+    saved.current.clear();
+  }
   const [restoring, setRestoring] = useState(false);
   const [actionError, setActionError] = useState<string | undefined>(undefined);
 

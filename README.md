@@ -28,7 +28,10 @@ Browser                                         Server (Hono, Azure)            
   blocks, which the app compiles into blocks: 96% correct in our tests, against 80% for raw Scratch project
   data.
 - **Every AI call is logged** with its token use, for research on how kids work with AI.
-- **Nothing is stored for the kid:** projects are saved and loaded with Scratch's own *Datei* menu (.sb3), and
+- **Saving:** Scratch's *Datei* menu saves the project as an .sb3 file, or in the kid's **CoderDojo Locker**
+  ("Im Locker speichern" / "Aus dem Locker laden" / "Locker in neuem Tab öffnen", with the code on their
+  Locker sticker;
+  [docs/locker.md](docs/locker.md)). Nothing else is stored for the kid, and
   the chat ends when the tab closes.
 
 ## What kids see
@@ -100,6 +103,7 @@ npm run dev            # http://localhost:5173/?code=<one of your access codes>
 | `JEV_MODEL` | default `jev-1.13.0` (the guard thresholds are tuned against it) |
 | `PORT`, `LOG_DIR`, `DIST_DIR` | default `3000`, `logs`, `dist` |
 | `LOG_BLOB_URL` | Blob container for the research log (Azure, managed identity); without it the log goes to `LOG_DIR` |
+| `LOCKER_URL` | the CoderDojo Locker for saving games, default `https://locker.coderdojo.net` |
 
 ### Commands
 
@@ -142,9 +146,9 @@ Operations (`az login` with Owner on the subscription; both scripts are safe to 
 ```
 index.html, editor.html   host page, editor iframe page
 src/shared/               runs in the browser and in Node: script format, block catalog, tools, prompt
-src/editor/               inside the iframe: mounts Scratch, UI pointer, "frage KI" block, exposes window.ki
-src/client/               React host: chat panel, access gate, tool runner
-src/server/               Hono: /api/chat, /api/ask, access code, guards, research log, stats
+src/editor/               inside the iframe: mounts Scratch, UI pointer, "frage KI" block, Locker menu entries, exposes window.ki
+src/client/               React host: chat panel, access gate, tool runner, Locker dialog
+src/server/               Hono: /api/chat, /api/ask, /api/locker, access code, guards, research log, stats
 test/support/             headless scratch-vm, fake Anthropic streams, fixtures
 e2e/                      Playwright specs
 eval/guard/               labelled kid messages + runner for the kids-protection guard
