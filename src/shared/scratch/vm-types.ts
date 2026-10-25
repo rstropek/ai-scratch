@@ -166,6 +166,7 @@ export interface VirtualMachine {
   runtime: Runtime;
   extensionManager: ExtensionManager;
   editingTarget: Target | null;
+  on(event: string, listener: (...args: never[]) => void): void;
   toJSON(): string;
   /** the project as an .sb3 file, like Datei > Speichern */
   saveProjectSb3(): Promise<Blob>;

@@ -16,6 +16,7 @@ import type { EditorTab, UiElementName } from '../shared/tools/ui-tools.ts';
 interface BlocklyBlock {
   id: string;
   type: string;
+  getFieldValue(name: string): string;
   isShadow(): boolean;
   select(): void;
   getSvgRoot(): Element;
@@ -28,7 +29,15 @@ interface BlocklyWorkspace {
   centerOnBlock(id: string): void;
   cleanUp(): void;
   getFlyout(): { getWorkspace(): BlocklyWorkspace; scrollTo(y: number): void };
-  getToolbox(): { getToolboxItemById(id: string): unknown; setSelectedItem(item: unknown): void };
+  getToolbox(): {
+    getToolboxItemById(id: string): unknown;
+    setSelectedItem(item: unknown): void;
+    runAfterRerender(callback: () => void): void;
+    forceRerender(): void;
+  };
+  getVariablesOfType(type: string): { getId(): string }[];
+  getMetrics(): { viewTop: number };
+  scrollbar?: { setY(y: number): void };
 }
 interface ScratchBlocks {
   getMainWorkspace(): BlocklyWorkspace;
@@ -66,6 +75,34 @@ const nextFrame = () =>
     new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))),
     new Promise((r) => setTimeout(r, 150)),
   ]);
+
+/** Keeps the palette's variable blocks current when the VM, not the editor, creates variables (add_scripts,
+ * undo). The GUI reloads the workspace with its events off and re-renders the palette only when the toolbox
+ * XML changes, which the variables category (filled at render time) doesn't, so new variables stayed
+ * missing from the palette until the kid switched sprites. */
+export const keepPaletteVariablesCurrent = (vm: VirtualMachine): void => {
+  const ids = (blocks: BlocklyBlock[]) =>
+    blocks
+      .flatMap((b) => (b.type === 'data_variable' ? [b.getFieldValue('VARIABLE')] : []))
+      .concat(blocks.flatMap((b) => (b.type === 'data_listcontents' ? [b.getFieldValue('LIST')] : [])))
+      .sort()
+      .join();
+  // after the GUI's own listener has loaded the workspace
+  vm.on('workspaceUpdate', () =>
+    setTimeout(() => {
+      const ws = workspace();
+      const flyout = ws?.getFlyout()?.getWorkspace();
+      if (!flyout) return;
+      const current = [...ws.getVariablesOfType(''), ...ws.getVariablesOfType('list')].map((v) => v.getId());
+      const shown = ids(flyout.getTopBlocks());
+      if (current.sort().join() === shown) return;
+      // like the GUI's own toolbox update: keep the palette where the kid scrolled it
+      const top = flyout.getMetrics().viewTop;
+      ws.getToolbox().runAfterRerender(() => flyout.scrollbar?.setY(top));
+      ws.getToolbox().forceRerender();
+    }),
+  );
+};
 
 export const selectTarget = (vm: VirtualMachine, name: string): Target => {
   const target = findTarget(vm, name);

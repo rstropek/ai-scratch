@@ -63,6 +63,11 @@ GUI elements have CSS-module classes like `green-flag_green-flag_1kiAo`: match t
 - **Sprite thumbnails:** the GUI throttles thumbnail renders and drops an update that follows another
   within about 500 ms, so a drawn sprite keeps the "?" placeholder. `draw_sprite` repeats the update later.
   Only the real browser showed this ([e2e/pictures.spec.ts](../e2e/pictures.spec.ts)).
+- **The palette missed variables the VM created** (`add_scripts`, undo): the GUI reloads the workspace with
+  Blockly's events off and re-renders the palette only when the toolbox XML changes, which the Variables
+  category (filled at render time) doesn't. The kid saw a script use „Verlauf“, but no „Verlauf“ block to
+  drag. The ui-guide's `keepPaletteVariablesCurrent` re-renders it after a workspace update when its
+  variables differ ([e2e/palette-variables.spec.ts](../e2e/palette-variables.spec.ts)).
 - **Our own block extension** ("frage KI") is registered in-process, before any project loads; its traps
   (load order, `color3`, scratch.mit.edu can't open such projects) are in [ki-block.md](ki-block.md).
 - **`requestAnimationFrame` never fires in background tabs:** every wait in the ui-guide races it against
