@@ -13,6 +13,8 @@ The fixes were committed on 2026-10-25 after Rainer's review (not pushed or swap
 | 3 | `20261025-0035` | 9/10 | 122 | 14 (11 more were repaired) | 58 / – | $0.56 / $3.82 |
 | 4 | `20261025-0121` | 9/10 | 139 | 4 | 0 / 61 | $0.54 / $4.15 |
 | 5 | `20261025-0246` | 6/10 | 192 | 1 | 0 / 94 | $0.72 / $6.51 |
+| 6 | `20261025-0808` | 10/10 (with the corrected Memory check) | 148 | – | – | $0.37 / $2.50 |
+| 7 | `20261025-0901` | 10/10 (with the corrected Minesweeper check) | 199 | 2 | 4 / 84 | $0.69 / $4.19 |
 
 "Green" means every core check passes at the end. In each round, every run's `report.md` holds the conversation, the checks per turn and the judge's findings, and the folder's `summary.md` has one row per run. One run costs the app 1–20 ct. The total per run, $0.15–1.30, is mostly the Opus kid. The whole night cost about $24.
 
@@ -161,3 +163,19 @@ Run `20261025-0808`: Memory, Fangspiel, Fang mich, Space Shooter and `minesweepe
 - **Kids ask to delete the cat in almost every run,** and the assistant can only explain the right-click. See D8.
 
 Rainer's decisions on round 6: D7, keep `test_run` as it is (he wants to try it himself first); D8, no delete tool.
+
+## Round 7 (2026-10-25): production version 145188b (library pictures)
+
+Run `20261025-0901`: the same five games as round 6, two runs each. 199 turns, $0.69 app / $4.19 total, 468 model calls, all 200.
+
+- **9/10 green, and 10/10 with a corrected check.** Minesweeper (klein) run 2 failed „Die Zahlen stimmen“, but its bomb cell opens like a safe cell („offen“ plus „Verloren!“). The check had already recorded that cell as a number, so it found „0 bombs“ and told the kid „Ich finde keine Bomben“ for 20 turns. Fixed: the cell that loses is a bomb. The final project then passes 6/6.
+- **Four runs went 25–30 turns although they were green by turn 8–11.** None of them is the app's fault:
+  - **Fangspiel 2 and Space Shooter 1: „ich sehe kein Game Over“ for ~20 turns,** while Game Over was visible from turn 9 (a monitor, then a speech bubble, then a full red sign). The kid only ever got the picture right after the green flag, never the end. The model kept redrawing a sign that worked.
+  - **Memory 1: „die Karten liegen in einer Reihe“ for 17 turns,** right after the kid had seen two rows. The kid gets no picture on turns that change nothing, and it misremembered. The model checked with `test_run` each time and correctly held that the cards were in two rows.
+  - Fixed in the harness: the kid now gets every picture the check takes, with its label (start, while playing, the end), and the latest ones stay with each answer while nothing changes.
+  - Space Shooter 2: a real restart bug the model first denied („Ich habe nichts geändert“), then fixed by guessing in turn 22.
+- **Library pictures (new in 145188b): they work.** The kids picked by picture: „Shark 2“, „Underwater 2“, „Galaxy“, „Nebula“. But every search shows its pictures, also searches the model makes for itself: basketball players for „Korb“, „Glow-0…5“ when it looked for digit costumes, and the same sharks twice after two searches in one answer.
+- **`test_run`: 60 calls.** In Fang mich 2 the model's run didn't reproduce the bug: the shark starts at a random place, the harness's seed put it on the fish (Game Over at once), the model's run didn't. It told the kid twice that everything moves. That's real for kids too: a bug that depends on chance shows only sometimes.
+- **The cat again:** Space Shooter 1 asked nine times; the model hid it with a script only in turn 15 (Fang mich 2: turn 11, after the kid suggested it).
+- **Leaked reasoning:** Space Shooter 2 talked about „dem Kind“ in the third person in three answers.
+- Teaching scores 2–3/5; the judges' main complaints are the loops above and guessed rebuilds.

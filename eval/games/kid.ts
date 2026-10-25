@@ -25,9 +25,10 @@ So schreibst du:
 - Deine erste Nachricht nennt nur die grobe Idee in einem Satz.
 - Beantworte die Fragen des KI-Helfers passend zu deiner Spielidee. Passt sein Vorschlag zu deiner Idee, sag ja. Passt er nicht, sag, was du stattdessen willst.
 - Du kannst selbst keine Blöcke ziehen, nichts malen und keine Figuren löschen. Bittet dich der KI-Helfer, selbst etwas im Editor zu machen, sag freundlich, dass du es nicht findest und er es bitte für dich machen soll. Behaupte nie, du hättest etwas im Editor gemacht.
-- Ausprobieren kannst du: Nach jeder Änderung steht unter „Beim Ausprobieren“, was du beim Spielen bemerkt hast, und du siehst ein Bild der Bühne. Sag dem KI-Helfer, was nicht geht, so wie ein Kind es sieht („die Äpfel fallen nicht runter“), nicht wie man es repariert.
-- „Beim Ausprobieren“ und das Bild sind das, was du selbst gesehen hast; der KI-Helfer sieht sie nicht. Erzähl es wie ein Kind, das gespielt hat, und schreib nie „Beim Ausprobieren“, „im Test“ oder „auf dem Bild“.
-- Steht unter „Beim Ausprobieren“ zu einem Teil nichts, konntest du ihn noch nicht ausprobieren (das Bild ist nur ein Standbild nach der grünen Flagge). Behaupte dann nicht, dass er kaputt ist; bau lieber mit dem KI-Helfer weiter.
+- Ausprobieren kannst du: Nach jeder Änderung steht unter „Beim Ausprobieren“, was du beim Spielen bemerkt hast, und du siehst Bilder der Bühne aus deinem Spiel (zum Beispiel gleich nach der grünen Flagge und am Ende), jedes mit einer kurzen Beschriftung. Sag dem KI-Helfer, was nicht geht, so wie ein Kind es sieht („die Äpfel fallen nicht runter“), nicht wie man es repariert.
+- „Beim Ausprobieren“ und die Bilder sind das, was du selbst gesehen hast; der KI-Helfer sieht sie nicht. Erzähl es wie ein Kind, das gespielt hat, und schreib nie „Beim Ausprobieren“, „im Test“, „auf dem Bild“ oder eine Beschriftung.
+- Steht unter „Beim Ausprobieren“ zu einem Teil nichts, konntest du ihn noch nicht ausprobieren (die Bilder sind nur einzelne Momente). Behaupte dann nicht, dass er kaputt ist; bau lieber mit dem KI-Helfer weiter.
+- Hat der KI-Helfer nichts geändert, gibt es nichts Neues auszuprobieren: Es gilt, was du zuletzt gesehen hast (die Bilder bleiben dieselben).
 - Wenn der KI-Helfer etwas Neues baut, was nicht zu deiner Idee gehört, sag es.
 - Folge seinen Schritten. Wenn ein Teil deiner Idee noch fehlt und er nicht danach fragt, wünsch ihn dir.
 - Wenn alles aus deiner Spielidee funktioniert, schreibe nur: ${DONE}`;
@@ -37,8 +38,8 @@ export interface KidTurn {
   answer: string;
   /** what the kid noticed when trying the game after this answer (German), if the project changed */
   observed?: string;
-  /** the stage after the green flag, shown with the latest answer only */
-  stage?: Buffer;
+  /** the game check's stage pictures, if the project changed; the latest ones go with the latest answer */
+  stages?: { label: string; png: Buffer }[];
 }
 
 export interface CallUsage {
@@ -64,16 +65,20 @@ export const nextKidMessage = async (
       `Der KI-Helfer antwortet: „${t.answer || '(keine Antwort)'}“` +
       (t.observed ? `\n\nBeim Ausprobieren:\n${t.observed}` : '') +
       '\n\nSchreib deine nächste Nachricht.';
-    const latest = i === turns.length - 1;
+    // the latest pictures stay with the latest answer while nothing changes, so the kid doesn't
+    // misremember the game (it once saw one row of Memory cards for 15 turns after seeing two)
+    const stages = i === turns.length - 1 ? turns.findLast((x) => x.stages?.length)?.stages : undefined;
     messages.push({
       role: 'user',
-      content:
-        latest && t.stage
-          ? [
-              { type: 'text', text },
-              { type: 'file', mediaType: 'image/png', data: t.stage },
-            ]
-          : text,
+      content: stages
+        ? [
+            { type: 'text', text },
+            ...stages.flatMap((s, n) => [
+              { type: 'text' as const, text: `Bild ${n + 1}: ${s.label}` },
+              { type: 'file' as const, mediaType: 'image/png', data: s.png },
+            ]),
+          ]
+        : text,
     });
   });
   const result = await generateText({

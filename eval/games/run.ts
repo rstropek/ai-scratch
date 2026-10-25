@@ -148,12 +148,13 @@ const runOne = async (game: Game, variant: Variant, rep: number, server: Running
       session = chat.session;
       const changed = answer.tools.some((t) => t.ok && PROJECT_CHANGING_TOOLS.has(t.name));
       const turn: TurnRecord = { n, kid: kid.text, answer, changed, ...(compacted ? { compacted } : {}) };
-      let stage: Buffer | undefined;
+      let stages: { label: string; png: Buffer }[] | undefined;
       if (changed) {
         const { checks, shots } = await game.check(player, await chat.sb3());
         turn.checks = checks;
         lastChecks = checks;
-        stage = shots[0]?.png;
+        stages = shots;
+        const stage = shots[0]?.png;
         if (args.report && stage) {
           turn.shot = `turn-${String(n).padStart(2, '0')}.png`;
           fs.writeFileSync(path.join(dir, turn.shot), stage);
@@ -174,7 +175,7 @@ const runOne = async (game: Game, variant: Variant, rep: number, server: Running
           ...(answer.error ? [`(Im Chat steht eine Fehlermeldung: ${answer.error})`] : []),
         ].join('\n'),
         ...(observed ? { observed } : {}),
-        ...(stage ? { stage } : {}),
+        ...(stages?.length ? { stages } : {}),
       });
       errors = answer.error ? errors + 1 : 0;
       if (errors >= 3) {

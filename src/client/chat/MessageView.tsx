@@ -1,7 +1,7 @@
 // One chat message. Assistant text is Markdown in a Scratch "say" speech bubble, the kid's text
 // plain in a light purple bubble. Tool calls and token usage only show when the tool toggle is on; otherwise a
 // single friendly status line says that the AI is working on the project. What search_library found always
-// shows as pictures. An answer that changed the project ends with its undo button (undo.ts).
+// shows as pictures, each item once per answer. An answer that changed the project ends with its undo button (undo.ts).
 import { type DynamicToolUIPart, getToolName, isToolUIPart, type ToolUIPart } from 'ai';
 import { Brain, Check, Hammer, LoaderCircle, NotebookPen, Undo2, Wrench, X } from 'lucide-react';
 import { Fragment, type ReactNode, useMemo } from 'react';
@@ -146,14 +146,35 @@ const ToolLine = ({ part }: { part: ToolPart }) => {
   );
 };
 
+interface Found {
+  kind: LibraryKind;
+  names: string[];
+}
+
 /** The names a finished search_library call found, and in which library. */
-const searchResult = (part: ToolPart): { kind: LibraryKind; names: string[] } | undefined => {
+const searchResult = (part: ToolPart): Found | undefined => {
   if (getToolName(part) !== 'search_library' || part.state !== 'output-available') return undefined;
   const kind = (part.input as { kind?: unknown } | undefined)?.kind;
   const found = (part.output as { found?: { name?: unknown }[] } | undefined)?.found;
   if (typeof kind !== 'string' || !Array.isArray(found)) return undefined;
   const names = found.flatMap((f) => (typeof f?.name === 'string' ? [f.name] : []));
   return names.length ? { kind: kind as LibraryKind, names } : undefined;
+};
+
+/** The pictures per part, each item once per answer: the model often searches twice for the same thing. */
+const picturesPerPart = (parts: ChatMessage['parts']) => {
+  const shown = new Set<string>();
+  return parts.map((part): Found | undefined => {
+    const found = isToolUIPart(part) ? searchResult(part) : undefined;
+    if (!found) return undefined;
+    const names = found.names.filter((name) => {
+      const key = `${found.kind}\n${name}`;
+      if (shown.has(key)) return false;
+      shown.add(key);
+      return true;
+    });
+    return names.length ? { kind: found.kind, names } : undefined;
+  });
 };
 
 export interface UndoProps {
@@ -201,6 +222,7 @@ export const MessageView = ({
   const usage = message.metadata?.usage;
   const working = live && !showTools && message.parts.some((p) => isToolUIPart(p) && isPending(p));
   const repeated = repeatedTexts(message.parts.map((p) => (p.type === 'text' ? p.text : '')));
+  const pictures = picturesPerPart(message.parts);
   return (
     <div
       className={cn('my-2.5 flex flex-col gap-1.5', fromUser ? 'items-end' : 'items-start')}
@@ -223,7 +245,7 @@ export const MessageView = ({
         if (part.type === 'reasoning' && (showTools || (live && part.state === 'streaming')))
           return <Thinking key={key} />;
         if (!isToolUIPart(part)) return null;
-        const found = searchResult(part);
+        const found = pictures[i];
         return (
           <Fragment key={key}>
             {showTools && <ToolLine part={part} />}

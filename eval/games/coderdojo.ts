@@ -732,7 +732,9 @@ export const minesweeper: Game = {
             ? 'stop all'
             : signal(LOST, e, { ...s, targets: s.targets.filter((x) => !g.cells.some((y) => y.id === x.id)) });
         if (lostSignal || v === 'bomb') {
-          if (!board.has(c.key) || board.get(c.key) === 'unknown') board.set(c.key, 'bomb');
+          // the clicked cell that lost is a bomb, whatever it showed: some games open it like a safe cell
+          // („offen“ plus „Verloren!“), and record() already took that for a number
+          if (lostSignal || !board.has(c.key) || board.get(c.key) === 'unknown') board.set(c.key, 'bomb');
           bomb ??= { ...(lostSignal ? { signal: lostSignal } : {}) };
           if (!lostShot && lostSignal) {
             shots.push({ label: 'Bombe erwischt', png: await player.screenshot() });

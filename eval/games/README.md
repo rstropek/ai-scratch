@@ -43,7 +43,8 @@ research log of every variant (`logs-N/`), and one folder per run. Each run fold
 
 - **The kid** ([kid.ts](kid.ts)): Claude plays an 11-year-old with the game's brief ([games.ts](games.ts)). It
   reveals the idea bit by bit, answers the assistant's questions, and reports what it noticed when trying
-  the game. That report comes from the checks' German `kid` sentences plus a stage screenshot. It can't
+  the game. That report comes from the checks' German `kid` sentences plus the stage pictures the check took
+  (start, while playing, the end), which stay with the latest answer while nothing changes. It can't
   drag blocks, so it asks the assistant to do it. It writes `FERTIG` when everything works.
 - **The chat** ([chat.ts](chat.ts)): Playwright types into the real chat and waits until the Stopp button is
   gone. It reads the answer from the page and the tool calls from the app's `/api/chat` request bodies.
@@ -105,5 +106,9 @@ and each broken one must fail its check. A check that fails on the reference is 
   judged; a flag may be a flag sprite put on top of the cell, and to take it away the bot clicks a
   visible part of it (the cell's centre was see-through, so its click set a second flag); a hunter that pauses after a catch isn't stuck; a message may be a shown variable monitor
   („Gewonnen!“), and the points variable is the one shown on the stage, not an unused leftover.
+- The kid only knows what it is shown. With only the picture after the green flag it never saw a game end
+  and reported „kein Game Over“ for 20 turns, and without a picture on unchanged turns it misremembered
+  the Memory cards as one row. A Minesweeper bomb that opens like a safe cell („offen“ plus „Verloren!“)
+  is still a bomb; counting it as a number told the kid „Ich finde keine Bomben“ for 20 turns.
 - Runs never log to Azure Blob (the server gets `LOG_BLOB_URL=''`), so eval sessions don't mix with the
   kids' research data.

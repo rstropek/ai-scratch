@@ -106,7 +106,7 @@ export const fangspiel: Game = {
     await player.greenFlag(7);
     const start = (await player.seconds(0.5))[0] ?? (await player.state());
     await player.seconds(3, { kind: 'catch', catcher: name });
-    shots.push({ label: 'Spielen: der Bot fängt', png: await player.screenshot() });
+    shots.push({ label: 'Beim Spielen: Äpfel fangen', png: await player.screenshot() });
     const caught = await player.seconds(26.5, { kind: 'catch', catcher: name }, 30);
     const end = caught.at(-1) ?? (await player.state());
     const points = findVar(end, POINTS);
