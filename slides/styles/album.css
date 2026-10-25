@@ -1,0 +1,95 @@
+/*
+ * The sticker album: every slide is a full-bleed page in one Scratch block colour.
+ * Two content sizes only (display and text); "print" is the album's own small
+ * chrome (page number, captions).
+ */
+:root {
+  /* Scratch 3 block colours */
+  --looks: #855cd6; /* looks-secondary, also the editor's menu bar */
+  --motion: #4c97ff;
+  --events: #ffbf00;
+  --operators: #59c059;
+  --myblocks: #ff6680;
+  --sound: #cf63cf;
+  --control: #ffab19;
+
+  --ink: #1b1340; /* deep navy-purple, close to Scratch's outline navy */
+  --paper: #ffffff;
+
+  --font-display: "Lilita One", "Lexend Variable", sans-serif;
+  --font-text: "Lexend Variable", sans-serif;
+
+  --size-display: 76px;
+  --size-text: 34px;
+  --size-print: 20px;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.album-page {
+  --ground: var(--looks);
+  --fg: var(--paper);
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--ground);
+  /* the printed dot raster of an album page */
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--fg) 14%, transparent) 2px, transparent 2.5px);
+  background-size: 22px 22px;
+  color: var(--fg);
+  font-family: var(--font-text);
+  font-size: var(--size-text);
+  line-height: 1.35;
+  -webkit-font-smoothing: antialiased;
+}
+
+.album-page.ink-dark {
+  --fg: var(--ink);
+}
+
+.album-page ::selection {
+  background: var(--ink);
+  color: var(--events);
+}
+
+.album-page h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--size-display);
+  line-height: 1.02;
+  letter-spacing: 0.005em;
+  text-wrap: balance;
+}
+
+.album-page p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.album-page strong {
+  font-weight: 700;
+}
+
+/* album chrome: page number in the outer corner */
+.album-page .page-no {
+  position: absolute;
+  right: 40px;
+  bottom: 28px;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--fg);
+  color: var(--ground);
+  font-family: var(--font-display);
+  font-size: var(--size-print);
+}
+
+.album-page .print {
+  font-size: var(--size-print);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}

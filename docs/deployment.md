@@ -56,6 +56,14 @@ truth for settings and roles.
   and the runtime image installs only what the server imports. A new server import must be a dependency, or
   the container fails at start while everything works locally.
 - `APP_VERSION` (the commit) is baked in at build time and shown by `/healthz`, which needs no access code.
+- **The slide deck** (`slides/`, its own packages) is built into `dist/slides` with base `/slides/` before the
+  app's build, which precompresses it with the rest. The server serves it at `/slides/` without an access code;
+  a path without a file extension gets the deck's page, because Slidev routes in the browser (`/slides/11`,
+  `/slides/presenter/`). Pictures named from the root in `slides.md` go through `publicUrl()`
+  (`slides/utils/public-url.ts`): Vite only rewrites static URLs, not props.
+- **Headers set in `serveStatic`'s `onFound` only arrive under `@hono/node-server`** (its own `Response` keeps the
+  headers by reference); `app.request()` in tests drops them. The `/slides` route sets `Cache-Control` on the
+  finished response instead, so its test sees it.
 
 ## Streaming through App Service
 

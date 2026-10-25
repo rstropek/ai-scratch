@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 262">
+  <!-- Drawn for the Digitalferien deck: a Scratch code area with the category dots and one script,
+       the same program as code-editor.svg. Block shapes follow Scratch 3; text uses system fonts. -->
+  <title>Scratch mit einem Skript aus Blöcken</title>
+  <style>
+    text { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 17px; font-weight: 600; fill: #fff; }
+    .in { fill: #575e75; text-anchor: middle; }
+  </style>
+  <rect x="2" y="2" width="436" height="258" rx="22" fill="#f9f9f9" stroke="#c4c8d6" stroke-width="4"/>
+  <!-- category column -->
+  <path d="M 66 4 V 258" stroke="#e1e4ec" stroke-width="3"/>
+  <g stroke-width="3">
+    <circle cx="34" cy="34" r="11" fill="#4c97ff" stroke="#3373cc"/>
+    <circle cx="34" cy="65" r="11" fill="#9966ff" stroke="#774dcb"/>
+    <circle cx="34" cy="98" r="11" fill="#cf63cf" stroke="#bd42bd"/>
+    <circle cx="34" cy="131" r="11" fill="#ffbf00" stroke="#cc9900"/>
+    <circle cx="34" cy="164" r="11" fill="#ffab19" stroke="#cf8b17"/>
+    <circle cx="34" cy="197" r="11" fill="#5cb1d6" stroke="#2e8eb8"/>
+    <circle cx="34" cy="230" r="11" fill="#59c059" stroke="#389438"/>
+  </g>
+  <g transform="translate(96 40)" stroke-width="2" stroke-linejoin="round">
+    <!-- Wenn ⚑ angeklickt wird -->
+    <path d="M 0 0 C 25 -22, 71 -22, 96 0 H 248 A 4 4 0 0 1 252 4 V 44 A 4 4 0 0 1 248 48 H 48 C 46 48 45 49 44 50 L 40 54 C 39 55 38 56 36 56 H 24 C 22 56 21 55 20 54 L 16 50 C 15 49 14 48 12 48 H 4 A 4 4 0 0 1 0 44 Z"
+      fill="#ffbf00" stroke="#cc9900"/>
+    <text x="12" y="31">Wenn</text>
+    <g transform="translate(64 12)">
+      <path d="M 3 2 C 9 -2, 14 6, 22 2 V 16 C 14 20, 9 12, 3 16 Z" fill="#4cbf56" stroke="#45993d"/>
+      <path d="M 3 2 V 25" stroke="#45993d" stroke-width="3" stroke-linecap="round"/>
+    </g>
+    <text x="96" y="31">angeklickt wird</text>
+    <!-- setze Punkte auf 0 -->
+    <g transform="translate(0 48)">
+      <path d="M 0 4 A 4 4 0 0 1 4 0 H 12 C 14 0 15 1 16 2 L 20 6 C 21 7 22 8 24 8 H 36 C 38 8 39 7 40 6 L 44 2 C 45 1 46 0 48 0 H 254 A 4 4 0 0 1 258 4 V 44 A 4 4 0 0 1 254 48 H 48 C 46 48 45 49 44 50 L 40 54 C 39 55 38 56 36 56 H 24 C 22 56 21 55 20 54 L 16 50 C 15 49 14 48 12 48 H 4 A 4 4 0 0 1 0 44 Z"
+        fill="#ff8c1a" stroke="#db6e00"/>
+      <text x="12" y="31">setze</text>
+      <rect x="64" y="8" width="96" height="32" rx="6" fill="#db6e00" stroke="#b35900"/>
+      <text x="74" y="30">Punkte ▾</text>
+      <text x="170" y="31">auf</text>
+      <rect x="204" y="8" width="42" height="32" rx="16" fill="#fff" stroke="#db6e00"/>
+      <text class="in" x="225" y="30">0</text>
+    </g>
+    <!-- gehe 10 er Schritt -->
+    <g transform="translate(0 96)">
+      <path d="M 0 4 A 4 4 0 0 1 4 0 H 12 C 14 0 15 1 16 2 L 20 6 C 21 7 22 8 24 8 H 36 C 38 8 39 7 40 6 L 44 2 C 45 1 46 0 48 0 H 210 A 4 4 0 0 1 214 4 V 44 A 4 4 0 0 1 210 48 H 48 C 46 48 45 49 44 50 L 40 54 C 39 55 38 56 36 56 H 24 C 22 56 21 55 20 54 L 16 50 C 15 49 14 48 12 48 H 4 A 4 4 0 0 1 0 44 Z"
+        fill="#4c97ff" stroke="#3373cc"/>
+      <text x="12" y="31">gehe</text>
+      <rect x="60" y="8" width="46" height="32" rx="16" fill="#fff" stroke="#3373cc"/>
+      <text class="in" x="83" y="30">10</text>
+      <text x="116" y="31">er Schritt</text>
+    </g>
+    <!-- sage Hallo! -->
+    <g transform="translate(0 144)">
+      <path d="M 0 4 A 4 4 0 0 1 4 0 H 12 C 14 0 15 1 16 2 L 20 6 C 21 7 22 8 24 8 H 36 C 38 8 39 7 40 6 L 44 2 C 45 1 46 0 48 0 H 160 A 4 4 0 0 1 164 4 V 44 A 4 4 0 0 1 160 48 H 48 C 46 48 45 49 44 50 L 40 54 C 39 55 38 56 36 56 H 24 C 22 56 21 55 20 54 L 16 50 C 15 49 14 48 12 48 H 4 A 4 4 0 0 1 0 44 Z"
+        fill="#9966ff" stroke="#774dcb"/>
+      <text x="12" y="31">sage</text>
+      <rect x="58" y="8" width="96" height="32" rx="16" fill="#fff" stroke="#774dcb"/>
+      <text class="in" x="106" y="30">Hallo!</text>
+    </g>
+  </g>
+</svg>

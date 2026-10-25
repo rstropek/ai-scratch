@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { parseJsonEventStream, readUIMessageStream, uiMessageChunkSchema } from 'ai';
 import { describe, expect, test } from 'vitest';
 import { anthropicMessage, anthropicSse, sseResponse } from '../../test/support/anthropic-sse.ts';
@@ -487,5 +490,40 @@ describe('KI-Energie', () => {
     const res = await post(app, { messages: [userMessage('Hallo')] }, 'schule1', '/api/compact');
     expect(res.status).toBe(502);
     expect((await res.json()).error).toMatch(/Zusammenfassen hat nicht geklappt/);
+  });
+});
+
+describe('slide deck', () => {
+  const deck = () => {
+    const distDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dist-'));
+    fs.mkdirSync(path.join(distDir, 'slides', 'assets'), { recursive: true });
+    fs.writeFileSync(path.join(distDir, 'slides', 'index.html'), '<title>deck</title>');
+    fs.writeFileSync(path.join(distDir, 'slides', 'assets', 'index-abc.js'), 'run()');
+    const sink: LogSink = { storePrefix: () => 'h', append: () => {}, appendGuard: () => {} };
+    return createApp({ config: { ...config, distDir }, sink });
+  };
+
+  test('/slides redirects to the deck, which needs no access code', async () => {
+    const app = deck();
+    const res = await app.request('/slides');
+    expect(res.status).toBe(302);
+    expect(res.headers.get('Location')).toBe('/slides/');
+    const page = await app.request('/slides/');
+    expect(page.status).toBe(200);
+    expect(await page.text()).toBe('<title>deck</title>');
+    expect(page.headers.get('Cache-Control')).toBe('no-cache');
+  });
+
+  test('a slide link gets the deck page; hashed assets are cached; a missing file is a 404', async () => {
+    const app = deck();
+    for (const route of ['/slides/11', '/slides/presenter/3']) {
+      const res = await app.request(route);
+      expect(res.status).toBe(200);
+      expect(await res.text()).toBe('<title>deck</title>');
+    }
+    const asset = await app.request('/slides/assets/index-abc.js');
+    expect(asset.status).toBe(200);
+    expect(asset.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable');
+    expect((await app.request('/slides/art/missing.svg')).status).toBe(404);
   });
 });

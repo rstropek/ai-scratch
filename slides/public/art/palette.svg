@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 220">
+  <!-- Drawn for the Digitalferien deck in Scratch costume style: a paint palette with Scratch colours and a brush, the look. -->
+  <title>Malpalette</title>
+  <path d="M 120 14 C 190 14, 230 56, 230 104 C 230 140, 204 150, 182 146 C 160 142, 150 152, 154 168 C 158 186, 140 194, 116 194 C 56 194, 12 156, 12 104 C 12 52, 58 14, 120 14 Z M 202 106 A 14 14 0 1 0 174 106 A 14 14 0 1 0 202 106 Z"
+    fill="#f2d3a6" fill-rule="evenodd" stroke="#b3864d" stroke-width="5" stroke-linejoin="round"/>
+  <g stroke-width="4">
+    <circle cx="70" cy="70" r="19" fill="#4c97ff" stroke="#3373cc"/>
+    <circle cx="120" cy="50" r="19" fill="#ff6680" stroke="#cc3d58"/>
+    <circle cx="170" cy="62" r="17" fill="#ffbf00" stroke="#cc9900"/>
+    <circle cx="52" cy="122" r="19" fill="#59c059" stroke="#389438"/>
+    <circle cx="94" cy="160" r="18" fill="#9966ff" stroke="#774dcb"/>
+  </g>
+  <g transform="translate(190 112) rotate(28)" stroke-linejoin="round">
+    <rect x="-8" y="0" width="16" height="104" rx="8" fill="#ff8c1a" stroke="#b35900" stroke-width="4"/>
+    <rect x="-10" y="-24" width="20" height="26" rx="3" fill="#dfe5f0" stroke="#7f8aa6" stroke-width="4"/>
+    <path d="M -10 -24 C -12 -44, -4 -60, 0 -66 C 4 -60, 12 -44, 10 -24 Z" fill="#4c97ff" stroke="#2a3352" stroke-width="4"/>
+  </g>
+</svg>

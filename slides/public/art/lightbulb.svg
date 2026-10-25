@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-24 -20 248 260">
+  <!-- Drawn for the Digitalferien deck in Scratch costume style: a glowing lightbulb, the idea. -->
+  <title>Glühbirne</title>
+  <g stroke="#cc9900" stroke-width="10" stroke-linecap="round">
+    <path d="M 100 0 V -14"/>
+    <path d="M 146 12 L 153 0"/>
+    <path d="M 54 12 L 47 0"/>
+    <path d="M 180 46 L 192 39"/>
+    <path d="M 20 46 L 8 39"/>
+  </g>
+  <path d="M 100 14 C 50 14, 22 52, 22 92 C 22 124, 40 142, 56 160 C 64 170, 66 178, 66 186 H 134 C 134 178, 136 170, 144 160 C 160 142, 178 124, 178 92 C 178 52, 150 14, 100 14 Z"
+    fill="#ffe680" stroke="#cc9900" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M 50 86 C 52 64, 64 48, 84 40" fill="none" stroke="#fff" stroke-width="11" stroke-linecap="round"/>
+  <path d="M 82 186 V 142 L 91 122 L 100 142 L 109 122 L 118 142 V 186" fill="none" stroke="#cc7a00" stroke-width="5"
+    stroke-linecap="round" stroke-linejoin="round"/>
+  <g fill="#dfe5f0" stroke="#7f8aa6" stroke-width="4">
+    <rect x="62" y="184" width="76" height="18" rx="6"/>
+    <rect x="66" y="200" width="68" height="16" rx="6"/>
+  </g>
+  <path d="M 80 216 H 120 L 112 230 H 88 Z" fill="#4d5b80" stroke="#2a3352" stroke-width="4" stroke-linejoin="round"/>
+</svg>

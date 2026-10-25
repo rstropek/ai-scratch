@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 190">
+  <!-- Drawn for the Digitalferien deck in Scratch costume style: a flexed arm in the chip's colours. -->
+  <title>Muskel</title>
+  <!-- upper arm with bicep, forearm -->
+  <path d="M 24 180 C 10 180, 8 132, 18 118 C 34 96, 60 72, 92 74 C 114 76, 126 90, 130 104 L 132 66 L 186 62 C 192 98, 194 128, 188 148 C 180 172, 158 180, 130 180 Z"
+    fill="#6e80ad" stroke="#2a3352" stroke-width="5" stroke-linejoin="round"/>
+  <!-- shine on the bicep -->
+  <path d="M 46 104 C 58 90, 74 84, 90 86" fill="none" stroke="#9aa8cc" stroke-width="9" stroke-linecap="round"/>
+  <!-- bicep crease -->
+  <path d="M 104 122 C 114 128, 122 128, 130 122" fill="none" stroke="#2a3352" stroke-width="4" stroke-linecap="round"/>
+  <!-- circuit trace on the forearm -->
+  <g fill="none" stroke="#9fe3ff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 160 92 L 160 134 L 150 146"/>
+    <path d="M 40 160 L 84 160 L 92 152"/>
+  </g>
+  <g fill="#9fe3ff">
+    <circle cx="160" cy="88" r="4.5"/>
+    <circle cx="94" cy="149" r="4.5"/>
+  </g>
+  <!-- fist -->
+  <rect x="116" y="12" width="80" height="68" rx="26" fill="#4d5b80" stroke="#2a3352" stroke-width="5"/>
+  <g fill="none" stroke="#2a3352" stroke-width="4" stroke-linecap="round">
+    <path d="M 118 34 C 128 32, 138 34, 144 38"/>
+    <path d="M 118 52 C 128 50, 138 52, 144 56"/>
+    <path d="M 144 38 C 150 46, 150 54, 144 60"/>
+  </g>
+  <path d="M 132 22 L 176 22" stroke="#6f7fa8" stroke-width="7" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 560">
+  <!-- Drawn for the Digitalferien deck in Scratch costume style: a robot silhouette with the chip in its head,
+       wired to two gripper hands (the agent's tools). A pulse runs along the wires from the chip to the grippers. -->
+  <title>KI-Agent: ein Roboter mit dem KI-Chip im Kopf und Greifern als Händen</title>
+  <style>
+    .pulse { fill: none; stroke: #fff; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round;
+      stroke-dasharray: 14 46; animation: flow 1.2s linear infinite; }
+    @keyframes flow { to { stroke-dashoffset: -60; } }
+    @media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }
+  </style>
+  <defs>
+    <g id="gripper" stroke="#a87400" stroke-width="5" stroke-linejoin="round">
+      <path d="M -38 -42 C -54 -70, -50 -102, -22 -118 L -12 -106 C -30 -92, -32 -70, -18 -44 Z" fill="#ffbf00"/>
+      <path d="M 38 -42 C 54 -70, 50 -102, 22 -118 L 12 -106 C 30 -92, 32 -70, 18 -44 Z" fill="#ffbf00"/>
+      <rect x="-42" y="-48" width="84" height="30" rx="10" fill="#ffd84d"/>
+      <rect x="-28" y="-22" width="56" height="34" rx="10" fill="#ffbf00"/>
+      <circle cx="-27" cy="-33" r="5" fill="#a87400" stroke="none"/>
+      <circle cx="27" cy="-33" r="5" fill="#a87400" stroke="none"/>
+    </g>
+  </defs>
+  <!-- arms: shoulder, elbow, wrist; outline stroke under the fill stroke -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 214 300 L 110 400 L 90 250 M 426 300 L 530 400 L 550 250" stroke="#151a2e" stroke-width="56"/>
+    <path d="M 214 300 L 110 400 L 90 250 M 426 300 L 530 400 L 550 250" stroke="#2b3554" stroke-width="44"/>
+  </g>
+  <!-- neck, torso -->
+  <rect x="292" y="216" width="56" height="44" rx="8" fill="#2b3554" stroke="#151a2e" stroke-width="6"/>
+  <path d="M 196 250 H 444 C 466 250, 476 266, 474 288 L 456 548 H 184 L 166 288 C 164 266, 174 250, 196 250 Z"
+    fill="#2b3554" stroke="#151a2e" stroke-width="6" stroke-linejoin="round"/>
+  <!-- head with antenna and ear bolts -->
+  <path d="M 320 40 V 16" stroke="#151a2e" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="320" cy="16" r="13" fill="#ffbf00" stroke="#a87400" stroke-width="5"/>
+  <rect x="190" y="108" width="28" height="56" rx="9" fill="#2b3554" stroke="#151a2e" stroke-width="6"/>
+  <rect x="422" y="108" width="28" height="56" rx="9" fill="#2b3554" stroke="#151a2e" stroke-width="6"/>
+  <rect x="210" y="36" width="220" height="190" rx="46" fill="#2b3554" stroke="#151a2e" stroke-width="6"/>
+  <path d="M 246 54 L 300 54" stroke="#46527a" stroke-width="9" stroke-linecap="round"/>
+  <!-- the window the chip sits in -->
+  <rect x="234" y="64" width="172" height="144" rx="32" fill="#c9f0ff" stroke="#151a2e" stroke-width="5"/>
+  <!-- wires from the chip to both grippers -->
+  <path d="M 320 208 V 300 H 214 L 110 400 L 90 262 M 320 300 H 426 L 530 400 L 550 262" fill="none"
+    stroke="#9fe3ff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path class="pulse" d="M 320 208 V 300 H 214 L 110 400 L 90 262"/>
+  <path class="pulse" d="M 320 208 V 300 H 426 L 530 400 L 550 262"/>
+  <g fill="#9fe3ff" stroke="#151a2e" stroke-width="3">
+    <circle cx="320" cy="300" r="10"/>
+    <circle cx="110" cy="400" r="10"/>
+    <circle cx="530" cy="400" r="10"/>
+  </g>
+  <!-- the deck's chip, labelled KI instead of the face -->
+  <g transform="translate(250.6 66.6) scale(0.62)">
+    <g fill="#dfe5f0" stroke="#7f8aa6" stroke-width="4" stroke-linejoin="round">
+      <rect x="62" y="8" width="14" height="40" rx="5"/>
+      <rect x="90" y="8" width="14" height="40" rx="5"/>
+      <rect x="118" y="8" width="14" height="40" rx="5"/>
+      <rect x="146" y="8" width="14" height="40" rx="5"/>
+      <rect x="62" y="172" width="14" height="40" rx="5"/>
+      <rect x="90" y="172" width="14" height="40" rx="5"/>
+      <rect x="118" y="172" width="14" height="40" rx="5"/>
+      <rect x="146" y="172" width="14" height="40" rx="5"/>
+      <rect x="8" y="62" width="40" height="14" rx="5"/>
+      <rect x="8" y="90" width="40" height="14" rx="5"/>
+      <rect x="8" y="118" width="40" height="14" rx="5"/>
+      <rect x="8" y="146" width="40" height="14" rx="5"/>
+      <rect x="172" y="62" width="40" height="14" rx="5"/>
+      <rect x="172" y="90" width="40" height="14" rx="5"/>
+      <rect x="172" y="118" width="40" height="14" rx="5"/>
+      <rect x="172" y="146" width="40" height="14" rx="5"/>
+    </g>
+    <rect x="34" y="34" width="152" height="152" rx="26" fill="#4d5b80" stroke="#2a3352" stroke-width="5"/>
+    <path d="M52 48 L 120 48" stroke="#6f7fa8" stroke-width="8" stroke-linecap="round"/>
+    <rect x="58" y="62" width="104" height="100" rx="16" fill="#6e80ad" stroke="#2a3352" stroke-width="4"/>
+    <!-- K and I as strokes, so the label doesn't depend on a font -->
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 80 88 V 138 M 108 88 L 82 113 L 108 138 M 136 88 V 138" stroke="#1b1340" stroke-width="19"/>
+      <path d="M 80 88 V 138 M 108 88 L 82 113 L 108 138 M 136 88 V 138" stroke="#fff" stroke-width="11"/>
+    </g>
+  </g>
+  <!-- the grippers: the agent's tools -->
+  <use href="#gripper" transform="translate(90 250) rotate(-8)"/>
+  <use href="#gripper" transform="translate(550 250) rotate(8)"/>
+</svg>

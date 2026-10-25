@@ -1,7 +1,7 @@
 // Production build step (after `vite build`):
 // 1. copies the unmodified Scratch standalone build to dist/scratch, without what the browser never
 //    loads (source maps, the non-standalone bundle, type declarations);
-// 2. writes .br and .gz next to every compressible file in dist/client and dist/scratch, so the server
+// 2. writes .br and .gz next to every compressible file in dist/client, dist/scratch and dist/slides, so the server
 //    sends the 17 MB editor bundle as ~4-6 MB without compressing on every request.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -58,3 +58,5 @@ const compress = async (dir: string) => {
 copyScratch();
 await compress(path.join(DIST, 'client'));
 await compress(path.join(DIST, 'scratch'));
+// the slide deck, when slides/ was built before (the Docker image does)
+if (fs.existsSync(path.join(DIST, 'slides'))) await compress(path.join(DIST, 'slides'));
