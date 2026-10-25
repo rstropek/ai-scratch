@@ -1,0 +1,371 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-25T07:48:00.730Z",
+  "title": "Design System: Digitalferien 2026 Slides",
+  "extensions": {
+    "colorMeta": {
+      "looks": {
+        "role": "primary",
+        "displayName": "Looks Purple",
+        "canonical": "#855cd6",
+        "tonalRamp": [
+          "oklch(15% 0.090 295.7)",
+          "oklch(25% 0.090 295.7)",
+          "oklch(35% 0.180 295.7)",
+          "oklch(45% 0.180 295.7)",
+          "oklch(55% 0.180 295.7)",
+          "oklch(65% 0.180 295.7)",
+          "oklch(80% 0.180 295.7)",
+          "oklch(95% 0.090 295.7)"
+        ]
+      },
+      "motion": {
+        "role": "primary",
+        "displayName": "Motion Blue",
+        "canonical": "#4c97ff",
+        "tonalRamp": [
+          "oklch(15% 0.086 257.2)",
+          "oklch(25% 0.086 257.2)",
+          "oklch(35% 0.171 257.2)",
+          "oklch(45% 0.171 257.2)",
+          "oklch(55% 0.171 257.2)",
+          "oklch(65% 0.171 257.2)",
+          "oklch(80% 0.171 257.2)",
+          "oklch(95% 0.086 257.2)"
+        ]
+      },
+      "events": {
+        "role": "primary",
+        "displayName": "Events Yellow",
+        "canonical": "#ffbf00",
+        "tonalRamp": [
+          "oklch(15% 0.086 84.1)",
+          "oklch(25% 0.086 84.1)",
+          "oklch(35% 0.172 84.1)",
+          "oklch(45% 0.172 84.1)",
+          "oklch(55% 0.172 84.1)",
+          "oklch(65% 0.172 84.1)",
+          "oklch(80% 0.172 84.1)",
+          "oklch(95% 0.086 84.1)"
+        ]
+      },
+      "operators": {
+        "role": "primary",
+        "displayName": "Operators Green",
+        "canonical": "#59c059",
+        "tonalRamp": [
+          "oklch(15% 0.086 143.5)",
+          "oklch(25% 0.086 143.5)",
+          "oklch(35% 0.171 143.5)",
+          "oklch(45% 0.171 143.5)",
+          "oklch(55% 0.171 143.5)",
+          "oklch(65% 0.171 143.5)",
+          "oklch(80% 0.171 143.5)",
+          "oklch(95% 0.086 143.5)"
+        ]
+      },
+      "myblocks": {
+        "role": "primary",
+        "displayName": "My-Blocks Pink",
+        "canonical": "#ff6680",
+        "tonalRamp": [
+          "oklch(15% 0.093 12.9)",
+          "oklch(25% 0.093 12.9)",
+          "oklch(35% 0.187 12.9)",
+          "oklch(45% 0.187 12.9)",
+          "oklch(55% 0.187 12.9)",
+          "oklch(65% 0.187 12.9)",
+          "oklch(80% 0.187 12.9)",
+          "oklch(95% 0.093 12.9)"
+        ]
+      },
+      "sound": {
+        "role": "primary",
+        "displayName": "Sound Magenta",
+        "canonical": "#cf63cf",
+        "tonalRamp": [
+          "oklch(15% 0.094 327.4)",
+          "oklch(25% 0.094 327.4)",
+          "oklch(35% 0.189 327.4)",
+          "oklch(45% 0.189 327.4)",
+          "oklch(55% 0.189 327.4)",
+          "oklch(65% 0.189 327.4)",
+          "oklch(80% 0.189 327.4)",
+          "oklch(95% 0.094 327.4)"
+        ]
+      },
+      "control": {
+        "role": "primary",
+        "displayName": "Control Orange",
+        "canonical": "#ffab19",
+        "tonalRamp": [
+          "oklch(15% 0.083 72.8)",
+          "oklch(25% 0.083 72.8)",
+          "oklch(35% 0.167 72.8)",
+          "oklch(45% 0.167 72.8)",
+          "oklch(55% 0.167 72.8)",
+          "oklch(65% 0.167 72.8)",
+          "oklch(80% 0.167 72.8)",
+          "oklch(95% 0.083 72.8)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Album Ink",
+        "canonical": "#1b1340",
+        "tonalRamp": [
+          "oklch(15% 0.041 286.1)",
+          "oklch(25% 0.041 286.1)",
+          "oklch(35% 0.082 286.1)",
+          "oklch(45% 0.082 286.1)",
+          "oklch(55% 0.082 286.1)",
+          "oklch(65% 0.082 286.1)",
+          "oklch(80% 0.082 286.1)",
+          "oklch(95% 0.041 286.1)"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Sticker White",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15% 0.000 89.9)",
+          "oklch(25% 0.000 89.9)",
+          "oklch(35% 0.000 89.9)",
+          "oklch(45% 0.000 89.9)",
+          "oklch(55% 0.000 89.9)",
+          "oklch(65% 0.000 89.9)",
+          "oklch(80% 0.000 89.9)",
+          "oklch(95% 0.000 89.9)"
+        ]
+      },
+      "cover-yellow": {
+        "role": "tertiary",
+        "displayName": "Cover Yellow",
+        "canonical": "#ffd84d",
+        "tonalRamp": [
+          "oklch(15% 0.078 93.0)",
+          "oklch(25% 0.078 93.0)",
+          "oklch(35% 0.157 93.0)",
+          "oklch(45% 0.157 93.0)",
+          "oklch(55% 0.157 93.0)",
+          "oklch(65% 0.157 93.0)",
+          "oklch(80% 0.157 93.0)",
+          "oklch(95% 0.078 93.0)"
+        ]
+      },
+      "stamp-red": {
+        "role": "tertiary",
+        "displayName": "Stamp Red",
+        "canonical": "#d92b57",
+        "tonalRamp": [
+          "oklch(15% 0.104 13.0)",
+          "oklch(25% 0.104 13.0)",
+          "oklch(35% 0.207 13.0)",
+          "oklch(45% 0.207 13.0)",
+          "oklch(55% 0.207 13.0)",
+          "oklch(65% 0.207 13.0)",
+          "oklch(80% 0.207 13.0)",
+          "oklch(95% 0.104 13.0)"
+        ]
+      },
+      "scratch-text": {
+        "role": "neutral",
+        "displayName": "Scratch Stage Grey",
+        "canonical": "#575e75",
+        "tonalRamp": [
+          "oklch(15% 0.019 271.7)",
+          "oklch(25% 0.019 271.7)",
+          "oklch(35% 0.038 271.7)",
+          "oklch(45% 0.038 271.7)",
+          "oklch(55% 0.038 271.7)",
+          "oklch(65% 0.038 271.7)",
+          "oklch(80% 0.038 271.7)",
+          "oklch(95% 0.019 271.7)"
+        ]
+      },
+      "bubble-edge": {
+        "role": "neutral",
+        "displayName": "Bubble Edge",
+        "canonical": "#c4c8d6",
+        "tonalRamp": [
+          "oklch(15% 0.010 273.2)",
+          "oklch(25% 0.010 273.2)",
+          "oklch(35% 0.020 273.2)",
+          "oklch(45% 0.020 273.2)",
+          "oklch(55% 0.020 273.2)",
+          "oklch(65% 0.020 273.2)",
+          "oklch(80% 0.020 273.2)",
+          "oklch(95% 0.010 273.2)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "One heading per page; the speech bubble words."
+      },
+      "text": {
+        "displayName": "Text",
+        "purpose": "The few lines of a page, name plates, slot numerals and stamp (display face)."
+      },
+      "print": {
+        "displayName": "Print",
+        "purpose": "Album chrome: page badge, slot captions, counts."
+      }
+    },
+    "shadows": [
+      {
+        "name": "sticker-rest",
+        "value": "drop-shadow(0 10px 14px rgb(27 19 64 / 0.28))",
+        "purpose": "Every die-cut sticker at rest; follows the outline."
+      },
+      {
+        "name": "sticker-lifted",
+        "value": "drop-shadow(0 30px 30px rgb(27 19 64 / 0.2))",
+        "purpose": "Start frame of the stick animation."
+      },
+      {
+        "name": "bubble",
+        "value": "drop-shadow(0 10px 14px rgb(27 19 64 / 0.22))",
+        "purpose": "The speech bubble."
+      },
+      {
+        "name": "paper-card",
+        "value": "0 14px 28px rgb(27 19 64 / 0.28)",
+        "purpose": "Rectangular paper: Haiku card, photo sticker (0.3)."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "The only easing; every entry gesture."
+      },
+      {
+        "name": "stick",
+        "value": "700ms",
+        "purpose": "Sticker drops from -26px, scale 1.08, +7deg, shadow lifted to rest, on page entry."
+      },
+      {
+        "name": "pop",
+        "value": "520ms",
+        "purpose": "Speech bubble scales from 0.6 out of its tail corner, after the sticker."
+      },
+      {
+        "name": "thump",
+        "value": "380ms",
+        "purpose": "Stamp lands from scale 1.35 after the stickers (delay 600ms)."
+      },
+      {
+        "name": "stagger",
+        "value": "150ms",
+        "purpose": "Delay step between stickers on one page."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Album Page",
+      "kind": "custom",
+      "refersTo": "album-page",
+      "description": "Full-bleed Scratch block-colour ground with printed dot raster and round page badge.",
+      "html": "<div class=\"ds-page\"><h1>Was ist eigentlich KI?</h1><p>Ihr müsst <strong>nicht</strong> alles schaffen.</p><div class=\"ds-badge\">3</div></div>",
+      "css": ".ds-page{position:relative;width:640px;height:360px;overflow:hidden;background-color:var(--ground,#855cd6);background-image:radial-gradient(circle,color-mix(in srgb,var(--fg,#fff) 14%,transparent) 2px,transparent 2.5px);background-size:22px 22px;color:var(--fg,#fff);font-family:\"Lexend Variable\",sans-serif;font-size:17px;line-height:1.35;padding:36px 44px;box-sizing:border-box}.ds-page h1{margin:0 0 16px;font-family:\"Lilita One\",sans-serif;font-weight:400;font-size:38px;line-height:1.02}.ds-page p{margin:0}.ds-badge{position:absolute;right:20px;bottom:14px;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--fg,#fff);color:var(--ground,#855cd6);font-family:\"Lilita One\",sans-serif;font-size:10px}"
+    },
+    {
+      "name": "Album Page (dark ink)",
+      "kind": "custom",
+      "refersTo": "album-page-ink-dark",
+      "description": "Every light ground takes the album ink for text and chrome.",
+      "html": "<div class=\"ds-page ds-dark\"><h1>Heute programmieren wir mit KI</h1><p>Schon fertig? Dann baut etwas ganz Eigenes!</p></div>",
+      "css": ".ds-page{position:relative;width:640px;height:360px;overflow:hidden;background-color:var(--ground,#855cd6);background-image:radial-gradient(circle,color-mix(in srgb,var(--fg,#fff) 14%,transparent) 2px,transparent 2.5px);background-size:22px 22px;color:var(--fg,#fff);font-family:\"Lexend Variable\",sans-serif;font-size:17px;line-height:1.35;padding:36px 44px;box-sizing:border-box}.ds-page h1{margin:0 0 16px;font-family:\"Lilita One\",sans-serif;font-weight:400;font-size:38px;line-height:1.02}.ds-dark{--ground:#ffbf00;--fg:#1b1340}.ds-page p{margin:0}"
+    },
+    {
+      "name": "Slot",
+      "kind": "card",
+      "refersTo": "slot",
+      "description": "Dashed, numbered place for a sticker still to come; caption below.",
+      "html": "<div class=\"ds-slotbg\"><div class=\"ds-slotwrap\"><div class=\"ds-slot\"><span>2</span></div><div class=\"ds-cap\">knifflig</div></div></div>",
+      "css": ".ds-slotbg{background:#855cd6;padding:24px;color:#fff;font-family:\"Lexend Variable\",sans-serif}.ds-slotwrap{display:inline-flex;flex-direction:column;align-items:center;gap:14px;width:104px}.ds-slot{display:grid;place-items:center;width:100%;height:104px;border:4px dashed color-mix(in srgb,#fff 55%,transparent);border-radius:22px;background:color-mix(in srgb,#fff 18%,transparent);box-sizing:border-box}.ds-slot span{font-family:\"Lilita One\",sans-serif;font-size:34px;color:color-mix(in srgb,#fff 75%,transparent)}.ds-cap{font-size:20px;font-weight:600}.ds-slot:hover{background:color-mix(in srgb,#fff 26%,transparent)}"
+    },
+    {
+      "name": "Sticker",
+      "kind": "custom",
+      "refersTo": "sticker",
+      "description": "Die-cut picture: white edge dilated from its own alpha, tilted, ink-tinted soft shadow; sticks on entry.",
+      "html": "<div class=\"ds-stickbg\"><svg width=\"0\" height=\"0\" style=\"position:absolute\"><filter id=\"ds-die\" x=\"-15%\" y=\"-15%\" width=\"130%\" height=\"130%\" color-interpolation-filters=\"sRGB\"><feMorphology in=\"SourceAlpha\" operator=\"dilate\" radius=\"4\" result=\"g\"/><feFlood flood-color=\"#fff\"/><feComposite in2=\"g\" operator=\"in\" result=\"e\"/><feMerge><feMergeNode in=\"e\"/><feMergeNode in=\"SourceGraphic\"/></feMerge></filter></svg><div class=\"ds-sticker\"><svg viewBox=\"0 0 100 100\" width=\"140\" height=\"140\" style=\"filter:url(#ds-die)\"><circle cx=\"50\" cy=\"55\" r=\"34\" fill=\"#ffab19\" stroke=\"#1b1340\" stroke-width=\"3\"/><path d=\"M24 34 L30 8 L46 24 Z M76 34 L70 8 L54 24 Z\" fill=\"#ffab19\" stroke=\"#1b1340\" stroke-width=\"3\"/></svg></div></div>",
+      "css": ".ds-stickbg{background:#cf63cf;padding:32px;display:inline-block}.ds-sticker{transform:rotate(-6deg);transform-origin:50% 60%;filter:drop-shadow(0 10px 14px rgb(27 19 64 / 0.28));animation:ds-stick 700ms cubic-bezier(0.16,1,0.3,1) both}@keyframes ds-stick{from{transform:translateY(-26px) scale(1.08) rotate(1deg);filter:drop-shadow(0 30px 30px rgb(27 19 64 / 0.2))}to{transform:rotate(-6deg);filter:drop-shadow(0 10px 14px rgb(27 19 64 / 0.28))}}@media (prefers-reduced-motion:reduce){.ds-sticker{animation:none}}"
+    },
+    {
+      "name": "Speech Bubble",
+      "kind": "custom",
+      "refersTo": "speech-bubble",
+      "description": "Scratch's stage 'sagen' bubble in the display face; pops in after the sticker.",
+      "html": "<div class=\"ds-bubblebg\"><div class=\"ds-bubble\">Hallo Welt!</div></div>",
+      "css": ".ds-bubblebg{background:#59c059;padding:28px 28px 48px}.ds-bubble{display:inline-block;padding:13px 22px 15px;border:3px solid #c4c8d6;border-radius:34px;background:#fff;color:#575e75;font-family:\"Lilita One\",sans-serif;font-size:38px;line-height:1;filter:drop-shadow(0 10px 14px rgb(27 19 64 / 0.22));transform-origin:10% 100%;animation:ds-pop 520ms cubic-bezier(0.16,1,0.3,1) both}@keyframes ds-pop{from{transform:scale(.6)}to{transform:scale(1)}}"
+    },
+    {
+      "name": "Photo Sticker",
+      "kind": "card",
+      "refersTo": "photo-sticker",
+      "description": "Looping video in a thick white frame, slight tilt.",
+      "html": "<div class=\"ds-photobg\"><div class=\"ds-photo\"><div class=\"ds-frame\"></div></div></div>",
+      "css": ".ds-photobg{background:#ff6680;padding:32px}.ds-photo{width:260px;padding:14px;border-radius:26px;background:#fff;box-shadow:0 14px 28px rgb(27 19 64 / 0.3);transform:rotate(2deg)}.ds-frame{aspect-ratio:16/9;border-radius:14px;background:#e9f1fc}"
+    },
+    {
+      "name": "Stamp",
+      "kind": "chip",
+      "refersTo": "stamp",
+      "description": "Rubber stamp on a white paper label, doubled border; thumps in last.",
+      "html": "<div class=\"ds-stampbg\"><span class=\"ds-stamp\">Haiku 5-7-5</span></div>",
+      "css": ".ds-stampbg{background:#cf63cf;padding:32px}.ds-stamp{display:inline-block;padding:10px 22px 12px;border:5px solid currentColor;border-radius:14px;outline:2px solid currentColor;outline-offset:4px;background:#fff;box-shadow:0 0 0 8px #fff,0 8px 16px 6px rgb(27 19 64 / .22);color:#d92b57;font-family:\"Lilita One\",sans-serif;font-size:34px;line-height:1;transform:rotate(-12deg);animation:ds-thump 380ms cubic-bezier(0.16,1,0.3,1) both}@keyframes ds-thump{from{transform:rotate(-12deg) scale(1.35)}to{transform:rotate(-12deg) scale(1)}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Das Ferien-Stickeralbum",
+    "overview": "The day is a sticker album the kid fills at their own pace. Each slide is one printed album page, full-bleed in a single Scratch block colour with a faint printed dot raster. Each idea is one die-cut Scratch sticker; ideas still to come are dashed, numbered empty slots. Done is a sticker, still to come is a slot: state is shown as a physical mark, never as a progress bar or a list.\n\nPages are sparse: one heading, at most a few short lines, one to three stickers. Rank comes from size, weight and colour, not from boxes, rules or bullets. The world refuses the white school slide with a purple title bar and bullet points.",
+    "keyCharacteristics": [
+      "One Scratch block colour per page, full bleed, 22px dot raster.",
+      "Die-cut white edge that follows each sprite's own outline, soft lifted shadow, slight tilt.",
+      "Dashed rounded slots in a light tint for what is still to come.",
+      "Lilita One for display, Lexend for text; three sizes.",
+      "One entry gesture: the sticker \"sticks\" when the page opens."
+    ],
+    "rules": [
+      {
+        "name": "The One Block Colour Rule",
+        "body": "A page has exactly one ground, chosen from the Scratch block colours. No gradients, no second ground colour, no white slides.",
+        "section": "colors"
+      },
+      {
+        "name": "The Ink Follows The Ground Rule",
+        "body": "Looks Purple takes white ink; every lighter ground (motion, events, operators, myblocks, sound) takes `ink: dark`. All chrome (dot raster, slot outlines, slot numbers, page badge) derives from the current ink, never from a hard-coded colour.",
+        "section": "colors"
+      },
+      {
+        "name": "The Three Sizes Rule",
+        "body": "New content uses display, text or print, nothing else. Rank within a size comes from weight and colour. (The Haiku's 62px poem is the only exception and is an open decision.)",
+        "section": "typography"
+      },
+      {
+        "name": "The Ink-Tinted Shadow Rule",
+        "body": "Shadows are always tinted with the album ink (`rgb(27 19 64 / …)`), never neutral black.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do give every page exactly one Scratch block-colour ground and set `ink: dark` on every ground except looks.",
+      "Do show what is still to come as a dashed numbered slot and what is there as a sticker in it.",
+      "Do use only the display, text and print sizes for new content.",
+      "Do tilt every sticker slightly and let it stick on entry with the shared easing.",
+      "Do use Scratch library sprites or own drawings in Scratch clipart style, credited in the presenter notes."
+    ],
+    "donts": [
+      "Don't use white slides, title bars or bullet lists.",
+      "Don't put a second ground colour, gradient or neutral-black shadow on a page.",
+      "Don't use dashed borders for anything but slots.",
+      "Don't add looping or fast motion beyond the one entry gesture per element; the only loop is the agent video."
+    ]
+  }
+}
