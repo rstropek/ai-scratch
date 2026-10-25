@@ -1,6 +1,7 @@
 ---
 theme: none
 title: Digitalferien 2026
+favicon: /favicon.svg
 info: Folien zum Video-Tutorial der Digitalferien 2026 (KI-Scratch)
 canvasWidth: 1280
 aspectRatio: 16/9

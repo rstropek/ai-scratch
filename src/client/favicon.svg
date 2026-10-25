@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- The deck's KI chip (slides/public/art/chip-ki.svg), redrawn for tab size: two pins per side, no die
+       outline, thicker strokes, so the KI stays readable at 16 px.
+       Two identical copies: src/client/favicon.svg (the app) and slides/public/favicon.svg (the deck). -->
+  <title>KI-Scratch</title>
+  <g fill="#dfe5f0" stroke="#7f8aa6" stroke-width="1.5" stroke-linejoin="round">
+    <rect x="9.5" y="1" width="4" height="8" rx="1.5"/>
+    <rect x="18.5" y="1" width="4" height="8" rx="1.5"/>
+    <rect x="9.5" y="23" width="4" height="8" rx="1.5"/>
+    <rect x="18.5" y="23" width="4" height="8" rx="1.5"/>
+    <rect x="1" y="9.5" width="8" height="4" rx="1.5"/>
+    <rect x="1" y="18.5" width="8" height="4" rx="1.5"/>
+    <rect x="23" y="9.5" width="8" height="4" rx="1.5"/>
+    <rect x="23" y="18.5" width="8" height="4" rx="1.5"/>
+  </g>
+  <rect x="5" y="5" width="22" height="22" rx="5" fill="#4d5b80" stroke="#2a3352" stroke-width="2"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 10.5 11 V 21 M 16.5 11 L 11 16 L 16.5 21 M 21.5 11 V 21" stroke="#1b1340" stroke-width="4.4"/>
+    <path d="M 10.5 11 V 21 M 16.5 11 L 11 16 L 16.5 21 M 21.5 11 V 21" stroke="#fff" stroke-width="2.4"/>
+  </g>
+</svg>
