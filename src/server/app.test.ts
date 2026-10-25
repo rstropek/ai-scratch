@@ -481,6 +481,7 @@ describe('KI-Energie', () => {
     expect(sent).toContain('KI-Helfer: [Ausgeführte Werkzeuge: add_scripts]');
     expect(sent).not.toContain('geheim');
     expect(sent).not.toContain('"project"');
+    expect(requests[0]?.body.thinking).toEqual({ type: 'disabled' });
     await expect.poll(() => records.length).toBe(1);
     expect(records[0]).toMatchObject({ purpose: 'compact', session: 'sess', turn: 1 });
     expect(await stats(app)).toMatchObject({ calls: 1, energy: { compacts: 1 } });
@@ -509,7 +510,8 @@ describe('frage KI block', () => {
     expect(await res.json()).toEqual({ answer: 'Ein Pinguin geht in eine Bar …' });
     const body = requests[0]?.body;
     expect(JSON.stringify(body?.system)).toContain('A kid aged 10 to 16');
-    expect(body).toMatchObject({ max_tokens: 300 });
+    // thinking off: Haiku 5.5 otherwise thinks through all 300 tokens on a longer chatbot conversation
+    expect(body).toMatchObject({ max_tokens: 300, thinking: { type: 'disabled' } });
     expect(body?.tools).toBeUndefined();
     await expect.poll(() => records.length).toBe(1);
     expect(records[0]).toMatchObject({ purpose: 'ask', session: 'sess', turn: 0 });

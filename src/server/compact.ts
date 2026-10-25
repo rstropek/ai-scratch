@@ -71,6 +71,8 @@ export const createCompactHandler =
         instructions: INSTRUCTIONS,
         messages: [{ role: 'user', content: `<gespraech>\n${text}\n</gespraech>` }],
         maxOutputTokens: MAX_OUTPUT_TOKENS,
+        // Haiku 5.5 thinks unless told not to, and thinking can fill all of MAX_OUTPUT_TOKENS
+        providerOptions: { anthropic: { thinking: { type: 'disabled' } } },
       });
       const summary = result.text.trim();
       if (!summary) throw new Error('empty summary');

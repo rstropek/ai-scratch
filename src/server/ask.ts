@@ -28,6 +28,8 @@ export const ASK_INSTRUCTIONS = `You are the AI behind the "frage KI" block in S
 const MAX_OUTPUT_TOKENS = 300;
 
 const CACHE = { anthropic: { cacheControl: { type: 'ephemeral' } } } as const;
+/** Haiku 5.5 thinks unless told not to: thinking can fill all of MAX_OUTPUT_TOKENS and leave no answer. */
+const NO_THINKING = { anthropic: { thinking: { type: 'disabled' } } } as const;
 /** characters per text block; see askContent */
 export const PIECE = 400;
 
@@ -85,6 +87,7 @@ export const createAskHandler =
         instructions: ASK_INSTRUCTIONS,
         messages: [{ role: 'user', content }],
         maxOutputTokens: MAX_OUTPUT_TOKENS,
+        providerOptions: NO_THINKING,
         abortSignal: c.req.raw.signal,
       });
       const answer = result.text.trim();

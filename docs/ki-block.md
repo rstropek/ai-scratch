@@ -52,5 +52,8 @@ variable and sends all of it. That is the point of the exercise: a chatbot only 
   `frage … und warte` shows the answer for a split second only. The prompt teaches the AI's answer as the next
   question: `frage (frage KI (Antwort)) und warte`.
 - **`disableMonitor`:** a stage monitor of the reporter would ask again and again.
+- **Thinking must be turned off explicitly** (`thinking: disabled`). Haiku 5.5 thinks by default, more the
+  longer the text: from about 800 characters of chatbot conversation it thought through all 300 tokens and
+  returned no text, so every ask became a 502. `/api/compact` has the same setting.
 - `test_run` and the harness run the block for real: each ask costs a heart (none with the harness's `admin_`
   code) and a Jev call.
