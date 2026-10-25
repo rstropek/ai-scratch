@@ -30,7 +30,7 @@ Adding a slide: copy one of the existing ones in `slides.md`, change `color:`, k
 
 - `public/scratch/`: sprites from the Scratch library (Scratch Foundation, CC BY-SA 2.0). The Scratch Cat is a
   Scratch Foundation trademark. The cover carries the credit; repeat it in the video description.
-- `public/art/`: brain, chip, muscle arm and the agent robot, drawn for this deck in Scratch costume style.
+- `public/art/`: brain, chip (also labelled KI), muscle arm, agent robot, lightbulb, palette, dice, and the drawn Scratch script and code editor, all made for this deck in Scratch costume style. The script and editor use system fonts.
 - `public/videos/ki-agent-loop.mp4`: the KI-Agent loop (6 s).
 
 If an edit in `slides.md` does not show up in the browser, restart `npm run dev`; Slidev's file watcher

@@ -304,3 +304,84 @@ color: looks
 Ein Chatbot kann nur reden. Ein KI-Agent bekommt Tools, also Werkzeuge, wie die Greifer dieses Roboters, und kann damit selbst etwas tun.
 Bei uns sind die Tools für Scratch: Skripte lesen und bauen, Figuren und Hintergründe hinzufügen, neue Figuren zeichnen und im Editor zeigen, wo etwas ist.
 -->
+
+---
+layout: page
+color: motion
+ink: dark
+---
+
+<div class="ide">
+  <h1>Beim Programmieren ist das Tool der Editor</h1>
+  <!-- the same wires as the robot on page 8: navy cable, light-blue core, a pulse from the chip outwards -->
+  <svg class="cables" viewBox="0 0 1280 720" aria-hidden="true">
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path class="casing" d="M 340 444 H 470 C 600 444, 620 341, 772 341 M 470 444 C 600 444, 620 575, 772 575" />
+      <path class="wire" d="M 340 444 H 470 C 600 444, 620 341, 772 341 M 470 444 C 600 444, 620 575, 772 575" />
+      <path class="core" d="M 340 444 H 470 C 600 444, 620 341, 772 341 M 470 444 C 600 444, 620 575, 772 575" />
+      <path class="pulse" d="M 340 444 H 470 C 600 444, 620 341, 772 341" />
+      <path class="pulse" d="M 340 444 H 470 C 600 444, 620 575, 772 575" />
+    </g>
+    <circle cx="470" cy="444" r="12" fill="#9fe3ff" stroke="#151a2e" stroke-width="4" />
+  </svg>
+  <div class="chip"><Sticker src="/art/chip-ki.svg" alt="KI-Chip" :width="210" :rotate="-4" /></div>
+  <div class="blocks"><Sticker src="/art/scratch-blocks.svg" alt="Scratch mit einem Skript aus Blöcken" :width="400" :rotate="-2" :delay="200" /></div>
+  <div class="code"><Sticker src="/art/code-editor.svg" alt="Ein Code-Editor mit drei Zeilen TypeScript" :width="400" :rotate="2" :delay="350" /></div>
+</div>
+
+<style>
+.ide { position: relative; height: 100%; }
+.ide h1 { position: absolute; top: 56px; left: 88px; right: 88px; }
+.ide .cables { position: absolute; inset: 0; width: 100%; height: 100%; }
+.ide .casing { stroke: #151a2e; stroke-width: 30px; }
+.ide .wire { stroke: #2b3554; stroke-width: 20px; }
+.ide .core { stroke: #9fe3ff; stroke-width: 6px; }
+.ide .pulse { stroke: #fff; stroke-width: 6px; stroke-dasharray: 14 46; animation: ide-flow 1.2s linear infinite; }
+@keyframes ide-flow { to { stroke-dashoffset: -60; } }
+@media (prefers-reduced-motion: reduce) { .ide .pulse { animation: none; } }
+.ide .chip { position: absolute; left: 150px; top: 339px; }
+.ide .blocks { position: absolute; left: 760px; top: 222px; }
+.ide .code { position: absolute; left: 760px; top: 484px; }
+</style>
+
+<!--
+Für eine KI, die programmiert, ist das wichtigste Tool der Editor: bei uns Scratch, bei Profis ein Code-Editor.
+Oben und unten steht dasselbe Programm, einmal als Blöcke, einmal als TypeScript.
+KI kann auf vielen Stufen helfen: etwas erklären, einen Fehler finden, ein Skript bauen, ein ganzes Projekt.
+-->
+
+---
+layout: page
+color: control
+ink: dark
+---
+
+<div class="ideas">
+  <h1>Ihr bringt die Ideen mit</h1>
+  <div class="row">
+    <Slot :size="240" label="Die Idee" plate><Sticker src="/art/lightbulb.svg" alt="Glühbirne" :width="170" :rotate="-6" /></Slot>
+    <Slot :size="240" label="Der Look" plate><Sticker src="/art/palette.svg" alt="Malpalette" :width="196" :rotate="5" :delay="150" /></Slot>
+    <Slot :size="240" label="Die Spielregeln" plate><Sticker src="/art/dice.svg" alt="Würfel" :width="184" :rotate="-4" :delay="300" /></Slot>
+  </div>
+  <div class="ki">
+    <Sticker src="/art/chip-ki.svg" alt="KI-Chip" :width="96" :rotate="6" :delay="450" />
+    <p>Die KI nimmt euch viel Technik und Tipparbeit ab. <strong>So wird Programmieren kreativer.</strong></p>
+  </div>
+</div>
+
+<style>
+.ideas {
+  display: flex;
+  flex-direction: column;
+  gap: 44px;
+  height: 100%;
+  padding: 64px 88px 56px;
+}
+.ideas .row { display: flex; justify-content: space-between; padding: 0 40px; }
+.ideas .ki { display: flex; align-items: center; gap: 32px; margin-top: 12px; max-width: 960px; }
+</style>
+
+<!--
+Ihr entscheidet, was gebaut wird (die Idee), wie es aussehen soll (der Look) und wie das Spiel funktioniert (die Spielregeln).
+Die KI übernimmt viel von der technischen Kleinarbeit. Dadurch wird Programmieren weniger mühsam und viel kreativer.
+-->

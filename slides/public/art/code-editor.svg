@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 200">
+  <!-- Drawn for the Digitalferien deck: a code editor with three lines of TypeScript, the same program as
+       scratch-blocks.svg, in the chip's navy. Text uses the system's monospace font; the cursor blinks. -->
+  <title>Ein Code-Editor mit drei Zeilen TypeScript</title>
+  <style>
+    text { font-family: ui-monospace, "Cascadia Code", Consolas, Menlo, "DejaVu Sans Mono", monospace; font-size: 22px; fill: #fff; }
+    .no { fill: #6f7fa8; }
+    .kw { fill: #ff99b8; }
+    .ty { fill: #9fe3ff; }
+    .num { fill: #ffd84d; }
+    .fn { fill: #8fe28f; }
+    .str { fill: #ffc56e; }
+    .tab { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 16px; font-weight: 600; fill: #c9d1e8; }
+    .caret { animation: blink 1.1s steps(1) infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) { .caret { animation: none; } }
+  </style>
+  <rect x="3" y="3" width="434" height="194" rx="22" fill="#2b3554" stroke="#151a2e" stroke-width="5"/>
+  <path d="M 3 46 V 25 A 22 22 0 0 1 25 3 H 415 A 22 22 0 0 1 437 25 V 46 Z" fill="#151a2e"/>
+  <circle cx="30" cy="24" r="7" fill="#ff6680"/>
+  <circle cx="54" cy="24" r="7" fill="#ffbf00"/>
+  <circle cx="78" cy="24" r="7" fill="#59c059"/>
+  <path d="M 104 46 V 18 A 6 6 0 0 1 110 12 H 192 A 6 6 0 0 1 198 18 V 46 Z" fill="#2b3554"/>
+  <text class="tab" x="118" y="35">spiel.ts</text>
+  <g xml:space="preserve">
+    <text x="26" y="88"><tspan class="no">1</tspan>  <tspan class="kw">let</tspan> punkte: <tspan class="ty">number</tspan> = <tspan class="num">0</tspan>;</text>
+    <text x="26" y="128"><tspan class="no">2</tspan>  katze.<tspan class="fn">gehe</tspan>(<tspan class="num">10</tspan>);</text>
+    <text x="26" y="168"><tspan class="no">3</tspan>  katze.<tspan class="fn">sage</tspan>(<tspan class="str">"Hallo!"</tspan>);<tspan class="caret ty">▏</tspan></text>
+  </g>
+</svg>

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220">
+  <!-- Drawn for the Digitalferien deck in Scratch costume style: the chip from chip.svg, labelled KI instead of the face (as in robot.svg). -->
+  <title>KI-Chip</title>
+  <!-- pins -->
+  <g fill="#dfe5f0" stroke="#7f8aa6" stroke-width="4" stroke-linejoin="round">
+    <rect x="62" y="8" width="14" height="40" rx="5"/>
+    <rect x="90" y="8" width="14" height="40" rx="5"/>
+    <rect x="118" y="8" width="14" height="40" rx="5"/>
+    <rect x="146" y="8" width="14" height="40" rx="5"/>
+    <rect x="62" y="172" width="14" height="40" rx="5"/>
+    <rect x="90" y="172" width="14" height="40" rx="5"/>
+    <rect x="118" y="172" width="14" height="40" rx="5"/>
+    <rect x="146" y="172" width="14" height="40" rx="5"/>
+    <rect x="8" y="62" width="40" height="14" rx="5"/>
+    <rect x="8" y="90" width="40" height="14" rx="5"/>
+    <rect x="8" y="118" width="40" height="14" rx="5"/>
+    <rect x="8" y="146" width="40" height="14" rx="5"/>
+    <rect x="172" y="62" width="40" height="14" rx="5"/>
+    <rect x="172" y="90" width="40" height="14" rx="5"/>
+    <rect x="172" y="118" width="40" height="14" rx="5"/>
+    <rect x="172" y="146" width="40" height="14" rx="5"/>
+  </g>
+  <!-- body -->
+  <rect x="34" y="34" width="152" height="152" rx="26" fill="#4d5b80" stroke="#2a3352" stroke-width="5"/>
+  <path d="M52 48 L 120 48" stroke="#6f7fa8" stroke-width="8" stroke-linecap="round"/>
+  <rect x="58" y="62" width="104" height="100" rx="16" fill="#6e80ad" stroke="#2a3352" stroke-width="4"/>
+  <!-- K and I as strokes, so the label doesn't depend on a font -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 80 88 V 138 M 108 88 L 82 113 L 108 138 M 136 88 V 138" stroke="#1b1340" stroke-width="19"/>
+    <path d="M 80 88 V 138 M 108 88 L 82 113 L 108 138 M 136 88 V 138" stroke="#fff" stroke-width="11"/>
+  </g>
+</svg>
