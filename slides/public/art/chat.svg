@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 180">
+  <!-- Drawn for the Digitalferien deck in Scratch costume style: two chat bubbles, a question and an answer. -->
+  <title>Zwei Sprechblasen</title>
+  <path d="M 30 10 H 140 A 22 22 0 0 1 162 32 V 76 A 22 22 0 0 1 140 98 H 54 L 24 120 L 30 96 A 22 22 0 0 1 8 76 V 32 A 22 22 0 0 1 30 10 Z"
+    fill="#fff" stroke="#575e75" stroke-width="5" stroke-linejoin="round"/>
+  <g stroke="#c4c8d6" stroke-width="10" stroke-linecap="round"><path d="M 34 42 H 132 M 34 68 H 100"/></g>
+  <path d="M 80 82 H 190 A 22 22 0 0 1 212 104 V 140 A 22 22 0 0 1 190 162 H 188 L 194 176 L 166 162 H 80 A 22 22 0 0 1 58 140 V 104 A 22 22 0 0 1 80 82 Z"
+    fill="#ff6680" stroke="#b8304f" stroke-width="5" stroke-linejoin="round"/>
+  <g stroke="#fff" stroke-width="10" stroke-linecap="round"><path d="M 84 112 H 186 M 84 136 H 150"/></g>
+</svg>

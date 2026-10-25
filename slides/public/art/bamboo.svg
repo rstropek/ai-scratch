@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 220">
+  <!-- Drawn for the Digitalferien deck in Scratch costume style: two bamboo stalks with leaves. -->
+  <title>Bambus</title>
+  <g stroke="#2f6e2a" stroke-width="5" stroke-linejoin="round">
+    <path d="M 108 40 C 130 20, 150 22, 156 26 C 146 44, 128 52, 108 50 Z" fill="#59c059"/>
+    <path d="M 52 96 C 26 84, 10 90, 4 96 C 18 110, 38 112, 52 106 Z" fill="#59c059"/>
+    <rect x="44" y="30" width="26" height="186" rx="10" fill="#8fd16a"/>
+    <rect x="88" y="10" width="26" height="206" rx="10" fill="#7cc35a"/>
+  </g>
+  <g stroke="#2f6e2a" stroke-width="5" stroke-linecap="round">
+    <path d="M 42 84 H 72 M 42 146 H 72 M 86 66 H 116 M 86 130 H 116 M 86 186 H 116"/>
+  </g>
+  <g stroke="#d4f2b8" stroke-width="5" stroke-linecap="round">
+    <path d="M 52 42 V 74 M 52 96 V 136 M 96 22 V 56 M 96 78 V 120"/>
+  </g>
+</svg>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 184">
+  <!-- Drawn for the Digitalferien deck in Scratch costume style: one heart of KI-Energie, in the app's heart red. -->
+  <title>Herz</title>
+  <path d="M 100 172 C 60 140, 8 108, 8 58 C 8 26, 32 8, 58 8 C 78 8, 92 20, 100 36 C 108 20, 122 8, 142 8 C 168 8, 192 26, 192 58 C 192 108, 140 140, 100 172 Z"
+    fill="#e6335f" stroke="#9e1f40" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M 36 56 C 36 40, 46 30, 60 28" fill="none" stroke="#ff9db2" stroke-width="12" stroke-linecap="round"/>
+</svg>

@@ -104,7 +104,7 @@
   box-decoration-break: clone;
 }
 
-/* a chat down the page (pages 10 and 11): you on the left ask, the others on the right answer,
+/* a chat down the page (pages 19 and 20): you on the left ask, the others on the right answer,
    one message per row, so the order reads top-down */
 .album-page .chat {
   display: grid;
@@ -181,4 +181,58 @@
 .album-page .slidev-vclick-hidden * {
   /* biome-ignore lint/complexity/noImportantStyles: must beat the components' scoped animation rules */
   animation: none !important;
+}
+
+/* an exercise's first page: heading and a few lines top left, the day's staircase (Stairs) bottom right */
+.album-page .exercise {
+  position: relative;
+  height: 100%;
+  padding: 72px 88px 64px;
+}
+.album-page .exercise .text {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+/* the lines keep clear of the staircase's first step */
+.album-page .exercise .text p {
+  max-width: 460px;
+}
+.album-page .exercise h1 {
+  margin-bottom: 14px;
+}
+.album-page .exercise .stairs {
+  position: absolute;
+  right: 88px;
+  bottom: 98px; /* room for the caption under the current step */
+}
+
+/* the "frage KI" reporter from the block palette, inline in a sentence; <i> is its empty input, <b> a variable */
+.album-page .ki-block {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px 4px 18px;
+  border: 3px solid #c22a76;
+  border-radius: 999px;
+  background: #ff4fa3;
+  color: #fff;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.album-page .ki-block i,
+.album-page .ki-block b {
+  display: inline-block;
+  min-width: 48px;
+  min-height: 1.1em;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #fff;
+  font-style: normal;
+}
+.album-page .ki-block b {
+  border: 2px solid #db6e00;
+  background: #ff8c1a;
+  color: #fff;
+  font-weight: 600;
 }

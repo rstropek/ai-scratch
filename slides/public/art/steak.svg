@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 150">
+  <!-- Drawn for the Digitalferien deck in Scratch costume style: cartoon meat on a bone, the lion's food. -->
+  <title>Fleisch</title>
+  <!-- bone ends -->
+  <g fill="#fff4e0" stroke="#8a6a4a" stroke-width="5">
+    <circle cx="24" cy="110" r="14"/>
+    <circle cx="38" cy="130" r="14"/>
+    <circle cx="186" cy="22" r="14"/>
+    <circle cx="202" cy="40" r="14"/>
+  </g>
+  <path d="M 36 116 L 190 32" stroke="#8a6a4a" stroke-width="26" stroke-linecap="round"/>
+  <path d="M 36 116 L 190 32" stroke="#fff4e0" stroke-width="16" stroke-linecap="round"/>
+  <!-- meat -->
+  <path d="M 58 78 C 52 40, 96 16, 136 22 C 172 28, 182 60, 168 86 C 154 112, 112 128, 82 120 C 64 114, 60 98, 58 78 Z"
+    fill="#d9534f" stroke="#8e2b28" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M 80 62 C 92 44, 116 36, 138 40" fill="none" stroke="#f08a80" stroke-width="10" stroke-linecap="round"/>
+  <path d="M 92 100 C 108 104, 132 96, 148 82" fill="none" stroke="#b03a36" stroke-width="7" stroke-linecap="round"/>
+</svg>

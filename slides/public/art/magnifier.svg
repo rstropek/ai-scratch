@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Drawn for the Digitalferien deck in Scratch costume style: a magnifying glass, the search tools. -->
+  <title>Lupe</title>
+  <path d="M 126 126 L 182 182" stroke="#2a3352" stroke-width="34" stroke-linecap="round"/>
+  <path d="M 126 126 L 182 182" stroke="#ffab19" stroke-width="22" stroke-linecap="round"/>
+  <circle cx="82" cy="82" r="66" fill="#d6ecff" fill-opacity="0.55" stroke="#2a3352" stroke-width="20"/>
+  <circle cx="82" cy="82" r="66" fill="none" stroke="#4d5b80" stroke-width="10"/>
+  <path d="M 44 70 C 48 54, 60 44, 76 40" fill="none" stroke="#fff" stroke-width="11" stroke-linecap="round"/>
+</svg>
