@@ -116,20 +116,22 @@ Hier erzähle ich über KI und LLMs: Gehirn und Computer-Chip.
 layout: page
 color: control
 ink: dark
+clicks: 2
 ---
 
 <div class="sizes">
   <h1>Kleine KI, riesige KI</h1>
+  <!-- each side is mounted on its click, so its stickers press on then -->
   <div class="side small">
-    <SpeechBubble long :delay="300">Ich bin klein und laufe sogar auf normalen Computern. Aber ich kann nicht alles.</SpeechBubble>
-    <Slot :size="160"><Sticker src="/art/chip.svg" alt="Ein Computer-Chip" :width="118" :rotate="-5" /></Slot>
+    <SpeechBubble v-if="$clicks >= 1" long :delay="300">Ich bin klein und laufe sogar auf normalen Computern. Aber ich kann nicht alles.</SpeechBubble>
+    <Slot v-if="$clicks >= 1" :size="160"><Sticker src="/art/chip.svg" alt="Ein Computer-Chip" :width="118" :rotate="-5" /></Slot>
   </div>
   <div class="side big">
-    <SpeechBubble long :delay="1300">Ich bin riesig und superschlau. Aber ich brauche viiiiiel Computer-Power!</SpeechBubble>
-    <div class="muscle"><Sticker src="/art/muscle.svg" alt="Muskel" :width="130" :rotate="10" :delay="1600" /></div>
-    <Slot :width="540" :height="214">
+    <SpeechBubble v-if="$clicks >= 2" long :delay="900">Ich bin riesig und superschlau. Aber ich brauche viiiiiel Computer-Power!</SpeechBubble>
+    <div v-if="$clicks >= 2" class="muscle"><Sticker src="/art/muscle.svg" alt="Muskel" :width="130" :rotate="10" :delay="1200" /></div>
+    <Slot v-if="$clicks >= 2" :width="540" :height="214">
       <div class="farm">
-        <Sticker v-for="i in 24" :key="i" src="/art/chip.svg" alt="" :width="50" :rotate="((i * 7) % 11) - 5" :delay="300 + i * 35" />
+        <Sticker v-for="i in 24" :key="i" src="/art/chip.svg" alt="" :width="50" :rotate="((i * 7) % 11) - 5" :delay="100 + i * 30" />
       </div>
     </Slot>
   </div>
@@ -152,8 +154,8 @@ ink: dark
 </style>
 
 <!--
-Sprachmodelle gibt es in vielen Größen. Kleine laufen sogar auf einem Laptop oder Handy, können aber weniger.
-Riesige sind viel schlauer, brauchen aber ein ganzes Rechenzentrum voller Chips.
+Sprachmodelle gibt es in vielen Größen. [click] Kleine laufen sogar auf einem Laptop oder Handy, können aber weniger.
+[click] Riesige sind viel schlauer, brauchen aber ein ganzes Rechenzentrum voller Chips.
 -->
 
 ---
@@ -164,9 +166,9 @@ ink: dark
 
 <div class="haiku">
   <div class="card">
-    <p><span>Scratch-Katze hüpft los,</span><span class="count print">5</span></p>
-    <p><span>ein Agent schreibt ihren Code.</span><span class="count print">7</span></p>
-    <p><span>Ups, die Maus gewinnt!</span><span class="count print">5</span></p>
+    <p>Scratch-Katze hüpft los,</p>
+    <p>ein Agent schreibt ihren Code.</p>
+    <p>Ups, die Maus gewinnt!</p>
     <div class="stamp-at"><Stamp>Haiku 5-7-5</Stamp></div>
   </div>
   <div class="cat"><Sticker src="/scratch/cat-b.svg" alt="Scratch-Katze" :width="200" :rotate="-10" :delay="150" /></div>
@@ -188,15 +190,11 @@ ink: dark
   transform: rotate(-1.5deg);
 }
 .haiku .card p {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: baseline;
   font-family: var(--font-display);
   font-size: 62px; /* the poem: one line per verse */
   line-height: 1.15;
   white-space: nowrap;
 }
-.haiku .count { color: #8a4fa8; font-family: var(--font-display); font-size: var(--size-text); }
 .haiku .stamp-at { position: absolute; right: 120px; bottom: -34px; }
 .haiku .cat { position: absolute; left: 96px; bottom: 30px; }
 .haiku .mouse { position: absolute; left: 600px; bottom: 52px; }
@@ -286,7 +284,7 @@ color: looks
 
 <div class="tools">
   <Sticker src="/art/robot.svg" alt="Ein Roboter mit dem KI-Chip im Kopf und Greifern als Händen" :width="520" :rotate="-3" />
-  <h1>KI-Agenten interagieren mit der Umwelt über <span class="hl">Tools</span></h1>
+  <h1 v-click>KI-Agenten interagieren mit der Umwelt über <span class="hl">Tools</span></h1>
 </div>
 
 <style>
@@ -302,7 +300,7 @@ color: looks
 </style>
 
 <!--
-Ein Chatbot kann nur reden. Ein KI-Agent bekommt Tools, also Werkzeuge, wie die Greifer dieses Roboters, und kann damit selbst etwas tun.
+Ein Chatbot kann nur reden. [click] Ein KI-Agent bekommt Tools, also Werkzeuge, wie die Greifer dieses Roboters, und kann damit selbst etwas tun.
 Bei uns sind die Tools für Scratch: Skripte lesen und bauen, Figuren und Hintergründe hinzufügen, neue Figuren zeichnen und im Editor zeigen, wo etwas ist.
 -->
 
@@ -349,6 +347,66 @@ ink: dark
 Für eine KI, die programmiert, ist das wichtigste Tool der Editor: bei uns Scratch, bei Profis ein Code-Editor.
 Oben und unten steht dasselbe Programm, einmal als Blöcke, einmal als TypeScript.
 KI kann auf vielen Stufen helfen: etwas erklären, einen Fehler finden, ein Skript bauen, ein ganzes Projekt.
+-->
+
+---
+layout: page
+color: control
+ink: dark
+---
+
+<div class="ideas">
+  <h1>Ihr bringt die Ideen mit</h1>
+  <div class="row">
+    <Slot :size="240" label="Die Idee" plate><Sticker src="/art/lightbulb.svg" alt="Glühbirne" :width="170" :rotate="-6" /></Slot>
+    <Slot :size="240" label="Der Look" plate><Sticker src="/art/palette.svg" alt="Malpalette" :width="196" :rotate="5" :delay="150" /></Slot>
+    <Slot :size="240" label="Die Spielregeln" plate><Sticker src="/art/dice.svg" alt="Würfel" :width="184" :rotate="-4" :delay="300" /></Slot>
+  </div>
+  <div class="ki">
+    <Sticker src="/art/chip-ki.svg" alt="KI-Chip" :width="96" :rotate="6" :delay="450" />
+    <p>Die KI nimmt euch viel Technik und Tipparbeit ab. <strong>So wird Programmieren kreativer.</strong></p>
+  </div>
+</div>
+
+<style>
+.ideas {
+  display: flex;
+  flex-direction: column;
+  gap: 44px;
+  height: 100%;
+  padding: 64px 88px 56px;
+}
+.ideas .row { display: flex; justify-content: space-between; padding: 0 40px; }
+.ideas .ki { display: flex; align-items: center; gap: 32px; margin-top: 12px; max-width: 960px; }
+</style>
+
+<!--
+Ihr entscheidet, was gebaut wird (die Idee), wie es aussehen soll (der Look) und wie das Spiel funktioniert (die Spielregeln).
+Die KI übernimmt viel von der technischen Kleinarbeit. Dadurch wird Programmieren weniger mühsam und viel kreativer.
+-->
+
+---
+layout: page
+color: events
+ink: dark
+---
+
+<div class="go">
+  <div class="cat"><Sticker src="/scratch/cat-b.svg" alt="Scratch-Katze" :width="340" :rotate="-6" /></div>
+  <div class="flag"><Sticker src="/art/green-flag.svg" alt="Die grüne Flagge" :width="330" :rotate="6" :delay="150" /></div>
+  <SpeechBubble class="says" :delay="600">Los gehts!</SpeechBubble>
+</div>
+
+<style>
+.go { position: relative; height: 100%; }
+.go .cat { position: absolute; left: 110px; bottom: 64px; }
+.go .flag { position: absolute; right: 120px; top: 120px; }
+.go .says { position: absolute; left: 270px; top: 100px; }
+</style>
+
+<!--
+Startschuss: Wie in Scratch startet die grüne Flagge das Programm, heute startet sie unseren Tag.
+Bildnachweis: Scratch-Katze aus der Scratch-Bibliothek (Scratch Foundation, CC BY-SA 2.0).
 -->
 
 ---
@@ -473,64 +531,4 @@ clicks: 1
 Darum schickt die App bei jeder Frage das ganze Gespräch noch einmal mit, gelb ist das, was die KI schon einmal gehört hat. Weiß ist die neue Frage.
 Das Gespräch wird immer länger. Aber die KI kann nur so viel auf einmal lesen, wie in ihr Kontextfenster passt. [click] Irgendwann ist es voll.
 In unserer App seht ihr das oben im Chat als „Gedächtnis“. Ist es voll, könnt ihr „Zusammenfassen“ (die KI schreibt das Wichtigste kurz auf) oder „Neu anfangen“.
--->
-
----
-layout: page
-color: control
-ink: dark
----
-
-<div class="ideas">
-  <h1>Ihr bringt die Ideen mit</h1>
-  <div class="row">
-    <Slot :size="240" label="Die Idee" plate><Sticker src="/art/lightbulb.svg" alt="Glühbirne" :width="170" :rotate="-6" /></Slot>
-    <Slot :size="240" label="Der Look" plate><Sticker src="/art/palette.svg" alt="Malpalette" :width="196" :rotate="5" :delay="150" /></Slot>
-    <Slot :size="240" label="Die Spielregeln" plate><Sticker src="/art/dice.svg" alt="Würfel" :width="184" :rotate="-4" :delay="300" /></Slot>
-  </div>
-  <div class="ki">
-    <Sticker src="/art/chip-ki.svg" alt="KI-Chip" :width="96" :rotate="6" :delay="450" />
-    <p>Die KI nimmt euch viel Technik und Tipparbeit ab. <strong>So wird Programmieren kreativer.</strong></p>
-  </div>
-</div>
-
-<style>
-.ideas {
-  display: flex;
-  flex-direction: column;
-  gap: 44px;
-  height: 100%;
-  padding: 64px 88px 56px;
-}
-.ideas .row { display: flex; justify-content: space-between; padding: 0 40px; }
-.ideas .ki { display: flex; align-items: center; gap: 32px; margin-top: 12px; max-width: 960px; }
-</style>
-
-<!--
-Ihr entscheidet, was gebaut wird (die Idee), wie es aussehen soll (der Look) und wie das Spiel funktioniert (die Spielregeln).
-Die KI übernimmt viel von der technischen Kleinarbeit. Dadurch wird Programmieren weniger mühsam und viel kreativer.
--->
-
----
-layout: page
-color: events
-ink: dark
----
-
-<div class="go">
-  <div class="cat"><Sticker src="/scratch/cat-b.svg" alt="Scratch-Katze" :width="340" :rotate="-6" /></div>
-  <div class="flag"><Sticker src="/art/green-flag.svg" alt="Die grüne Flagge" :width="330" :rotate="6" :delay="150" /></div>
-  <SpeechBubble class="says" :delay="600">Los gehts!</SpeechBubble>
-</div>
-
-<style>
-.go { position: relative; height: 100%; }
-.go .cat { position: absolute; left: 110px; bottom: 64px; }
-.go .flag { position: absolute; right: 120px; top: 120px; }
-.go .says { position: absolute; left: 270px; top: 100px; }
-</style>
-
-<!--
-Startschuss: Wie in Scratch startet die grüne Flagge das Programm, heute startet sie unseren Tag.
-Bildnachweis: Scratch-Katze aus der Scratch-Bibliothek (Scratch Foundation, CC BY-SA 2.0).
 -->
