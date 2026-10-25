@@ -101,20 +101,20 @@ Pages are sparse: one heading, at most a few short lines, one to three stickers.
 - Lilita One for display, Lexend for text; three sizes.
 - One entry gesture: the sticker "sticks" when the page opens.
 
-**Where the build differs from the direction contract:** not every sticker sits in a slot. Topic stickers do (pages 2, 3, 5, 6); scene stickers stay loose on the page (the cover cat, the Haiku cat and mouse). Name plates appear only on page 3; page 2 uses print captions. Slot numerals are set at text size, not print.
+**Where the build differs from the direction contract:** not every sticker sits in a slot. Topic stickers do (pages 2, 3, 4, 7); scene stickers stay loose on the page (the cover cat, the Haiku cat and mouse, the muscle arm on page 4, the chatting cat and chip on page 6, the robot on page 8). Page 4 breaks the one-to-three-stickers rule on purpose: 24 small chips fill one slot, so the size of the big model shows as a count. Name plates appear only on page 3; page 2 uses print captions. Page 8 is one big sticker beside a display-size sentence: the robot (`public/art/robot.svg`) carries the deck's chip in its head, labelled KI, and wires run from it to two yellow grippers, the tools; a pulse flows along the wires (a CSS animation inside the SVG, off under reduced motion). The key word takes the grippers' yellow. Slot numerals are set at text size, not print.
 
 ## Colors
 
 The grounds are Scratch 3's own block-category colours, so the deck sits in the world the kids see in the editor all day.
 
 ### Primary (page grounds, one per page)
-- **Looks Purple** (`looks`): the cover and default ground; also the editor's menu bar. White ink.
+- **Looks Purple** (`looks`): the cover, page 8 (agents use tools) and the default ground; also the editor's menu bar. White ink.
 - **Motion Blue** (`motion`): page 2, how the day works. Dark ink.
 - **Events Yellow** (`events`): page 3, "Was ist KI?". Dark ink.
-- **Sound Magenta** (`sound`): page 4, the Haiku. Dark ink.
-- **Operators Green** (`operators`): page 5, Chatbot. Dark ink.
-- **My-Blocks Pink** (`myblocks`): page 6, KI-Agent. Dark ink.
-- **Control Orange** (`control`): defined and accepted by the layout, not yet used on a page.
+- **Control Orange** (`control`): page 4, small and huge AI models. Dark ink.
+- **Sound Magenta** (`sound`): page 5, the Haiku. Dark ink.
+- **Operators Green** (`operators`): page 6, Chatbot. Dark ink.
+- **My-Blocks Pink** (`myblocks`): page 7, KI-Agent. Dark ink.
 
 ### Neutral
 - **Album Ink** (`ink`): deep navy-purple close to Scratch's outline navy. Text on every light ground (`ink: dark`), the page badge on dark-ink pages, the Haiku card text.
@@ -138,7 +138,7 @@ The grounds are Scratch 3's own block-category colours, so the deck sits in the 
 **Character:** a chunky, rounded sticker-lettering display face against a calm, very legible text face built for reading support. Both loaded locally via Fontsource.
 
 ### Hierarchy
-- **Display** (400, 76px, 1.02, balanced wrap): one heading per page, the speech bubble's words.
+- **Display** (400, 76px, 1.02, balanced wrap): one heading per page, the speech bubble's words (short ones).
 - **Text** (400, 34px, 1.35; strong is 700): the few lines a page carries, name plates under slots (700), slot numerals and stamp text (in the display face).
 - **Print** (500, 20px): album chrome only: page-badge number, slot captions (600), counts, the missing-video note. The cover's Scratch credit is the one smaller line (16px, 400).
 
@@ -193,7 +193,7 @@ The empty place for a sticker: 4px dashed outline in 55% ink, radius 22px, fill 
 A looping, muted 16:9 video in a 14px white frame with radius 26px (video radius 14px), slight tilt. Plays only while its page is open and restarts on entry; a print-size fallback note if the file is missing.
 
 ### Speech bubble
-Scratch's stage "sagen" bubble: white, 4px edge in bubble grey, radius 34px, tail at the lower left, words in the display face at display size in Scratch's text grey.
+Scratch's stage "sagen" bubble: white, 4px edge in bubble grey, radius 34px, tail at the lower left, words in the display face at display size in Scratch's text grey. `long` is for a whole sentence: Lexend 600 at text size, wrapping, radius 28px (page 4). `tail="left"`/`"right"` makes a chat bubble: a short side tail at the lower corner pointing at the speaker, and tighter padding (14px 26px 16px), so a whole conversation fits on one page (page 6: the cat's bubbles left, the chip's right, popping in one after another about 900ms apart; each speaker sits beside their first bubble).
 
 ### Stamp
 A rubber stamp on a white paper label: display face at text size in stamp red, 5px border plus a 2px outline 4px outside it, radius 14px, rotated -12deg, an 8px white margin and a soft ink-tinted shadow so it reads over any ground. Used once (Haiku).

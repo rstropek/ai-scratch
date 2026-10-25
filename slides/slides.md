@@ -113,6 +113,50 @@ Hier erzähle ich über KI und LLMs: Gehirn und Computer-Chip.
 
 ---
 layout: page
+color: control
+ink: dark
+---
+
+<div class="sizes">
+  <h1>Kleine KI, riesige KI</h1>
+  <div class="side small">
+    <SpeechBubble long :delay="300">Ich bin klein und laufe sogar auf normalen Computern. Aber ich kann nicht alles.</SpeechBubble>
+    <Slot :size="160"><Sticker src="/art/chip.svg" alt="Ein Computer-Chip" :width="118" :rotate="-5" /></Slot>
+  </div>
+  <div class="side big">
+    <SpeechBubble long :delay="1300">Ich bin riesig und superschlau. Aber ich brauche viiiiiel Computer-Power!</SpeechBubble>
+    <div class="muscle"><Sticker src="/art/muscle.svg" alt="Muskel" :width="130" :rotate="10" :delay="1600" /></div>
+    <Slot :width="540" :height="214">
+      <div class="farm">
+        <Sticker v-for="i in 24" :key="i" src="/art/chip.svg" alt="" :width="50" :rotate="((i * 7) % 11) - 5" :delay="300 + i * 35" />
+      </div>
+    </Slot>
+  </div>
+</div>
+
+<style>
+.sizes {
+  display: grid;
+  grid-template-columns: 1fr 560px;
+  grid-template-rows: auto 1fr;
+  column-gap: 64px;
+  height: 100%;
+  padding: 64px 88px 64px;
+}
+.sizes h1 { grid-column: 1 / 3; }
+.sizes .side { position: relative; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; gap: 52px; }
+.sizes .big .bubble { margin-right: 90px; }
+.sizes .muscle { position: absolute; right: -20px; bottom: 200px; }
+.sizes .farm { display: grid; grid-template-columns: repeat(8, 50px); gap: 12px 14px; }
+</style>
+
+<!--
+Sprachmodelle gibt es in vielen Größen. Kleine laufen sogar auf einem Laptop oder Handy, können aber weniger.
+Riesige sind viel schlauer, brauchen aber ein ganzes Rechenzentrum voller Chips.
+-->
+
+---
+layout: page
 color: sound
 ink: dark
 ---
@@ -170,22 +214,45 @@ ink: dark
 
 <div class="bot">
   <h1>Was ist eigentlich ein Chatbot?</h1>
-  <div class="scene">
-    <div class="say"><SpeechBubble :delay="450">Hallo Welt!</SpeechBubble></div>
-    <Slot :size="340"><Sticker src="/art/chip.svg" alt="Computer-Chip" :width="270" :rotate="-4" /></Slot>
-  </div>
+  <SpeechBubble class="cat-says r1" long tail="left" :delay="500">Was ist die Hauptstadt von Frankreich?</SpeechBubble>
+  <SpeechBubble class="ai-says r2" long tail="right" :delay="1400">Paris</SpeechBubble>
+  <SpeechBubble class="cat-says r3" long tail="left" :delay="2300">Und von Deutschland?</SpeechBubble>
+  <SpeechBubble class="ai-says r4" long tail="right" :delay="3200">Berlin. Warst du schon einmal dort?</SpeechBubble>
+  <SpeechBubble class="cat-says r5 narrow" long tail="left" :delay="4300">Nein, ist es schön dort zu dieser Jahreszeit?</SpeechBubble>
+  <div class="cat"><Sticker src="/scratch/cat.svg" alt="Scratch-Katze" :width="150" :rotate="-4" /></div>
+  <div class="chip"><Sticker src="/art/chip.svg" alt="Computer-Chip" :width="130" :rotate="5" :delay="150" /></div>
 </div>
 
 <style>
 .bot {
   display: grid;
-  grid-template-columns: 440px 1fr;
+  grid-template-columns: 150px 1fr 130px;
+  grid-template-rows: auto 1fr repeat(5, auto);
+  gap: 12px 32px;
   height: 100%;
-  padding: 72px 88px 64px;
+  padding: 56px 88px 40px;
 }
-.bot .scene { position: relative; display: flex; align-items: flex-end; justify-content: flex-start; padding: 0 0 20px 40px; }
-.bot .say { position: absolute; top: 4px; left: 250px; }
+.bot h1 { grid-column: 1 / 4; }
+.bot .cat-says { grid-column: 2; justify-self: start; }
+.bot .ai-says { grid-column: 2; justify-self: end; }
+.bot .r1 { grid-row: 3; }
+.bot .r2 { grid-row: 4; }
+.bot .r3 { grid-row: 5; }
+.bot .r4 { grid-row: 6; }
+.bot .r5 { grid-row: 7; }
+.bot .narrow { max-width: 500px; } /* a wrapped bubble keeps the full width, so it gets the width of its longer line */
+/* each speaker sits beside their first bubble; zero height so the sticker doesn't stretch the row */
+.bot .cat,
+.bot .chip { height: 0; display: flex; align-items: center; justify-content: center; align-self: center; }
+.bot .cat { grid-row: 3; grid-column: 1; margin-top: 28px; } /* clear of the heading */
+.bot .chip { grid-row: 4; grid-column: 3; }
 </style>
+
+<!--
+Ein Chatbot ist vor allem zum Plaudern da: Wir schreiben etwas, die KI antwortet, und daraus wird ein Gespräch.
+Sie kann dabei nur reden. Als Nächstes: Ein KI-Agent bekommt Werkzeuge und kann damit etwas in der Welt tun, bei uns in Scratch.
+Bildnachweis: Scratch-Katze aus der Scratch-Bibliothek (Scratch Foundation, CC BY-SA 2.0).
+-->
 
 ---
 layout: page
@@ -210,3 +277,30 @@ ink: dark
 }
 .agent h1 { align-self: start; }
 </style>
+
+---
+layout: page
+color: looks
+---
+
+<div class="tools">
+  <Sticker src="/art/robot.svg" alt="Ein Roboter mit dem KI-Chip im Kopf und Greifern als Händen" :width="520" :rotate="-3" />
+  <h1>KI-Agenten interagieren mit der Umwelt über <span class="hl">Tools</span></h1>
+</div>
+
+<style>
+.tools {
+  display: grid;
+  grid-template-columns: 520px 1fr;
+  align-items: center;
+  column-gap: 56px;
+  height: 100%;
+  padding: 64px 88px 64px 72px;
+}
+.tools .hl { color: #ffd84d; } /* the grippers' yellow */
+</style>
+
+<!--
+Ein Chatbot kann nur reden. Ein KI-Agent bekommt Tools, also Werkzeuge, wie die Greifer dieses Roboters, und kann damit selbst etwas tun.
+Bei uns sind die Tools für Scratch: Skripte lesen und bauen, Figuren und Hintergründe hinzufügen, neue Figuren zeichnen und im Editor zeigen, wo etwas ist.
+-->
