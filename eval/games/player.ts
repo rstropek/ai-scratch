@@ -16,6 +16,10 @@ export interface TargetState {
   costume: string;
   /** asset id of the current costume: equal images have equal ids */
   look: string;
+  /** the text of its speech or thought bubble, '' without one */
+  saying: string;
+  /** the ghost effect, 0..100: at 100 it is invisible although „visible“ */
+  ghost: number;
   /** stage coordinates of the drawn image */
   bounds: { left: number; right: number; top: number; bottom: number } | null;
   /** reacts to clicks: a "Wenn diese Figur angeklickt wird" script, or polling for a mouse click on itself
@@ -30,6 +34,8 @@ export interface StageState {
   /** global and sprite-local variables by name (numbers stay strings when Scratch stores them so) */
   variables: Record<string, string | number>;
   lists: Record<string, (string | number)[]>;
+  /** the variable monitors shown on the stage, with what they show */
+  monitors: { name: string; value: string }[];
   threads: number;
 }
 
@@ -145,9 +151,20 @@ const installPlayer = () => {
       visible: t.visible,
       costume: costume?.name ?? '',
       look: costume?.assetId ?? '',
+      saying: String(t.getCustomState('Scratch.looks')?.text ?? ''),
+      ghost: Number(t.effects?.ghost ?? 0),
       bounds,
       clickable: clickable(t),
     };
+  };
+  const shownMonitors = () => {
+    const shown: { name: string; value: string }[] = [];
+    // biome-ignore lint/suspicious/noExplicitAny: an immutable OrderedMap of MonitorRecords
+    runtime._monitorState.forEach((m: any) => {
+      if (m.get('visible') && m.get('opcode') === 'data_variable')
+        shown.push({ name: String(m.get('params')?.VARIABLE ?? ''), value: String(m.get('value') ?? '') });
+    });
+    return shown;
   };
   const state = () => {
     // biome-ignore lint/suspicious/noExplicitAny: VM targets
@@ -167,6 +184,7 @@ const installPlayer = () => {
       backdrop: stage.getCostumes()[stage.currentCostume]?.name ?? '',
       variables,
       lists,
+      monitors: shownMonitors(),
       threads: runtime.threads.length,
     };
   };
@@ -312,6 +330,23 @@ const installPlayer = () => {
       vm.postIOData('mouse', { ...toClient(x, y), isDown: false });
       step();
     },
+    /** a stage point where this target is drawn on top (where a kid would click it), centre first */
+    spot(id: string): { x: number; y: number } | undefined {
+      // biome-ignore lint/suspicious/noExplicitAny: VM target
+      const t = (runtime.targets as any[]).find((x) => x.id === id);
+      if (!t?.visible) return undefined;
+      const b = runtime.renderer.getBounds(t.drawableID);
+      const points: { x: number; y: number }[] = [];
+      for (let i = 0; i <= 8; i++)
+        for (let j = 0; j <= 8; j++)
+          points.push({ x: b.left + ((b.right - b.left) * i) / 8, y: b.bottom + ((b.top - b.bottom) * j) / 8 });
+      const mid = { x: (b.left + b.right) / 2, y: (b.top + b.bottom) / 2 };
+      points.sort((p, q) => Math.hypot(p.x - mid.x, p.y - mid.y) - Math.hypot(q.x - mid.x, q.y - mid.y));
+      return points.find((p) => {
+        const c = toClient(p.x, p.y);
+        return runtime.renderer.pick(c.x, c.y) === t.drawableID;
+      });
+    },
     pressKeys: (keys: string[]) => hold(keys),
     state,
     events: () => JSON.parse(JSON.stringify(events)),
@@ -355,6 +390,8 @@ export class Player {
     this.editor.evaluate(([n, p, s]) => window.__player.frames(n, p, s), [n, policy, sample] as const);
   seconds = (s: number, policy?: Policy, sample = 0) => this.frames(Math.round(s * 30), policy, sample);
   click = (x: number, y: number) => this.editor.evaluate(([x, y]) => window.__player.click(x, y), [x, y] as const);
+  spot = (id: string): Promise<{ x: number; y: number } | undefined> =>
+    this.editor.evaluate((i) => window.__player.spot(i), id);
   pressKeys = (keys: string[]) => this.editor.evaluate((k) => window.__player.pressKeys(k), keys);
   state = (): Promise<StageState> => this.editor.evaluate(() => window.__player.state());
   events = (): Promise<PlayEvents> => this.editor.evaluate(() => window.__player.events());

@@ -22,8 +22,18 @@ import type { Config } from './config.ts';
 import { FIXED_ANSWERS, screen } from './guard.ts';
 import type { Hearts } from './hearts.ts';
 import { buildModelInput, turnNumber } from './model-input.ts';
-import { capAnswerText, MAX_STEPS_PER_TURN, STEP_LIMIT_ANSWER, stepsInTurn } from './output-guard.ts';
+import {
+  capAnswerText,
+  closeCutToolCalls,
+  MAX_STEPS_PER_TURN,
+  noteThinkingCut,
+  RETRY_EFFORT,
+  retryThinkingCut,
+  STEP_LIMIT_ANSWER,
+  stepsInTurn,
+} from './output-guard.ts';
 import { recordCall, recordGuard, type Stats } from './stats.ts';
+import { repairToolInput, toolErrorText } from './tool-input.ts';
 import { type CallContext, createLoggingFetch, type LogSink } from './wire-log.ts';
 
 const INSTRUCTIONS = buildInstructions();
@@ -161,41 +171,55 @@ export const createChatHandler =
       headers: config.anthropicWorkspaceId ? { 'anthropic-workspace-id': config.anthropicWorkspaceId } : {},
       fetch: createLoggingFetch(sink, ctx, (_record, usage, ok) => recordCall(stats, usage, ok), baseFetch),
     });
-    const result = streamText({
-      model: anthropic(config.model),
-      instructions: {
-        role: 'system',
-        content: config.instructions ?? INSTRUCTIONS,
-        providerOptions: CACHE,
-      },
-      messages: await modelMessages(messages),
-      tools: TOOLS,
-      maxOutputTokens: MAX_OUTPUT_TOKENS,
-      abortSignal: abort.signal,
-      providerOptions: {
-        anthropic: {
-          thinking: { type: 'adaptive' },
-          effort: config.effort,
-          cacheControl: { type: 'ephemeral' }, // top-level: automatic breakpoint at the end of the conversation
+    const input = await modelMessages(messages);
+    /** One model call as a UI message stream. */
+    const answer = (effort: Config['effort']) =>
+      closeCutToolCalls(
+        toUIMessageStream<typeof TOOLS, ChatMessage>({
+          stream: streamText({
+            model: anthropic(config.model),
+            instructions: {
+              role: 'system',
+              content: config.instructions ?? INSTRUCTIONS,
+              providerOptions: CACHE,
+            },
+            messages: input,
+            tools: TOOLS,
+            repairToolCall: repairToolInput,
+            maxOutputTokens: MAX_OUTPUT_TOKENS,
+            abortSignal: abort.signal,
+            providerOptions: {
+              anthropic: {
+                thinking: { type: 'adaptive' },
+                effort,
+                cacheControl: { type: 'ephemeral' }, // top-level: automatic breakpoint at the end of the conversation
+              },
+            },
+            onError: ({ error }) => console.error('streamText error', error),
+          }).stream,
+          originalMessages: messages,
+          // one model call per request: its input is the whole context; the first call of a turn fills the gauge
+          messageMetadata: ({ part }) =>
+            part.type === 'finish'
+              ? { usage: part.totalUsage, ...(newTurn ? { context: part.totalUsage.inputTokens } : {}) }
+              : undefined,
+          onError: toolErrorText,
+        }),
+        () => {
+          stats.outputCaps.toolCuts += 1;
         },
-      },
-      onError: ({ error }) => console.error('streamText error', error),
-    });
-    const stream = toUIMessageStream<typeof TOOLS, ChatMessage>({
-      stream: result.stream,
-      originalMessages: messages,
-      // one model call per request: its input is the whole context; the first call of a turn fills the gauge
-      messageMetadata: ({ part }) =>
-        part.type === 'finish'
-          ? { usage: part.totalUsage, ...(newTurn ? { context: part.totalUsage.inputTokens } : {}) }
-          : undefined,
-      onError: (e) => (e instanceof Error ? e.message : String(e)),
-    });
+      );
+    const thinkingCut = () => {
+      stats.outputCaps.thinkingCuts += 1;
+    };
     return createUIMessageStreamResponse({
       keepAliveMs: KEEP_ALIVE_MS,
-      stream: capAnswerText(stream, () => {
-        stats.outputCaps.textCuts += 1;
-        abort.abort();
-      }),
+      stream: capAnswerText(
+        retryThinkingCut(answer(config.effort), () => noteThinkingCut(answer(RETRY_EFFORT), thinkingCut), thinkingCut),
+        () => {
+          stats.outputCaps.textCuts += 1;
+          abort.abort();
+        },
+      ),
     });
   };

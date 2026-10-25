@@ -15,6 +15,7 @@ export const toolDefinitions: ToolDefinition[] = [
 /** Tools that change the project: an answer that ran one of them can be undone in the chat. */
 export const PROJECT_CHANGING_TOOLS = new Set([
   'add_scripts',
+  'remove_scripts',
   'clear_scripts',
   'add_library_sprite',
   'add_library_backdrop',

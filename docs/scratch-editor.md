@@ -56,6 +56,9 @@ GUI elements have CSS-module classes like `green-flag_green-flag_1kiAo`: match t
   several `add_scripts` in one step the next one has already switched the sprite, so the VM dropped the moves
   and scripts piled up at the top. It needs the code tab open (a hidden workspace has no block sizes), so **every `add_scripts`
   switches the kid's view** to that sprite's Code tab. Keep that in mind for a "show, don't do" mode.
+- **scratch-vm switches a target to every costume it adds.** For a sprite that changes its starting look
+  and that of all its clones (a new „Bombe“ costume turned every Minesweeper cell into a bomb), so
+  `draw_costume` and `add_library_costume` switch a sprite back; a new backdrop stays shown.
 - **Sprite thumbnails:** the GUI throttles thumbnail renders and drops an update that follows another
   within about 500 ms, so a drawn sprite keeps the "?" placeholder. `draw_sprite` repeats the update later.
   Only the real browser showed this ([e2e/pictures.spec.ts](../e2e/pictures.spec.ts)).

@@ -1,3 +1,4 @@
+import { parseJsonEventStream, readUIMessageStream, uiMessageChunkSchema } from 'ai';
 import { describe, expect, test } from 'vitest';
 import { anthropicMessage, anthropicSse, sseResponse } from '../../test/support/anthropic-sse.ts';
 import type { ChatMessage } from '../shared/chat-types.ts';
@@ -5,7 +6,7 @@ import { CONTEXT_LIMIT } from '../shared/energy.ts';
 import { createApp } from './app.ts';
 import type { Config } from './config.ts';
 import { JEV_URL, type Nouls, QUESTIONS } from './guard.ts';
-import { MAX_STEPS_PER_TURN } from './output-guard.ts';
+import { CUT_TOOL_CALL_ERROR, MAX_STEPS_PER_TURN, THOUGHT_TOO_LONG } from './output-guard.ts';
 import type { CallRecord, GuardRecord, LogSink } from './wire-log.ts';
 
 const config: Config = {
@@ -34,7 +35,9 @@ const jevAnswer = (nouls: Nouls = {}) =>
     usage: { input_tokens: 500, output_tokens: 10 },
   });
 
-const setup = (reply: string, nouls?: Nouls) => {
+/** `reply`: the fake Anthropic answer, or one per call (the last one repeats). */
+const setup = (reply: string | string[], nouls?: Nouls) => {
+  const replies = [reply].flat();
   const records: CallRecord[] = [];
   const guardRecords: GuardRecord[] = [];
   const sink: LogSink = {
@@ -51,9 +54,10 @@ const setup = (reply: string, nouls?: Nouls) => {
     }
     const body = JSON.parse(String(init?.body));
     requests.push({ url: String(url), headers: new Headers(init?.headers), body });
+    const next = replies.length > 1 ? (replies.shift() as string) : (replies[0] as string);
     // generateText (compact) asks for a plain JSON message
-    if (!body.stream) return Response.json(anthropicMessage(reply));
-    return sseResponse(reply);
+    if (!body.stream) return Response.json(anthropicMessage(next));
+    return sseResponse(next);
   };
   return { app: createApp({ config, sink, fetch: fakeFetch }), records, guardRecords, requests, jevRequests };
 };
@@ -251,6 +255,103 @@ describe('output guard', () => {
     await res.body?.getReader().read(); // the answer has started
     kid.abort();
     await expect.poll(() => upstream?.aborted).toBe(true);
+  });
+
+  test('a tool call cut short by max_tokens becomes a tool error the model reads next', async () => {
+    const input = { sprite: 'Katze', scripts: [[{ op: 'event_whenflagclicked' }]] };
+    const { app, requests } = setup(
+      anthropicSse({ toolCall: { id: 'toolu_1', name: 'add_scripts', input }, cutOff: true }),
+    );
+    const stream = await (await post(app, chatBody)).text();
+    // without it the chat waits forever for a tool input that never completes
+    expect(stream).toMatch(/"type":"tool-input-error","toolCallId":"toolu_1".*"type":"finish-step"/s);
+    expect(await stats(app)).toMatchObject({ outputCaps: { toolCuts: 1 } });
+
+    const cut = {
+      type: 'tool-add_scripts',
+      toolCallId: 'toolu_1',
+      state: 'output-error',
+      input: {},
+      errorText: CUT_TOOL_CALL_ERROR,
+    };
+    const next = await post(app, {
+      messages: [userMessage('Bau es'), { id: 'a1', role: 'assistant', parts: [{ type: 'step-start' }, cut] }],
+    });
+    await next.text();
+    const sent = JSON.stringify(requests.at(-1)?.body.messages);
+    expect(sent).toContain('"type":"tool_result","tool_use_id":"toolu_1"');
+    expect(sent).toContain('output token limit');
+  });
+
+  test('a call that only thought until max_tokens is asked again at low effort', async () => {
+    const cut = anthropicSse({ thinking: 'hm '.repeat(100), cutOff: true });
+    const { app, requests } = setup([cut, anthropicSse({ text: 'Klar, so geht das.' })]);
+    const stream = await (await post(app, chatBody)).text();
+    expect(requests.map((r) => (r.body.output_config as { effort: string }).effort)).toEqual(['high', 'low']);
+    expect(stream).toContain('"delta":"Klar, so geht das."');
+    expect(stream).not.toContain(THOUGHT_TOO_LONG);
+    expect(stream.match(/"type":"start"/g)).toHaveLength(1);
+    expect(stream.match(/"type":"finish"/g)).toHaveLength(1);
+    expect(await stats(app)).toMatchObject({ outputCaps: { thinkingCuts: 1, toolCuts: 0 } });
+  });
+
+  test('after a retry that ran a tool, the cut call is not sent back with the tool result', async () => {
+    const { app, requests } = setup([
+      anthropicSse({ thinking: 'zu lang', cutOff: true }),
+      anthropicSse({ thinking: 'kurz', toolCall: { id: 't1', name: 'green_flag', input: {} } }),
+      anthropicSse({ text: 'Läuft!' }),
+    ]);
+    const res = await post(app, chatBody);
+    const chunks = parseJsonEventStream({
+      stream: res.body as ReadableStream<Uint8Array>,
+      schema: uiMessageChunkSchema,
+    });
+    let answer: ChatMessage | undefined;
+    for await (const m of readUIMessageStream<ChatMessage>({
+      stream: chunks.pipeThrough(
+        new TransformStream({
+          transform(c, out) {
+            if (c.success) out.enqueue(c.value);
+          },
+        }),
+      ),
+    }))
+      answer = m;
+    const parts = (answer?.parts ?? []).map((p) =>
+      p.type === 'tool-green_flag' ? { ...p, state: 'output-available', output: { ok: true } } : p,
+    );
+    await (await post(app, { messages: [userMessage('Bau es'), { ...answer, parts }] })).text();
+    const sent = JSON.stringify(requests.at(-1)?.body.messages);
+    // the API rejects the retry's signed thinking behind a block it was not signed with
+    expect(sent).toContain('kurz');
+    expect(sent).not.toContain('zu lang');
+  });
+
+  test('if the retry only thinks too, the kid gets a note', async () => {
+    const { app, requests } = setup(anthropicSse({ thinking: 'hm '.repeat(100), cutOff: true }));
+    const stream = await (await post(app, chatBody)).text();
+    expect(requests).toHaveLength(2);
+    const note = stream.indexOf(`"delta":"${THOUGHT_TOO_LONG}"`);
+    expect(note).toBeGreaterThan(stream.lastIndexOf('"type":"start-step"', note));
+    expect(stream.indexOf('"finishReason":"length"')).toBeGreaterThan(note);
+    expect(await stats(app)).toMatchObject({ outputCaps: { thinkingCuts: 2, toolCuts: 0 } });
+  });
+
+  test('a bracket too many in a tool input is repaired, other broken JSON says where it broke', async () => {
+    const broken = '{"sprite":"Katze","scripts":[[{"op":"event_whenflagclicked"},{"op":"looks_hide"}]]]}';
+    const repaired = await (
+      await post(setup(anthropicSse({ toolCall: { id: 't1', name: 'add_scripts', input: broken } })).app, chatBody)
+    ).text();
+    expect(repaired).toContain(
+      '"type":"tool-input-available","toolCallId":"t1","toolName":"add_scripts","input":{"sprite":"Katze","scripts":[[{"op":"event_whenflagclicked"},{"op":"looks_hide"}]]}',
+    );
+    const hopeless = '{"sprite":"Katze","scripts":[[{"op":"looks_hide",}]]}';
+    const failed = await (
+      await post(setup(anthropicSse({ toolCall: { id: 't2', name: 'add_scripts', input: hopeless } })).app, chatBody)
+    ).text();
+    expect(failed).toMatch(
+      /"type":"tool-input-error","toolCallId":"t2".*"errorText":"Not run: the input of add_scripts is not valid JSON/,
+    );
   });
 
   test('a turn that keeps calling the model ends after the step limit', async () => {

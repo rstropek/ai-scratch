@@ -76,6 +76,14 @@ describe('asset tools', () => {
     expect(sprite(vm).getCostumes()[before]?.asset?.assetId).not.toBe(first);
   });
 
+  test('a new costume does not change how a sprite starts (its clones would all look like it)', async () => {
+    const { vm, run } = await setup();
+    const sprite = vm.runtime.targets.find((t) => !t.isStage && t.isOriginal) as Target;
+    const result = await run('draw_costume', { sprite: 'Sprite1', costume: 'Bombe', svg: svg(40, 40) });
+    expect(result).toMatchObject({ ok: true, current: 'costume1' });
+    expect(sprite.getCostumes()[sprite.currentCostume]?.name).toBe('costume1');
+  });
+
   test('bad SVG is rejected with messages the model can act on', () => {
     expect(() => checkSvg('<svg viewBox="0 0 10 10"><rect></svg>')).toThrow(/not valid XML/);
     expect(() => checkSvg('<svg><text>hi</text></svg>')).toThrow(/<text> is not supported[\s\S]*viewBox/);

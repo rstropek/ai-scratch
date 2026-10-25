@@ -12,8 +12,8 @@ export interface Stats {
   outputTokens: number;
   cost: number;
   guard: { checks: number; errors: number; byCategory: Partial<Record<GuardCategory, number>> };
-  /** answers cut at the text limit, turns ended at the step limit */
-  outputCaps: { textCuts: number; stepLimits: number };
+  /** answers cut at the text limit, turns ended at the step limit, tool calls cut short by max_tokens, calls that only thought until max_tokens */
+  outputCaps: { textCuts: number; stepLimits: number; toolCuts: number; thinkingCuts: number };
   /** messages refused without hearts or with a full memory, conversations summarized */
   energy: { heartsEmpty: number; memoryFull: number; compacts: number };
 }
@@ -27,7 +27,7 @@ export const createStats = (): Stats => ({
   outputTokens: 0,
   cost: 0,
   guard: { checks: 0, errors: 0, byCategory: {} },
-  outputCaps: { textCuts: 0, stepLimits: 0 },
+  outputCaps: { textCuts: 0, stepLimits: 0, toolCuts: 0, thinkingCuts: 0 },
   energy: { heartsEmpty: 0, memoryFull: 0, compacts: 0 },
 });
 

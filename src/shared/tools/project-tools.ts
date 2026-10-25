@@ -25,6 +25,17 @@ export const projectToolDefinitions: ToolDefinition[] = [
     },
     ['sprite', 'scripts'],
   ),
+  fn(
+    'remove_scripts',
+    'Deletes some scripts of a sprite, by their position in its "scripts" list in the project (0 = the first). ' +
+      'To change one script, remove it and add the new version with add_scripts; the other scripts stay as they are. ' +
+      'Remove all the scripts you want to replace in one call: after a removal, the later positions shift.',
+    {
+      sprite: { type: 'string', description: 'Sprite name, or "Stage"' },
+      indexes: { type: 'array', items: { type: 'integer' }, description: "positions in the sprite's scripts list" },
+    },
+    ['sprite', 'indexes'],
+  ),
   fn('clear_scripts', 'Deletes all scripts of a sprite.', { sprite: { type: 'string' } }, ['sprite']),
   fn('green_flag', 'Starts the project (like clicking the green flag).'),
 ];
@@ -105,6 +116,15 @@ export const projectSnapshot = (vm: VirtualMachine): ProjectSnapshot => {
     })),
     extensions: json.extensions,
   };
+};
+
+/** The ids of a target's scripts (their top blocks), in the order of its "scripts" in projectSnapshot. */
+const scriptIds = (vm: VirtualMachine, target: Target): string[] => {
+  const json = JSON.parse(vm.toJSON()) as { targets: Sb3Target[] };
+  const i = vm.runtime.targets.filter((t) => t.isOriginal).indexOf(target);
+  return Object.entries(json.targets[i]?.blocks ?? {})
+    .filter(([, b]) => !Array.isArray(b) && b.topLevel && !b.shadow)
+    .map(([id]) => id);
 };
 
 const existingProcedures = (target: Target): Record<string, ProcedureInfo> =>
@@ -274,6 +294,27 @@ export const createProjectTools = (
       ...(pollsForClicks(target) ? [clickWarning(target.getName())] : []),
     ];
     return warnings.length ? { ok: true, added, warning: warnings.join('\n') } : { ok: true, added };
+  },
+  remove_scripts: (args) => {
+    const target = findTarget(vm, stringArg(args, 'sprite'));
+    const indexes = jsonArg(args, 'indexes');
+    const ids = scriptIds(vm, target);
+    if (!Array.isArray(indexes) || !indexes.length || indexes.some((i) => !Number.isInteger(i))) {
+      return fail(['"indexes" must be a list of script positions, e.g. [0, 2]']);
+    }
+    const wrong = indexes.filter((i) => i < 0 || i >= ids.length);
+    if (wrong.length) {
+      return fail([
+        `${target.getName()} has ${ids.length} scripts (positions 0 to ${ids.length - 1}), so there is no script at ${wrong.join(', ')}`,
+      ]);
+    }
+    const before = projectSnapshot(vm).targets.find((t) => t.name === (target.isStage ? 'Stage' : target.getName()));
+    for (const i of new Set(indexes as number[])) target.blocks.deleteBlock(ids[i] as string);
+    vm.setEditingTarget(target.id);
+    vm.refreshWorkspace();
+    // what was removed, by its first block, so the model can tell whether it hit the right one
+    const removed = [...new Set(indexes as number[])].map((i) => ({ index: i, starts: before?.scripts[i]?.[0]?.op }));
+    return { ok: true, removed, scripts_left: ids.length - removed.length };
   },
   clear_scripts: (args) => {
     const target = findTarget(vm, stringArg(args, 'sprite'));

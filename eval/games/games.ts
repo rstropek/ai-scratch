@@ -381,6 +381,7 @@ export const memory: Game = {
     const won =
       events.says.find((x) => /gewonnen|geschafft|super|toll|bravo|sieg|win/i.test(x.text))?.text ??
       events.broadcasts.find((x) => /gewonnen|geschafft|ende|sieg|win|fertig/i.test(x.name))?.name ??
+      end.monitors.find((m) => /gewonnen|geschafft|sieg|win/i.test(m.value))?.value ??
       (end.backdrop !== game.state.backdrop ? `backdrop ${end.backdrop}` : undefined);
     const allFound = matched.size === game.cards.length;
     checks.push(

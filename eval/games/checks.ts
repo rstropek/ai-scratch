@@ -57,8 +57,11 @@ export const num = (v: string | number | undefined): number | undefined => {
   const n = Number(v);
   return v === undefined || v === '' || Number.isNaN(n) ? undefined : n;
 };
-export const findVar = (s: StageState, pattern: RegExp) =>
-  Object.keys(s.variables).find((name) => pattern.test(name) && num(s.variables[name]) !== undefined);
+/** A number variable whose name matches; one shown on the stage first (an unused leftover often matches too). */
+export const findVar = (s: StageState, pattern: RegExp) => {
+  const names = Object.keys(s.variables).filter((name) => pattern.test(name) && num(s.variables[name]) !== undefined);
+  return names.find((name) => s.monitors.some((m) => m.name === name)) ?? names[0];
+};
 
 /** How much of the smaller of two drawn images the other covers (0..1). */
 export const overlap = (a: TargetState, b: TargetState): number => {
@@ -95,6 +98,7 @@ export const signal = (pattern: RegExp, events: Awaited<ReturnType<Player['event
   events.says.find((x) => pattern.test(x.text))?.text ??
   events.broadcasts.find((x) => pattern.test(x.name))?.name ??
   s?.targets.find((t) => t.visible && pattern.test(t.costume))?.costume ??
+  s?.monitors.find((m) => pattern.test(m.value))?.value ??
   (s && pattern.test(s.backdrop) ? `backdrop ${s.backdrop}` : undefined);
 
 /** Finds what the arrow keys (or else the mouse) move: holds → for 1.5 s and compares positions. */

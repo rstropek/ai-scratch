@@ -91,6 +91,7 @@ export interface Target {
   variables: Record<string, Variable>;
   getName(): string;
   getCostumes(): Costume[];
+  setCostume(index: number): void;
   getSounds(): Sound[];
   createVariable(id: string, name: string, type: string): void;
   on(event: string, listener: (target: Target) => void): void;

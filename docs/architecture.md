@@ -64,6 +64,11 @@ browser. The server's TypeScript runs in Node without a build step, so only eras
 - **To kids:** the server answers errors as JSON `{error}` in short German; the client shows that text as is
   and maps network failures to its own German messages ([errors.ts](../src/client/chat/errors.ts)). Refusals
   that should read like a chat answer (guard, step limit) are streamed as a fixed assistant message instead.
-- **To the model:** tool errors are English and say what to fix; the model reads them and retries.
+- **To the model:** tool errors are English and say what to fix; the model reads them and retries. That
+  includes inputs the model got wrong before any tool ran ([tool-input.ts](../src/server/tool-input.ts)):
+  one or two brackets too many or too few are repaired (Haiku's typical mistake in long `add_scripts`
+  calls; the research log keeps the original), other broken JSON gets the spot where it broke instead of
+  the whole input again, and a tool call cut short by `max_tokens` becomes a tool error too (see
+  limits-and-safety.md).
 - **Never fail a chat for a side concern:** logging, the editor tidy-up after `add_scripts` and Jev outages
   all degrade silently (console) instead of breaking the turn.

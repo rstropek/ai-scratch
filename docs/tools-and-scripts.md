@@ -5,7 +5,7 @@ format or the system prompt.
 
 ## Families and where they run
 
-- Three families: **project** (read, add and clear scripts, green flag), **ui** ("show, don't do": select a
+- Three families: **project** (read, add, remove and clear scripts, green flag), **ui** ("show, don't do": select a
   sprite, switch tabs, point at blocks and GUI elements) and **asset** (library sprites/backdrops/costumes,
   SVG drawings). Index: [tools/index.ts](../src/shared/tools/index.ts).
 - Definitions and prompt text live in `src/shared/tools`; the server sends them to the model. The tools have
@@ -31,10 +31,14 @@ format or the system prompt.
 
 ## Decisions
 
-- **No edit tool (yet).** To change a script, the model clears the sprite's scripts and adds them all again.
-  Simple, but in a big sprite it can drop or alter scripts the kid didn't ask about; finer-grained edit tools
-  were an open point in the prototype report. The safety net for now is the kid's undo button per AI answer
-  ([architecture.md](architecture.md)). Rainer decides on further steps after testing.
+- **Changing a script: remove it, add the new version** (`remove_scripts` by position in the snapshot's
+  script list, then `add_scripts`). Until 2026-10-25 the model cleared all of a sprite's scripts and added
+  them all again: one huge `add_scripts` per change, which in the game harness caused most broken JSON and
+  `max_tokens` cuts, left sprites empty when it failed, and wiped scripts the kid had built by hand. There
+  is still no edit tool for single blocks. The safety net is the kid's undo button per AI answer
+  ([architecture.md](architecture.md)). In the next harness round (10 games) the model used
+  `remove_scripts` 61 times and `clear_scripts` never, and broken `add_scripts` inputs that reached it
+  fell from 14 to 4. Rainer decided on 2026-10-25 to keep it; `clear_scripts` stays for a full rebuild.
 - **The snapshot replaces the first `get_project`.** Each kid message carries the project as it was when sent,
   with a note that `get_project` isn't needed; the system prompt says the same (read the `<projekt>` block,
   `get_project` only to see the state after its own changes). Keep the two texts in line.
@@ -70,3 +74,7 @@ The kid designs the game; the assistant asks guiding questions and builds only s
 which is Rainer's own experiment: discuss changes to its pedagogy with him. A stricter "AI supports" mode
 (the assistant only guides and points, the kid builds) may follow; keep the prompt and the tool selection
 easy to switch (for example, the ui tools without `add_scripts`).
+
+The Scratch tips and „Wenn etwas nicht geht“ in the prompt are technical, not pedagogy: they come from
+game-harness runs. Without the second, Haiku answered bug reports with „die Skripte sehen richtig aus“,
+blamed the kid's keyboard or screen and kept guessing for 10–20 turns.

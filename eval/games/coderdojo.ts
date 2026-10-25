@@ -63,11 +63,12 @@ export const fangMich: Game = {
 
     // the hunter: what swims the most by itself
     await player.greenFlag(1);
-    const idle = await player.seconds(6, { kind: 'none' }, 3);
+    // stuck = still in the last 4 s; a catch may pause the hunter for a moment („Game Over!“ for 2 s)
+    const idle = await player.seconds(8, { kind: 'none' }, 3);
     shots.push({ label: 'Start', png: await player.screenshot() });
     const names = (idle[0]?.targets ?? []).filter((t) => !t.clone).map((t) => t.name);
     const swimmers = names
-      .map((name) => ({ name, all: travelled(idle, name), late: travelled(idle.slice(-20), name) }))
+      .map((name) => ({ name, all: travelled(idle, name), late: travelled(idle.slice(-40), name) }))
       .sort((a, b) => b.all - a.all);
     const hunter = swimmers[0];
     const swims = hunter !== undefined && hunter.all >= 150 && hunter.late >= 40;
@@ -76,7 +77,7 @@ export const fangMich: Game = {
         'swims',
         'Something swims around by itself',
         swims,
-        hunter ? `${hunter.name}: ${hunter.all} px in 6 s, ${hunter.late} px in the last 2 s` : 'no sprites',
+        hunter ? `${hunter.name}: ${hunter.all} px in 8 s, ${hunter.late} px in the last 4 s` : 'no sprites',
         [
           'Wenn ich die grüne Flagge klicke, schwimmt der Hai von selbst herum.',
           hunter && hunter.all >= 150
@@ -373,7 +374,7 @@ export const spaceShooter: Game = {
         ['Das Raumschiff fährt mit den Pfeiltasten nach links und rechts.', 'Mit den Pfeiltasten bewegt sich nichts.'],
       ),
     );
-    if (!ship || count === 0) {
+    if (!ship) {
       checks.push(
         ...notYet(
           [
@@ -384,13 +385,13 @@ export const spaceShooter: Game = {
             ['game-over', 'A meteor hitting the ship ends the game'],
             ['restart', 'The green flag restarts the game'],
           ],
-          'needs a steerable ship and something falling',
+          'needs a steerable ship',
         ),
       );
       return { checks, shots };
     }
 
-    // shooting: something new flies up after the space key, and not without it
+    // shooting: something new flies up after the space key, and not without it (meteors not needed)
     await player.greenFlag(2);
     await player.seconds(0.5);
     const quiet = movingIds(await player.seconds(1.2, { kind: 'none' }, 3), 'up', 50);
@@ -406,6 +407,21 @@ export const spaceShooter: Game = {
         ['Mit der Leertaste schieße ich einen Laser nach oben.', 'Wenn ich die Leertaste drücke, passiert nichts.'],
       ),
     );
+    if (count === 0) {
+      checks.push(
+        ...notYet(
+          [
+            ['hit', 'A shot destroys a meteor'],
+            ['points', 'Hits count'],
+            ['faster', 'Meteors get faster over time', true],
+            ['game-over', 'A meteor hitting the ship ends the game'],
+            ['restart', 'The green flag restarts the game'],
+          ],
+          'needs something falling',
+        ),
+      );
+      return { checks, shots };
+    }
 
     // a whole game of shooting: meteors vanish in the air, hits count, maybe it gets faster
     await player.greenFlag(7);
@@ -548,6 +564,12 @@ const cellValue = (costume: string): Value => {
   return 'unknown';
 };
 
+/** A number in the cell's speech bubble wins: some games show the count there („sage (Anzahl)“). */
+const shownValue = (t: TargetState): Value => {
+  const said = t.saying.trim();
+  return /^[0-8]$/.test(said) ? Number(said) : cellValue(t.costume);
+};
+
 interface Cell {
   key: string;
   col: number;
@@ -660,13 +682,17 @@ export const minesweeper: Game = {
     let bomb: { signal?: string } | undefined;
     let zero: { opened: number } | undefined;
     let lostShot = false;
+    // a cell is open when it looks different, or when it hid to show what lies beneath (unreadable)
+    const gone = (t: TargetState) => !t.visible || t.ghost >= 90;
+    const isOpen = (g: Awaited<ReturnType<typeof fresh>>, t: TargetState | undefined): t is TargetState =>
+      !!t && (gone(t) || t.look !== g.back);
     const record = (g: Awaited<ReturnType<typeof fresh>>, s: StageState) => {
       let opened = 0;
       for (const c of g.cells) {
         const t = target(s, c.id);
-        if (!t || t.look === g.back) continue;
+        if (!isOpen(g, t)) continue;
         opened++;
-        const v = cellValue(t.costume);
+        const v = gone(t) ? 'unknown' : shownValue(t);
         const had = board.get(c.key);
         if (had === undefined) board.set(c.key, v);
         else if (had !== v && had !== 'bomb') conflicts++;
@@ -681,7 +707,7 @@ export const minesweeper: Game = {
         if (board.has(c.key)) continue;
         const s0 = await player.state();
         if (!target(s0, c.id)) break; // the cells are gone (the game stopped)
-        if (target(s0, c.id)?.look !== g.back) {
+        if (isOpen(g, target(s0, c.id))) {
           record(g, s0);
           continue;
         }
@@ -690,15 +716,15 @@ export const minesweeper: Game = {
         await clickCell(s0, c.id);
         let s = await settle(player, 10);
         let t = target(s, c.id);
-        if (!t || t.look === g.back || cellValue(t.costume) === 'bomb' || cellValue(t.costume) === 'unknown') {
+        if (!isOpen(g, t) || gone(t) || cellValue(t.costume) === 'bomb' || shownValue(t) === 'unknown') {
           await player.seconds(2.5); // a game over may come a moment later
           s = await player.state();
           t = target(s, c.id) ?? t;
         }
-        const changed = !!t && t.look !== g.back;
-        firstClick ??= { from: target(s0, c.id)?.costume ?? '', to: t?.costume ?? 'gone' };
+        const changed = isOpen(g, t);
+        firstClick ??= { from: target(s0, c.id)?.costume ?? '', to: !t ? 'gone' : gone(t) ? 'hidden' : t.costume };
         const opened = record(g, s) - opened0;
-        const v = t && changed ? cellValue(t.costume) : undefined;
+        const v = t && changed && !gone(t) ? shownValue(t) : undefined;
         if (v === 0) zero ??= { opened };
         const e = since(e0, await player.events());
         const lostSignal =
@@ -751,18 +777,25 @@ export const minesweeper: Game = {
     const numbered = [...board.entries()].filter((e): e is [string, number] => typeof e[1] === 'number');
     const wrong = numbered.filter(([k, v]) => around(k) !== v);
     const complete = board.size === cells.length && unreadable === 0;
+    // cells next to a known bomb show 0 or nothing: no numbers yet (an unseen bomb can't explain that)
+    const noNumbers = !numbered.some(([, v]) => v > 0) && numbered.some(([k]) => around(k) > 0);
     checks.push(
       result(
         'numbers',
         'The numbers count the bombs around',
         unreadable > 0 || conflicts > 0
           ? undefined
-          : complete && bombs.length > 0 && numbered.some(([, v]) => v > 0) && wrong.length === 0,
+          : noNumbers
+            ? false
+            : // a cell never opened may be a bomb, and then the counts can't be judged
+              complete
+              ? bombs.length > 0 && numbered.some(([, v]) => v > 0) && wrong.length === 0
+              : undefined,
         unreadable > 0
           ? `can't tell the numbers from the costume names (${costumeNames.join(', ')} …); look at the screenshots`
           : conflicts > 0
             ? `the board changed between two games with the same start (${conflicts} cells), e.g. bombs placed on the first click`
-            : `${board.size}/${cells.length} cells seen, ${bombs.length} bombs, ${numbered.length} numbers` +
+            : `${board.size}/${cells.length} cells seen${complete ? '' : ' (not all, so the counts are not judged)'}, ${bombs.length} bombs, ${numbered.length} numbers` +
               (wrong.length
                 ? `; wrong: ${wrong
                     .slice(0, 5)
@@ -771,7 +804,11 @@ export const minesweeper: Game = {
                 : ''),
         [
           'Die Zahlen stimmen: sie zeigen, wie viele Bomben rundherum liegen.',
-          bombs.length === 0 ? 'Ich finde keine Bomben.' : 'Die Zahlen stimmen nicht mit den Bomben rundherum überein.',
+          bombs.length === 0
+            ? 'Ich finde keine Bomben.'
+            : noNumbers
+              ? 'Die aufgedeckten Kästchen zeigen keine Zahlen.'
+              : 'Die Zahlen stimmen nicht mit den Bomben rundherum überein.',
         ],
       ),
     );
@@ -813,9 +850,36 @@ export const minesweeper: Game = {
     let flag: { set: boolean; removed: boolean } | undefined;
     const probe = safe.find((c) => (board.get(c.key) as number) > 0) ?? safe[0];
     if (probe) {
-      const set = target(await spaceClick(probe.id), probe.id);
-      const flagged = !!set && set.look !== g.back && cellValue(set.costume) !== board.get(probe.key);
-      const removed = target(await spaceClick(probe.id), probe.id)?.look === g.back;
+      // a flag is the cell's own costume or a flag sprite (clone) put on top of the cell
+      const onTop = (s: StageState) => {
+        const cell = target(s, probe.id);
+        return s.targets.find(
+          (t) =>
+            cell &&
+            t.visible &&
+            t.ghost < 90 &&
+            !g.cells.some((c) => c.id === t.id) &&
+            Math.abs(t.x - cell.x) < 15 &&
+            Math.abs(t.y - cell.y) < 15,
+        );
+      };
+      const before = onTop(await player.state());
+      const s1 = await spaceClick(probe.id);
+      const set = target(s1, probe.id);
+      const overlay = before ? undefined : onTop(s1);
+      const flagged =
+        !!set &&
+        ((set.look !== g.back && cellValue(set.costume) !== board.get(probe.key)) ||
+          (set.look === g.back && !!overlay));
+      // the kid clicks the flag itself to take it away, not a see-through part of it
+      const at = overlay && (await player.spot(overlay.id));
+      let s2: StageState;
+      if (at) {
+        await player.pressKeys([' ']);
+        await player.click(at.x, at.y);
+        s2 = await settle(player, 5);
+      } else s2 = await spaceClick(probe.id);
+      const removed = target(s2, probe.id)?.look === g.back && !(overlay && onTop(s2));
       flag = { set: flagged, removed };
     }
     checks.push(
@@ -898,7 +962,7 @@ export const minesweeper: Game = {
         const t = target(s, x.id);
         if (!t || t.look === next.back) continue;
         compared.add(x.key);
-        if (board.has(x.key) && board.get(x.key) !== cellValue(t.costume)) differs = true;
+        if (board.has(x.key) && board.get(x.key) !== shownValue(t)) differs = true;
       }
       if (cellValue(target(s, c.id)?.costume ?? '') === 'bomb') break;
     }
@@ -918,7 +982,8 @@ export const minesweeper: Game = {
       result(
         'new-board',
         'Every game has a new board',
-        compared.size > 0 && complete ? differs : undefined,
+        // a few cells that look alike prove nothing (most cells show 0)
+        complete && (differs || compared.size >= 6) ? differs : undefined,
         compared.size > 0
           ? `${compared.size} cells compared with the first game: ${differs ? 'different' : 'all the same'}`
           : 'nothing to compare',

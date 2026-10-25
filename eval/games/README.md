@@ -93,5 +93,14 @@ and each broken one must fail its check. A check that fails on the reference is 
 - A broken copy that renames a message must change its id too: the VM finds a broadcast by id first.
 - The original CoderDojo Minesweeper picks bomb positions from 0 to 99, but list items start at 1. A bomb at 0
   is lost, and that game can never be won. The reference picks from 1 to 100.
+- The simulated kid only knows the checks' sentences and a still picture. A skipped check tells it nothing,
+  and it used to invent bugs there („ich sehe keinen Laser“, while the shoot check waited for meteors);
+  the assistant then spent ten turns on them. So a check runs as soon as the parts it needs exist, and the
+  kid is told that a part nobody mentions is untested, not broken. A misleading sentence costs a whole run,
+  so the checks accept what kids' games really do: a Minesweeper cell that hides or turns fully ghost
+  when clicked is opened, its number may be in a speech bubble, and a board with unopened cells isn't
+  judged; a flag may be a flag sprite put on top of the cell, and to take it away the bot clicks a
+  visible part of it (the cell's centre was see-through, so its click set a second flag); a hunter that pauses after a catch isn't stuck; a message may be a shown variable monitor
+  („Gewonnen!“), and the points variable is the one shown on the stage, not an unused leftover.
 - Runs never log to Azure Blob (the server gets `LOG_BLOB_URL=''`), so eval sessions don't mix with the
   kids' research data.

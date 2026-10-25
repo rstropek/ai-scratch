@@ -88,6 +88,25 @@ describe('buildModelInput', () => {
     expect(turnNumber([summary, user('u6', 'Weiter')])).toBe(6);
   });
 
+  test('a step of the current turn that only thought (a cut call asked again) is left out', () => {
+    const tool = currentAssistant.parts[0] as ChatMessage['parts'][number];
+    const retried = {
+      id: 'a2',
+      role: 'assistant',
+      parts: [
+        { type: 'step-start' },
+        { type: 'custom', kind: 'anthropic.message_start' },
+        { type: 'reasoning', text: '' },
+        { type: 'step-start' },
+        { type: 'custom', kind: 'anthropic.message_start' },
+        { type: 'reasoning', text: 'kurz' },
+        tool,
+      ],
+    } as ChatMessage;
+    const { turn } = buildModelInput([...messages.slice(0, 3), retried]);
+    expect(turn[1]?.parts).toEqual(retried.parts.slice(3));
+  });
+
   test('the history of one turn reappears unchanged at the start of the next (prompt cache)', () => {
     const next = [...messages, user('u3', 'Noch was', '{"newer":3}')];
     const before = buildModelInput(messages);

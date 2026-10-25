@@ -55,7 +55,7 @@ export const assetToolDefinitions: ToolDefinition[] = [
   ),
   fn(
     'add_library_costume',
-    'Adds a costume from the Scratch library to a sprite.',
+    'Adds a costume from the Scratch library to a sprite. The sprite keeps its current costume.',
     { sprite: { type: 'string' }, name: { type: 'string' } },
     ['sprite', 'name'],
   ),
@@ -75,7 +75,8 @@ export const assetToolDefinitions: ToolDefinition[] = [
   fn(
     'draw_costume',
     'Adds an SVG drawing as a new costume to a sprite, or as a new backdrop when sprite is "Stage". ' +
-      'A costume with the same name is redrawn in place: to change a drawing, reuse its name instead of adding a new costume.',
+      'A costume with the same name is redrawn in place: to change a drawing, reuse its name instead of adding a new costume. ' +
+      'A sprite keeps its current costume (a script switches to the new one); a new backdrop is shown at once.',
     {
       sprite: { type: 'string' },
       costume: { type: 'string', description: 'costume/backdrop name' },
@@ -175,6 +176,18 @@ const loading = <T>(what: string, promise: Promise<T>): Promise<T> =>
     const reason = e instanceof Error ? e.message : (e ?? 'asset not reachable');
     throw new Error(`Could not load ${what}: ${String(reason)}`);
   });
+
+const currentCostume = (t: Target) => t.getCostumes()[t.currentCostume]?.name;
+
+/**
+ * scratch-vm switches a target to a costume it adds. A new backdrop should show, but a sprite's costume
+ * is its starting look (and that of its clones): a "Bombe" costume made every Minesweeper cell a bomb.
+ */
+const keepCostume = async (target: Target, add: () => Promise<unknown>) => {
+  const before = target.currentCostume;
+  await add();
+  if (!target.isStage) target.setCostume(before);
+};
 
 const describeSprite = (t: Target) => ({
   name: t.getName(),
@@ -276,8 +289,8 @@ export const createAssetTools = (
       const target = findTarget(vm, stringArg(args, 'sprite'));
       const item = await libraryItem('costume', stringArg(args, 'name'));
       const { md5ext, init } = costumeInit(item);
-      await loading(`costume ${item.name}`, vm.addCostume(md5ext, init, target.id));
-      return { ok: true, costumes: target.getCostumes().map((c) => c.name) };
+      await keepCostume(target, () => loading(`costume ${item.name}`, vm.addCostume(md5ext, init, target.id)));
+      return { ok: true, costumes: target.getCostumes().map((c) => c.name), current: currentCostume(target) };
     },
     draw_sprite: async (args) => {
       const svg = extractSvg(args.svg);
@@ -333,22 +346,29 @@ export const createAssetTools = (
         null,
         true,
       );
-      await vm.addCostume(
-        `${asset.assetId}.svg`,
-        {
-          name,
-          asset,
-          assetId: asset.assetId,
-          md5: `${asset.assetId}.svg`,
-          dataFormat: 'svg',
-          bitmapResolution: 1,
-          rotationCenterX: w / 2,
-          rotationCenterY: h / 2,
-          skinId: null,
-        },
-        target.id,
+      await keepCostume(target, () =>
+        vm.addCostume(
+          `${asset.assetId}.svg`,
+          {
+            name,
+            asset,
+            assetId: asset.assetId,
+            md5: `${asset.assetId}.svg`,
+            dataFormat: 'svg',
+            bitmapResolution: 1,
+            rotationCenterX: w / 2,
+            rotationCenterY: h / 2,
+            skinId: null,
+          },
+          target.id,
+        ),
       );
-      return { ok: true, costumes: target.getCostumes().map((c) => c.name), size: [w, h] };
+      return {
+        ok: true,
+        costumes: target.getCostumes().map((c) => c.name),
+        current: currentCostume(target),
+        size: [w, h],
+      };
     },
   };
 };

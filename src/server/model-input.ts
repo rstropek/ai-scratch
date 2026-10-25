@@ -8,7 +8,8 @@
 // - the current user message carries the project snapshot taken when it was sent, so every step of
 //   the turn has an identical (cacheable) prefix.
 // - the current turn after that message: verbatim, because signed thinking blocks and tool results
-//   must be passed back.
+//   must be passed back; only a step that did nothing but think (a call cut at max_tokens and asked
+//   again, output-guard.ts) is left out: it would add its 16k thinking tokens to every later step.
 // - turns the kids-protection guard answered (metadata.guard) are left out, the kid's message too:
 //   blocked content never reaches the model.
 // - a summary ("Zusammenfassen", compact.ts) replaced the conversation before it; the model gets it as
@@ -69,6 +70,21 @@ const summaryAsUser = (m: ChatMessage): ChatMessage => ({
   parts: [{ type: 'text', text: SUMMARY_HEADING }, ...m.parts.filter((p) => p.type === 'text')],
 });
 
+/**
+ * Drops the steps that only thought: no text, no tool call (a step also holds reasoning and the
+ * provider's `custom` parts). Keeping one is not only waste: the API rejects the retry's thinking
+ * behind it as modified, since it was signed without it.
+ */
+const withoutThoughtOnlySteps = (m: ChatMessage): ChatMessage => {
+  const steps: ChatMessage['parts'][] = [];
+  for (const p of m.parts) {
+    if (p.type === 'step-start' || !steps.length) steps.push([]);
+    steps.at(-1)?.push(p);
+  }
+  const kept = steps.filter((step) => step.some((p) => p.type === 'text' || p.type.startsWith('tool-')));
+  return kept.length === steps.length || !kept.length ? m : { ...m, parts: kept.flat() };
+};
+
 export interface ModelInput {
   /** the earlier turns, text only: unchanged in every later turn */
   history: ChatMessage[];
@@ -94,7 +110,7 @@ export const buildModelInput = (all: ChatMessage[]): ModelInput => {
     project && `<projekt>\n${project}\n</projekt>\n(Das ist der aktuelle Projektstand, get_project ist nicht nötig.)`,
   ].flatMap((text) => (text ? [{ type: 'text' as const, text }] : []));
   const userWithProject: ChatMessage = extra.length ? { ...user, parts: [...extra, ...user.parts] } : user;
-  return { history, turn: [userWithProject, ...messages.slice(current + 1)] };
+  return { history, turn: [userWithProject, ...messages.slice(current + 1).map(withoutThoughtOnlySteps)] };
 };
 
 /** The 1-based number of the current turn (= user messages so far, including those a summary replaced). */

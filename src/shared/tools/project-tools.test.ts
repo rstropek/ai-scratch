@@ -54,6 +54,32 @@ describe('project tools', () => {
     expect(sprite(vm).blocks.getScripts()).toEqual([]);
   });
 
+  test('remove_scripts deletes scripts by their position in get_project, the others stay', async () => {
+    const vm = await createVm();
+    const tools = createProjectTools(vm);
+    const say = (text: string) => [
+      { op: 'event_whenflagclicked' },
+      { op: 'control_forever', SUBSTACK: [{ op: 'looks_say', MESSAGE: text }] },
+    ];
+    const click = [{ op: 'event_whenthisspriteclicked' }, { op: 'looks_hide' }];
+    await runTool(tools, 'add_scripts', { sprite: 'Sprite1', scripts: [say('A'), click, say('C')] });
+    const scripts = async () => ((await runTool(tools, 'get_project', {})) as ProjectSnapshot).targets[1]?.scripts;
+    const all = await scripts();
+    expect(await runTool(tools, 'remove_scripts', { sprite: 'Sprite1', indexes: [1, 1] })).toEqual({
+      ok: true,
+      removed: [{ index: 1, starts: 'event_whenthisspriteclicked' }],
+      scripts_left: 2,
+    });
+    expect(await scripts()).toEqual([all?.[0], all?.[2]]);
+    const blocks = Object.keys((sprite(vm).blocks as unknown as { _blocks: object })._blocks).length;
+    await runTool(tools, 'remove_scripts', { sprite: 'Sprite1', indexes: [0] });
+    // a whole script goes, with the blocks nested in it
+    expect(Object.keys((sprite(vm).blocks as unknown as { _blocks: object })._blocks).length).toBe(blocks / 2);
+    await expect(runTool(tools, 'remove_scripts', { sprite: 'Sprite1', indexes: [1] })).rejects.toThrow(
+      /Sprite1 has 1 scripts \(positions 0 to 0\), so there is no script at 1/,
+    );
+  });
+
   // The editor rebuilds a sprite's workspace from this XML; a field without its variable type makes
   // it stop loading, and every script after it is missing in the editor while it still runs.
   test('broadcast and list fields carry their variable type into the editor XML', async () => {

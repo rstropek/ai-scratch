@@ -33,8 +33,19 @@ codes, hearts, the guard or the output limits.
 ## Output limits
 
 [output-guard.ts](../src/server/output-guard.ts). `max_tokens` (16k) only bounds the cost of one runaway
-call. It can't be lower: thinking and tool inputs (scripts, SVG drawings) need room, and a tool call cut by
-`max_tokens` just becomes a tool error. Instead:
+call. It can't be lower: thinking and tool inputs (scripts, SVG drawings) need room. Haiku does hit it now
+and then (15k thinking tokens on Minesweeper neighbour counting). A tool call cut by `max_tokens` would
+leave its input streaming forever and the chat stuck on „läuft“; `closeCutToolCalls` closes it as a tool
+error, which the model reads with the next request (`/api/stats` counts these as `toolCuts`). Earlier tool
+calls of that answer have run, so a `clear_scripts` before a cut `add_scripts` has already wiped the
+scripts; the error tells the model to retry smaller. A call that only thought until `max_tokens` (Haiku on
+Minesweeper logic: five turns of one game, ~70 s each) is asked once more at effort `low`
+(`retryThinkingCut`); its answer continues the same message. Its thinking-only step must be left out of the
+later steps' input (model-input.ts): the API rejects the retry's signed thinking behind it as "modified"
+(a 400 that ended a game turn in the night test). Only if the retry thinks too long as well, the kid gets a fixed
+German note instead of an empty answer (`noteThinkingCut`). `thinkingCuts` counts every cut call.
+
+What a kid could provoke is bounded by two other limits:
 
 - **Visible text** per model call (not per turn) is capped (3000 chars; the longest real answer was ~1,100).
   A turn of many calls can show more; the step limit bounds that. The stream is ended

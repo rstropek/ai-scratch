@@ -4,10 +4,12 @@ export interface FakeTurn {
   thinking?: string;
   text?: string;
   toolCall?: { id: string; name: string; input: unknown };
+  /** the call hits max_tokens (in the middle of the tool call's input, if there is one) */
+  cutOff?: boolean;
   usage?: { input_tokens: number; output_tokens: number; cache_read_input_tokens?: number };
 }
 
-export const anthropicSse = ({ thinking, text, toolCall, usage }: FakeTurn): string => {
+export const anthropicSse = ({ thinking, text, toolCall, cutOff, usage }: FakeTurn): string => {
   const u = usage ?? { input_tokens: 1000, output_tokens: 50, cache_read_input_tokens: 0 };
   const events: object[] = [
     {
@@ -46,7 +48,8 @@ export const anthropicSse = ({ thinking, text, toolCall, usage }: FakeTurn): str
     index++;
   }
   if (toolCall) {
-    const json = JSON.stringify(toolCall.input);
+    // a string is sent as is: the model's raw JSON, maybe broken
+    const json = typeof toolCall.input === 'string' ? toolCall.input : JSON.stringify(toolCall.input);
     events.push(
       {
         type: 'content_block_start',
@@ -54,14 +57,17 @@ export const anthropicSse = ({ thinking, text, toolCall, usage }: FakeTurn): str
         content_block: { type: 'tool_use', id: toolCall.id, name: toolCall.name, input: {} },
       },
       { type: 'content_block_delta', index, delta: { type: 'input_json_delta', partial_json: json.slice(0, 5) } },
-      { type: 'content_block_delta', index, delta: { type: 'input_json_delta', partial_json: json.slice(5) } },
-      { type: 'content_block_stop', index },
     );
+    if (!cutOff)
+      events.push(
+        { type: 'content_block_delta', index, delta: { type: 'input_json_delta', partial_json: json.slice(5) } },
+        { type: 'content_block_stop', index },
+      );
   }
   events.push(
     {
       type: 'message_delta',
-      delta: { stop_reason: toolCall ? 'tool_use' : 'end_turn' },
+      delta: { stop_reason: cutOff ? 'max_tokens' : toolCall ? 'tool_use' : 'end_turn' },
       usage: { output_tokens: u.output_tokens },
     },
     { type: 'message_stop' },
