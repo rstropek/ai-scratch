@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useIsSlideActive } from '@slidev/client';
 import { ref, watch } from 'vue';
+import { publicUrl } from '../utils/public-url.ts';
 
 // A looping video stuck into the album like a photo sticker: thick white edge, slight tilt.
 // Plays only while its slide is open and starts over each time the slide opens.
@@ -30,7 +31,7 @@ watch(
 
 <template>
   <div class="photo" :class="{ stuck: active }" :style="{ width: `${props.width}px`, '--rot': `${props.rotate}deg` }">
-    <video v-if="!failed" ref="video" :src="src" muted loop playsinline preload="auto" @error="failed = true" />
+    <video v-if="!failed" ref="video" :src="publicUrl(src)" muted loop playsinline preload="auto" @error="failed = true" />
     <div v-else class="missing print">Video fehlt: {{ src }}</div>
   </div>
 </template>

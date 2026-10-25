@@ -101,7 +101,7 @@ Pages are sparse: one heading, at most a few short lines, one to three stickers.
 - Lilita One for display, Lexend for text; three sizes.
 - One entry gesture: the sticker "sticks" when the page opens.
 
-**Where the build differs from the direction contract:** not every sticker sits in a slot. Topic stickers do (pages 2, 3, 4, 7, 10); scene stickers stay loose on the page (the cover cat, the Haiku cat and mouse, the muscle arm on page 4, the chatting cat and chip on page 6, the robot on page 8). Page 4 breaks the one-to-three-stickers rule on purpose: 24 small chips fill one slot, so the size of the big model shows as a count. Name plates appear only on page 3; page 2 uses print captions. Page 8 is one big sticker beside a display-size sentence: the robot (`public/art/robot.svg`) carries the deck's chip in its head, labelled KI, and wires run from it to two yellow grippers, the tools; a pulse flows along the wires (a CSS animation inside the SVG, off under reduced motion). The key word takes the grippers' yellow. Page 9 reuses those wires as free cables (navy casing, light-blue core, the same pulse; an inline SVG under the stickers) from the KI chip (`chip-ki.svg`) to two drawn tools, a Scratch script and a code editor showing the same program. Slot numerals are set at text size, not print.
+**Where the build differs from the direction contract:** not every sticker sits in a slot. Topic stickers do (pages 2, 3, 4, 7, 10); scene stickers stay loose on the page (the cover cat, the Haiku cat and mouse, the muscle arm on page 4, the chatting cat and chip on page 6, the robot on page 8, the running cat and the green flag on page 11). Page 4 breaks the one-to-three-stickers rule on purpose: 24 small chips fill one slot, so the size of the big model shows as a count. Name plates appear only on page 3; page 2 uses print captions. Page 8 is one big sticker beside a display-size sentence: the robot (`public/art/robot.svg`) carries the deck's chip in its head, labelled KI, and wires run from it to two yellow grippers, the tools; a pulse flows along the wires (a CSS animation inside the SVG, off under reduced motion). The key word takes the grippers' yellow. Page 9 reuses those wires as free cables (navy casing, light-blue core, the same pulse; an inline SVG under the stickers) from the KI chip (`chip-ki.svg`) to two drawn tools, a Scratch script and a code editor showing the same program. Page 11 kicks off the day with no h1: the running cat says "Los gehts!" in a speech bubble at display size, heading for Scratch's green flag (`green-flag.svg`). Slot numerals are set at text size, not print.
 
 ## Colors
 
@@ -110,7 +110,7 @@ The grounds are Scratch 3's own block-category colours, so the deck sits in the 
 ### Primary (page grounds, one per page)
 - **Looks Purple** (`looks`): the cover, page 8 (agents use tools) and the default ground; also the editor's menu bar. White ink.
 - **Motion Blue** (`motion`): page 2, how the day works; page 9, the coding tool. Dark ink.
-- **Events Yellow** (`events`): page 3, "Was ist KI?". Dark ink.
+- **Events Yellow** (`events`): page 3, "Was ist KI?"; page 11, "Los gehts!", the colour of Scratch's "Wenn ⚑ angeklickt wird" block. Dark ink.
 - **Control Orange** (`control`): page 4, small and huge AI models; page 10, what the kids bring. Dark ink.
 - **Sound Magenta** (`sound`): page 5, the Haiku. Dark ink.
 - **Operators Green** (`operators`): page 6, Chatbot. Dark ink.

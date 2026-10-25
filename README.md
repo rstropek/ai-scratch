@@ -96,7 +96,7 @@ npm run dev            # http://localhost:5173/?code=<one of your access codes>
 |---|---|
 | `npm run dev` | Vite on http://localhost:5173 (hot reload) + API server on :3000 |
 | `npm run build` | type check, Vite build, copy + precompress the Scratch bundle into `dist/` |
-| `npm start` | production server: API + `dist/` on :3000 |
+| `npm start` | production server: API + `dist/` on :3000 (the slide deck at `/slides/` once `npm run build --prefix slides` has run before `npm run build`) |
 | `npm test` | unit and component tests (Vitest, headless scratch-vm, no network) |
 | `npm run e2e` | Playwright against the production build, model mocked |
 | `npm run eval:games` | a simulated kid builds Memory/Fangspiel with the real app and model, a bot plays and checks each version ([eval/games](eval/games/README.md)); costs real money |

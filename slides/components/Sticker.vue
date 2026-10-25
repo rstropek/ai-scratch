@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useIsSlideActive } from '@slidev/client';
 import { computed, useId } from 'vue';
+import { publicUrl } from '../utils/public-url.ts';
 
 // A die-cut sticker: the picture gets an even white edge that follows its own outline
 // and a lifted shadow. When the slide opens it is pressed onto the page once and the shadow settles.
@@ -39,7 +40,7 @@ const filterId = `die-cut-${useId()}`;
         </feMerge>
       </filter>
     </svg>
-    <img :src="src" :alt="alt" draggable="false" :style="{ filter: `url(#${filterId})` }" />
+    <img :src="publicUrl(src)" :alt="alt" draggable="false" :style="{ filter: `url(#${filterId})` }" />
   </div>
 </template>
 

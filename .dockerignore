@@ -1,6 +1,7 @@
 .git
 .env
 node_modules
+slides/node_modules
 dist
 logs
 test-results

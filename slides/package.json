@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "slidev --open",
-    "build": "slidev build",
+    "build": "slidev build --base /slides/ --out ../dist/slides",
     "export": "slidev export"
   },
   "dependencies": {

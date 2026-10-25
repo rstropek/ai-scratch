@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 300">
+  <!-- Drawn for the Digitalferien deck in Scratch costume style: Scratch's green flag, the start of every program. -->
+  <title>Die grüne Flagge</title>
+  <rect x="30" y="36" width="18" height="254" rx="9" fill="#45993d" stroke="#2f6e2a" stroke-width="4"/>
+  <circle cx="39" cy="28" r="17" fill="#8fe28f" stroke="#2f6e2a" stroke-width="4"/>
+  <path d="M 48 50 C 96 18, 150 84, 238 46 V 178 C 150 214, 96 150, 48 180 Z"
+    fill="#4cbf56" stroke="#2f6e2a" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M 70 70 C 100 54, 128 80, 162 84" fill="none" stroke="#8fe28f" stroke-width="11" stroke-linecap="round"/>
+</svg>

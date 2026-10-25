@@ -385,3 +385,27 @@ ink: dark
 Ihr entscheidet, was gebaut wird (die Idee), wie es aussehen soll (der Look) und wie das Spiel funktioniert (die Spielregeln).
 Die KI übernimmt viel von der technischen Kleinarbeit. Dadurch wird Programmieren weniger mühsam und viel kreativer.
 -->
+
+---
+layout: page
+color: events
+ink: dark
+---
+
+<div class="go">
+  <div class="cat"><Sticker src="/scratch/cat-b.svg" alt="Scratch-Katze" :width="340" :rotate="-6" /></div>
+  <div class="flag"><Sticker src="/art/green-flag.svg" alt="Die grüne Flagge" :width="330" :rotate="6" :delay="150" /></div>
+  <SpeechBubble class="says" :delay="600">Los gehts!</SpeechBubble>
+</div>
+
+<style>
+.go { position: relative; height: 100%; }
+.go .cat { position: absolute; left: 110px; bottom: 64px; }
+.go .flag { position: absolute; right: 120px; top: 120px; }
+.go .says { position: absolute; left: 270px; top: 100px; }
+</style>
+
+<!--
+Startschuss: Wie in Scratch startet die grüne Flagge das Programm, heute startet sie unseren Tag.
+Bildnachweis: Scratch-Katze aus der Scratch-Bibliothek (Scratch Foundation, CC BY-SA 2.0).
+-->

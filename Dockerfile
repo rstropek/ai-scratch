@@ -1,12 +1,15 @@
-# Production image: the Hono server (TypeScript run directly by Node) + the built client and Scratch bundle.
+# Production image: the Hono server (TypeScript run directly by Node) + the built client, Scratch bundle and slide deck.
 # Build: docker build --build-arg APP_VERSION=$(git rev-parse HEAD) -t ai-scratch .
 FROM node:24-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json .npmrc ./
 COPY scripts ./scripts
 RUN npm ci --no-audit --no-fund
+COPY slides/package.json slides/package-lock.json ./slides/
+RUN npm ci --prefix slides --no-audit --no-fund
 COPY . .
-RUN npm run build
+# the deck first (into dist/slides), so the app's build precompresses it with the rest of dist/
+RUN npm run build --prefix slides && npm run build
 
 # only the server's packages; the browser ones are devDependencies, bundled into dist/ by Vite
 FROM node:24-slim AS deps
