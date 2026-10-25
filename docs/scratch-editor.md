@@ -73,7 +73,8 @@ GUI elements have CSS-module classes like `green-flag_green-flag_1kiAo`: match t
   drag. The ui-guide's `keepPaletteVariablesCurrent` re-renders it after a workspace update when its
   variables differ ([e2e/palette-variables.spec.ts](../e2e/palette-variables.spec.ts)).
 - **Our three Locker entries in the *Datei* menu** are cloned from Scratch's "Auf deinem Computer speichern"
-  item each time the menu opens, and anchored on that label; a click closes the menu with an Escape keydown.
+  item each time the menu opens, found by that item's label in the current language (redux `locales`); a
+  click closes the menu with an Escape keydown.
   A project the host hands to `vm.loadProject` must be a `Uint8Array`, not an `ArrayBuffer` (another
   window's `instanceof` fails). Details: [locker.md](locker.md).
 - **Our own block extension** ("frage KI") is registered in-process, before any project loads; its traps

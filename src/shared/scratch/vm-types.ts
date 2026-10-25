@@ -191,7 +191,11 @@ export interface VirtualMachine {
 /** The redux store of the editor. */
 export interface GuiStore {
   dispatch(action: { type: string; [key: string]: unknown }): void;
-  getState(): { scratchGui: { projectTitle: string } };
+  getState(): {
+    scratchGui: { projectTitle: string };
+    /** the editor's language: its texts by message id (a language without a translation has no entry) */
+    locales: { locale: string; messages: Record<string, string | undefined> };
+  };
 }
 
 export const findTarget = (vm: VirtualMachine, name: unknown): Target => {

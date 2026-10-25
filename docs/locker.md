@@ -47,7 +47,9 @@ or `src/server/locker.ts`.
 
 - **Menu:** [locker-menu.ts](../src/editor/locker-menu.ts) runs in the iframe. Scratch renders the menu
   only while it's open, so a `MutationObserver` clones Scratch's "Auf deinem Computer speichern" item each
-  time. The clones keep `data-menu-item`, so Scratch's menu hook moves through them with the arrow keys and
+  time. It finds that item by its label in the language picked in Scratch (message
+  `gui.menuBar.downloadToComputer` from the GUI's redux `locales`; languages without a translation, English
+  among them, show the default "Save to your computer"). Our labels stay German, like the dialog. The clones keep `data-menu-item`, so Scratch's menu hook moves through them with the arrow keys and
   clicks them on Enter. A click sends an Escape keydown (Scratch 15's file menu isn't in redux; Escape is how
   its hook closes it) and calls `window.ki.openLocker`, which the host sets.
 - **Server:** [locker.ts](../src/server/locker.ts) passes the calls on, because the Locker's CORS allows

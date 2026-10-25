@@ -1,21 +1,25 @@
 // @vitest-environment jsdom
 import { expect, test, vi } from 'vitest';
 import type { LockerAction } from '../shared/locker.ts';
-import { addLockerMenu, SAVE_TO_COMPUTER } from './locker-menu.ts';
+import type { GuiStore } from '../shared/scratch/vm-types.ts';
+import { addLockerMenu, saveToComputerLabel } from './locker-menu.ts';
+
+const SAVE_TO_COMPUTER = 'Auf deinem Computer speichern';
+const german = () => SAVE_TO_COMPUTER;
 
 const ITEM =
   'class="menu_menu-item_x menu_hoverable_y" tabindex="-1" data-menu-item="true" data-menu-item-wrapper="false"';
 /** Scratch's Datei menu as it renders it (scratch-gui 15.3) */
-const fileMenu = () =>
+const fileMenu = (save = SAVE_TO_COMPUTER) =>
   `<ul class="menu_menu_a"><li class="menu_menu-item_x menu_hoverable_y menu_menu-section_z" tabindex="-1" data-menu-item="true"><span>Neu</span></li>` +
   `<li class="menu_menu-item_x menu_hoverable_y menu_menu-section_z" tabindex="-1" data-menu-item="true">Load from your computer</li>` +
-  `<li ${ITEM}><span>${SAVE_TO_COMPUTER}</span></li></ul>`;
+  `<li ${ITEM}><span>${save}</span></li></ul>`;
 const settle = () => new Promise((r) => setTimeout(r));
 
 test('each time the Datei menu opens, it gets the two Locker entries in their own section', async () => {
   document.body.innerHTML = '<div id="bar"></div>';
   const opened: LockerAction[] = [];
-  const stop = addLockerMenu(document, (action) => opened.push(action));
+  const stop = addLockerMenu(document, german, (action) => opened.push(action));
   const bar = document.getElementById('bar') as HTMLElement;
 
   for (let i = 0; i < 2; i++) {
@@ -43,7 +47,7 @@ test('each time the Datei menu opens, it gets the two Locker entries in their ow
 test('a click closes the menu like Escape and opens the dialog', async () => {
   document.body.innerHTML = `<div id="bar">${fileMenu()}</div>`;
   const opened: LockerAction[] = [];
-  const stop = addLockerMenu(document, (action) => opened.push(action));
+  const stop = addLockerMenu(document, german, (action) => opened.push(action));
   document.body.append(document.createElement('span')); // any change brings the observer in
   await settle();
   const escapes = vi.fn();
@@ -52,5 +56,25 @@ test('a click closes the menu like Escape and opens the dialog', async () => {
   (document.querySelector('[data-locker="load"]') as HTMLElement).click();
   expect(escapes.mock.calls).toEqual([['Escape'], ['Escape']]);
   expect(opened).toEqual(['save', 'load']);
+  stop();
+});
+
+test('the anchor follows the language picked in Scratch', async () => {
+  const store = (messages: Record<string, string>) =>
+    ({ getState: () => ({ locales: { locale: 'x', messages } }) }) as unknown as GuiStore;
+  expect(saveToComputerLabel(store({ 'gui.menuBar.downloadToComputer': SAVE_TO_COMPUTER }))).toBe(SAVE_TO_COMPUTER);
+  // English has no translation: Scratch shows its default text
+  const english = store({});
+  expect(saveToComputerLabel(english)).toBe('Save to your computer');
+
+  document.body.innerHTML = `<div id="bar">${fileMenu('Save to your computer')}</div>`;
+  const stop = addLockerMenu(
+    document,
+    () => saveToComputerLabel(english),
+    () => {},
+  );
+  document.body.append(document.createElement('span'));
+  await settle();
+  expect(document.querySelectorAll('[data-locker]')).toHaveLength(3);
   stop();
 });

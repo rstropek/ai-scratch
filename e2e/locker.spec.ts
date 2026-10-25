@@ -134,3 +134,18 @@ test('the Locker entries work with the keyboard, and Escape closes the dialog', 
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
 });
+
+test('the Locker entries stay when the kid switches Scratch to English', async ({ page }) => {
+  const editor = await openApp(page);
+  // exactly what Scratch's language menu dispatches
+  await editor.evaluate(() => window.ki?.store.dispatch({ type: 'scratch-gui/locales/SELECT_LOCALE', locale: 'en' }));
+  await editor.locator('[class*="menu-bar_menu-bar-item_"]', { hasText: 'File' }).click();
+  await expect(editor.locator('li[data-menu-item]')).toHaveText([
+    'New',
+    'Load from your computer',
+    'Save to your computer',
+    'Aus dem Locker laden',
+    'Im Locker speichern',
+    'Locker in neuem Tab öffnen',
+  ]);
+});
