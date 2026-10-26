@@ -32,7 +32,7 @@ export const LivePage = ({ data, code }: { data: LiveData; code: string }) => {
     <div className="min-h-full">
       <TopBar school={school?.name} />
       <main className="mx-auto max-w-6xl px-6 pt-10 pb-24">
-        <Intro school={school} code={code} />
+        <Intro school={school} code={code} teamsUrl={data.teamsUrl} />
         <Section title="Schule wählen" id="schule">
           <SchoolPicker schools={data.schools} school={school} onSchool={setSchool} />
         </Section>
@@ -51,7 +51,7 @@ export const LivePage = ({ data, code }: { data: LiveData; code: string }) => {
   );
 };
 
-const Intro = ({ school, code }: { school?: LiveSchool; code: string }) => (
+const Intro = ({ school, code, teamsUrl }: { school?: LiveSchool; code: string; teamsUrl?: string }) => (
   <section aria-labelledby="intro-title">
     <h1 id="intro-title" className="text-[1.875rem] leading-tight font-bold text-primary-ink">
       Alles für den Workshop-Tag
@@ -60,6 +60,12 @@ const Intro = ({ school, code }: { school?: LiveSchool; code: string }) => (
       Hier stehen alle Daten für jede Schule. Der Tag beginnt mit dem ersten Video; alles Weitere wird in den Videos
       erklärt.
     </p>
+    {teamsUrl && (
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <p className="text-lg leading-relaxed">Fragen während des Workshops? Rainer ist im Teams-Meeting erreichbar.</p>
+        <OpenButton href={teamsUrl} label="Teams-Meeting öffnen" />
+      </div>
+    )}
     <div className="mt-6 flex flex-wrap items-center gap-x-8 gap-y-4 rounded-xl border border-alert-border bg-alert px-6 py-5">
       <TriangleAlert aria-hidden className="size-7 shrink-0 text-warn-strong" />
       <div className="min-w-[18rem] flex-1">

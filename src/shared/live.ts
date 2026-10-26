@@ -30,6 +30,8 @@ export interface LiveData {
   schools: LiveSchool[];
   videos: LiveVideo[];
   playgroundUrl: string;
+  /** Rainer's Teams meeting for the teachers' questions on the day (not for the kids) */
+  teamsUrl?: string;
 }
 
 /** A Locker card file, for a plain link: the code comes as ?code=, the data isn't secret. */

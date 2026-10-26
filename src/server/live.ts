@@ -55,6 +55,7 @@ const liveJson = z.object({
   ),
   videos: z.array(z.object({ descriptId: z.string(), title: z.string(), minutes: z.number() })),
   playgroundUrl: z.string(),
+  teamsUrl: z.string().optional(),
 });
 
 const CACHE_MS = 60_000;
