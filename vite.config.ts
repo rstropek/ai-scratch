@@ -2,11 +2,25 @@ import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
+import { LIVE_PATH, PLAYGROUND_PATH } from './src/shared/live.ts'; // TEMPORARY: the event's teacher page
 
 const SERVER_PORT = Number(process.env.PORT ?? 3000);
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    // TEMPORARY: in dev, the teacher page's address gets live.html (production: src/server/live.ts)
+    {
+      name: 'live-page',
+      configureServer(server) {
+        server.middlewares.use((req, _res, next) => {
+          if (req.url?.split('?')[0] === LIVE_PATH) req.url = req.url.replace(LIVE_PATH, '/live.html');
+          next();
+        });
+      },
+    },
+  ],
   resolve: { alias: { '@': fileURLToPath(new URL('./src/client', import.meta.url)) } },
   // The unmodified Scratch standalone build expects its chunks/static files at the web root
   // (webpack publicPath "/"). In dev Vite serves them from node_modules; the production build
@@ -15,7 +29,10 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
-    proxy: { '/api': `http://localhost:${SERVER_PORT}` },
+    proxy: {
+      '/api': `http://localhost:${SERVER_PORT}`,
+      [PLAYGROUND_PATH]: `http://localhost:${SERVER_PORT}`, // TEMPORARY: the event's playground redirect
+    },
   },
   build: {
     outDir: 'dist/client',
@@ -25,6 +42,7 @@ export default defineConfig({
       input: {
         main: fileURLToPath(new URL('./index.html', import.meta.url)),
         editor: fileURLToPath(new URL('./editor.html', import.meta.url)),
+        live: fileURLToPath(new URL('./live.html', import.meta.url)), // TEMPORARY: the event's teacher page
       },
     },
   },

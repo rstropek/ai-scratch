@@ -1,0 +1,11 @@
+/* The teacher page scrolls as a document (the app is a fixed editor); anchors land below the sticky bar. */
+html {
+  scroll-padding-top: 4.5rem;
+  scrollbar-color: hsla(225, 15%, 40%, 0.4) transparent;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}

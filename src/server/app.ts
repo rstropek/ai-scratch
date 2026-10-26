@@ -10,6 +10,7 @@ import { createChatHandler } from './chat.ts';
 import { createCompactHandler } from './compact.ts';
 import type { Config } from './config.ts';
 import { createHearts } from './hearts.ts';
+import { addLiveRoutes, type LiveStore } from './live.ts'; // TEMPORARY: the event's teacher page
 import { addLockerRoutes } from './locker.ts';
 import { createStats } from './stats.ts';
 import type { LogSink } from './wire-log.ts';
@@ -19,15 +20,19 @@ export interface AppDeps {
   sink: LogSink;
   /** the fetch for Anthropic and Jev (tests pass a fake) */
   fetch?: typeof fetch;
+  /** TEMPORARY: the teacher page's data (live.ts); without it the page says it isn't set up */
+  live?: LiveStore;
 }
 
-export const createApp = ({ config, sink, fetch }: AppDeps): Hono => {
+export const createApp = ({ config, sink, fetch, live }: AppDeps): Hono => {
   const stats = createStats();
   const deps = { config, sink, stats, hearts: createHearts(), fetch };
   const app = new Hono();
 
   // for the deploy workflow and App Service: which commit is running, no access code needed
   app.get('/healthz', (c) => c.json({ version: config.version }));
+  // TEMPORARY: the teacher page checks its own code, so its routes come before the kids' access codes
+  addLiveRoutes(app, live, path.join(config.distDir, 'client'));
   app.use('/api/*', requireAccessCode(config.accessCodes));
   // the gate's check of a typed-in code: the middleware above does the work
   app.get('/api/access', (c) => c.body(null, 204));
