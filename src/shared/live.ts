@@ -1,8 +1,11 @@
-// TEMPORARY (Digitalferien 2026, remove after the event): the teacher page at /digiferien-2026-live.
+// TEMPORARY (Digitalferien 2026, remove after the event): the event page at /digiferien-2026-live
+// (the videos for everyone, below them the teachers' part).
 // Its data (live.json) and the Locker cards stay out of the repo; see src/server/live.ts.
 
 export const LIVE_PATH = '/digiferien-2026-live';
 export const LIVE_API = '/api/live';
+/** the videos, for everyone (no code) */
+export const LIVE_VIDEOS_API = '/api/live/videos';
 export const LIVE_CODE_HEADER = 'X-Live-Code';
 /** short enough for kids to type from the projector; redirects to live.json's playgroundUrl */
 export const PLAYGROUND_PATH = '/ts-playground';

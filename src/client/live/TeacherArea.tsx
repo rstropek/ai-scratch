@@ -1,69 +1,105 @@
-// The teacher page: what the day needs, top to bottom. The school decides the codes and Locker cards;
-// the videos are the same for every school.
-import { Check, Copy, Download, ExternalLink, FileSpreadsheet, TriangleAlert, Type } from 'lucide-react';
-import { type ReactNode, useEffect, useState } from 'react';
+// The teachers' part of the page, below the videos: locked by the teacher code, then what each school needs
+// (its KI access code, its Locker cards, the short addresses) plus Rainer's Teams meeting.
+import {
+  Check,
+  Copy,
+  Download,
+  ExternalLink,
+  FileSpreadsheet,
+  KeyRound,
+  LoaderCircle,
+  Lock,
+  TriangleAlert,
+  Type,
+} from 'lucide-react';
+import { type FormEvent, type ReactNode, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { type LiveData, type LiveSchool, liveFileUrl, PLAYGROUND_PATH } from '../../shared/live.ts';
-import { remember, remembered } from './live-api.ts';
 import { Section } from './Section.tsx';
-import { TopBar } from './TopBar.tsx';
-import { Videos } from './Videos.tsx';
 
-/** ?schule= in the link wins over the school this browser remembers */
-const initialSchool = (schools: LiveSchool[]): LiveSchool | undefined => {
-  const id = new URL(location.href).searchParams.get('schule') ?? remembered('school');
-  return schools.find((s) => s.id === id);
-};
-
-export const LivePage = ({ data, code }: { data: LiveData; code: string }) => {
-  const [school, setSchool] = useState(() => initialSchool(data.schools));
-
-  // the address names the school, so the page can be bookmarked or passed on per school
-  useEffect(() => {
-    remember('school', school?.id);
-    const url = new URL(location.href);
-    if (school) url.searchParams.set('schule', school.id);
-    else url.searchParams.delete('schule');
-    history.replaceState(history.state, '', url);
-  }, [school]);
-
+export const TeacherGate = ({
+  checking,
+  error,
+  onCode,
+}: {
+  checking: boolean;
+  error?: string;
+  onCode: (code: string) => void;
+}) => {
+  const [code, setCode] = useState('');
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!checking && code.trim()) onCode(code.trim());
+  };
   return (
-    <div className="min-h-full">
-      <TopBar school={school?.name} />
-      <main className="mx-auto max-w-6xl px-6 pt-10 pb-24">
-        <Intro school={school} code={code} teamsUrl={data.teamsUrl} />
-        <Section title="Schule wählen" id="schule">
-          <SchoolPicker schools={data.schools} school={school} onSchool={setSchool} />
-        </Section>
-        <Videos videos={data.videos} />
-        <Section title="Wichtige Links" id="links">
-          {school ? (
-            <Links school={school} code={code} />
+    <form onSubmit={onSubmit} className="max-w-xl rounded-xl bg-card p-6 shadow-[0_1px_3px_hsla(225,30%,40%,0.12)]">
+      <p className="leading-relaxed">
+        Zugangscodes, Locker-Karten und Links für jede Schule. Der Code dafür steht in der E-Mail zu den Digitalferien
+        2026.
+      </p>
+      <label htmlFor="live-code" className="mt-5 flex items-center gap-1.5 font-bold text-primary-ink">
+        <KeyRound aria-hidden className="size-[1.1em] text-primary" />
+        Code für Lehrkräfte
+      </label>
+      <div className="mt-2 flex gap-2">
+        <input
+          id="live-code"
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          disabled={checking}
+          autoComplete="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? 'live-error' : undefined}
+          className="min-w-0 flex-1 rounded-lg border bg-white px-3 py-2 text-base transition-[border-color,box-shadow] duration-150 outline-none focus:border-primary focus:ring-4 focus:ring-ring disabled:opacity-60 aria-invalid:border-alert-border"
+        />
+        <Button type="submit" className="h-auto px-5 py-2 text-base font-bold" disabled={checking || !code.trim()}>
+          {checking ? (
+            <>
+              <LoaderCircle aria-hidden className="animate-spin motion-reduce:animate-none" />
+              prüfe…
+            </>
           ) : (
-            <p className="rounded-xl border border-dashed border-[hsla(225,20%,40%,0.35)] px-6 py-8 text-center">
-              Oben die Schule wählen, dann stehen hier ihr KI-Zugangscode und ihre Locker-Karten.
-            </p>
+            'Freischalten'
           )}
-        </Section>
-      </main>
-    </div>
+        </Button>
+      </div>
+      {error && (
+        <p id="live-error" role="alert" className="mt-3 rounded-lg border border-alert-border bg-alert px-3.5 py-2">
+          {error}
+        </p>
+      )}
+    </form>
   );
 };
 
-const Intro = ({ school, code, teamsUrl }: { school?: LiveSchool; code: string; teamsUrl?: string }) => (
-  <section aria-labelledby="intro-title">
-    <h1 id="intro-title" className="text-[1.875rem] leading-tight font-bold text-primary-ink">
-      Alles für den Workshop-Tag
-    </h1>
-    <p className="mt-3 max-w-[62ch] text-lg leading-relaxed">
-      Hier stehen alle Daten für jede Schule. Der Tag beginnt mit dem ersten Video; alles Weitere wird in den Videos
-      erklärt.
-    </p>
-    {teamsUrl && (
-      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+export const TeacherArea = ({
+  data,
+  code,
+  school,
+  onSchool,
+  onLock,
+}: {
+  data: LiveData;
+  code: string;
+  school?: LiveSchool;
+  onSchool: (school: LiveSchool) => void;
+  onLock: () => void;
+}) => (
+  <>
+    <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-3">
+      <p className="max-w-[62ch] text-lg leading-relaxed">Hier stehen alle Daten für jede Schule.</p>
+      <Button variant="outline" className="h-10 bg-card px-4 text-[0.9375rem] font-bold" onClick={onLock}>
+        <Lock aria-hidden />
+        Bereich sperren
+      </Button>
+    </div>
+    {data.teamsUrl && (
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
         <p className="text-lg leading-relaxed">Fragen während des Workshops? Rainer ist im Teams-Meeting erreichbar.</p>
-        <OpenButton href={teamsUrl} label="Teams-Meeting öffnen" />
+        <OpenButton href={data.teamsUrl} label="Teams-Meeting öffnen" />
       </div>
     )}
     <div className="mt-6 flex flex-wrap items-center gap-x-8 gap-y-4 rounded-xl border border-alert-border bg-alert px-6 py-5">
@@ -88,7 +124,19 @@ const Intro = ({ school, code, teamsUrl }: { school?: LiveSchool; code: string; 
         </a>
       )}
     </div>
-  </section>
+    <Section title="Schule wählen" id="schule" level={3}>
+      <SchoolPicker schools={data.schools} school={school} onSchool={onSchool} />
+    </Section>
+    <Section title="Wichtige Links" id="links" level={3}>
+      {school ? (
+        <Links school={school} code={code} />
+      ) : (
+        <p className="rounded-xl border border-dashed border-[hsla(225,20%,40%,0.35)] px-6 py-8 text-center">
+          Oben die Schule wählen, dann stehen hier ihr KI-Zugangscode und ihre Locker-Karten.
+        </p>
+      )}
+    </Section>
+  </>
 );
 
 const SchoolPicker = ({

@@ -74,6 +74,13 @@ describe('teacher page (/api/live)', () => {
     expect((await app.request(liveFileUrl('karten.csv', 'Lehrer-Test'))).status).toBe(404);
   });
 
+  test('the videos need no code', async () => {
+    const res = await setup().request('/api/live/videos');
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ videos: live.videos });
+    expect((await setup(false).request('/api/live/videos')).status).toBe(503);
+  });
+
   test('/ts-playground redirects to the playground without a code', async () => {
     const res = await setup().request('/ts-playground');
     expect(res.status).toBe(302);

@@ -1,5 +1,5 @@
-// TEMPORARY (Digitalferien 2026, remove after the event): the teacher page at /digiferien-2026-live, behind
-// one shared teacher code. Its data is live.json plus the Locker card files, kept out of the repo: in the
+// TEMPORARY (Digitalferien 2026, remove after the event): the event page at /digiferien-2026-live, with the
+// videos for everyone and a teachers' part behind one shared code. Its data is live.json plus the Locker card files, kept out of the repo: in the
 // git-ignored folder live/ locally, in the Blob container `live` on Azure (scripts/azure/live.sh).
 // Minimal protection on purpose: nothing here is really secret.
 //
@@ -14,7 +14,14 @@ import { serveStatic } from '@hono/node-server/serve-static';
 import type { Hono } from 'hono';
 import { z } from 'zod';
 import { normalizeCode } from '../shared/access.ts';
-import { LIVE_API, LIVE_CODE_HEADER, LIVE_PATH, type LiveData, PLAYGROUND_PATH } from '../shared/live.ts';
+import {
+  LIVE_API,
+  LIVE_CODE_HEADER,
+  LIVE_PATH,
+  LIVE_VIDEOS_API,
+  type LiveData,
+  PLAYGROUND_PATH,
+} from '../shared/live.ts';
 
 /** Reads a file of the live folder; undefined if it doesn't exist. */
 export type LiveStore = (name: string) => Promise<Buffer | undefined>;
@@ -92,6 +99,13 @@ export const addLiveRoutes = (app: Hono, store: LiveStore | undefined, distDir: 
       return c.json({ error: 'Falscher Zugangscode' }, 401);
     const { code: _, ...data } = live;
     return c.json(data satisfies LiveData);
+  });
+
+  // the videos are for everyone, kids included: no code
+  app.get(LIVE_VIDEOS_API, async (c) => {
+    const live = await load().catch(() => undefined);
+    if (!live) return c.json({ error: 'Die Seite ist noch nicht eingerichtet.' }, 503);
+    return c.json({ videos: live.videos });
   });
 
   app.get(`${LIVE_API}/files/:name`, async (c) => {

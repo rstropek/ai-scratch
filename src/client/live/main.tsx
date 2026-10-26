@@ -1,4 +1,4 @@
-// TEMPORARY (Digitalferien 2026): the teacher page at /digiferien-2026-live (src/server/live.ts).
+// TEMPORARY (Digitalferien 2026): the event page at /digiferien-2026-live (src/server/live.ts).
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import '../index.css';
