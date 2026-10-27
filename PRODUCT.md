@@ -2,7 +2,7 @@
 
 <!-- impeccable:product-schema 1 -->
 
-Scope: the KI-Scratch app and its pages for the event. The slide deck has its own record in `slides/PRODUCT.md`.
+Scope: the KI-Scratch app and the video page for the event (`/digiferien-2026-live`, still online). The slide deck has its own record in `slides/PRODUCT.md`.
 
 ## Platform
 
@@ -26,14 +26,14 @@ A one-day AI workshop, "Digitalferien 2026", run once next week. Kids follow Rai
 ## Capabilities and Constraints
 
 - German UI; desktop only.
-- The code is published under AGPL: codes, keys and school data never go into the repo or the public bundle.
+- The code is published under AGPL: codes, keys and school data never go into the repo or the public bundle (the video list is public).
 - Kids' KI access codes: one per school, not case-sensitive.
 
 ## Brand Commitments
 
 - Event name: "Digitalferien 2026" (the repo says Digiferien).
-- The app's look is Scratch 3's own GUI palette (`src/client/index.css`); pages for teachers use it too (Rainer's choice). The slides use a separate sticker-album look.
-- Teacher-facing text addresses no one directly ("Schule wählen", "Video starten"): kids may read along on the projector.
+- The app's look is Scratch 3's own GUI palette (`src/client/index.css`); the video page uses it too (Rainer's choice). The slides use a separate sticker-album look.
+- Text on the video page addresses no one directly ("Schule wählen", "Video starten"): kids may read along on the projector.
 
 ## Evidence on Hand
 
@@ -43,4 +43,4 @@ A one-day AI workshop, "Digitalferien 2026", run once next week. Kids follow Rai
 
 - Reliable on the day beats feature-rich.
 - Teachers are not tech experts: every step obvious, nothing to configure.
-- Kid-facing and teacher-facing text is German; code is English.
+- Text for kids and teachers is German; code is English.

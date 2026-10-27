@@ -1,12 +1,12 @@
 // The seven videos, one after the other: the day as a strip (each video as wide as it is long), one player,
 // and "Weiter" to the next. The Beamer-Ansicht puts strip, player and buttons on the whole screen, so the
-// projector shows nothing else (no codes, no Locker cards).
+// projector shows nothing else.
 import { Check, ChevronLeft, ChevronRight, Maximize, Minimize, Play } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { LiveVideo } from '../../shared/live.ts';
-import { remember, remembered } from './live-api.ts';
+import { remember, remembered } from './remember.ts';
+import type { LiveVideo } from './video-list.ts';
 
 export const minutes = (m: number) =>
   m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} min`;

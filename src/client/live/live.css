@@ -1,4 +1,4 @@
-/* The teacher page scrolls as a document (the app is a fixed editor); anchors land below the sticky bar. */
+/* The video page scrolls as a document (the app is a fixed editor); anchors land below the sticky bar. */
 html {
   scroll-padding-top: 4.5rem;
   scrollbar-color: hsla(225, 15%, 40%, 0.4) transparent;

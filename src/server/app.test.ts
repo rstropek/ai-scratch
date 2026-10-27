@@ -572,6 +572,18 @@ describe('frage KI block', () => {
   });
 });
 
+describe('video page', () => {
+  test('its address gets live.html, without an access code', async () => {
+    const distDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dist-'));
+    fs.mkdirSync(path.join(distDir, 'client'));
+    fs.writeFileSync(path.join(distDir, 'client', 'live.html'), '<title>videos</title>');
+    const sink: LogSink = { storePrefix: () => 'h', append: () => {}, appendGuard: () => {} };
+    const res = await createApp({ config: { ...config, distDir }, sink }).request('/digiferien-2026-live');
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe('<title>videos</title>');
+  });
+});
+
 describe('slide deck', () => {
   const deck = () => {
     const distDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dist-'));

@@ -2,7 +2,7 @@ import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
-import { LIVE_PATH, PLAYGROUND_PATH } from './src/shared/live.ts'; // TEMPORARY: the event's teacher page
+import { LIVE_PATH } from './src/shared/live.ts';
 
 const SERVER_PORT = Number(process.env.PORT ?? 3000);
 
@@ -10,7 +10,7 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    // TEMPORARY: in dev, the teacher page's address gets live.html (production: src/server/live.ts)
+    // in dev, the video page's address gets live.html (production: src/server/app.ts)
     {
       name: 'live-page',
       configureServer(server) {
@@ -29,10 +29,7 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
-    proxy: {
-      '/api': `http://localhost:${SERVER_PORT}`,
-      [PLAYGROUND_PATH]: `http://localhost:${SERVER_PORT}`, // TEMPORARY: the event's playground redirect
-    },
+    proxy: { '/api': `http://localhost:${SERVER_PORT}` },
   },
   build: {
     outDir: 'dist/client',
@@ -42,7 +39,7 @@ export default defineConfig({
       input: {
         main: fileURLToPath(new URL('./index.html', import.meta.url)),
         editor: fileURLToPath(new URL('./editor.html', import.meta.url)),
-        live: fileURLToPath(new URL('./live.html', import.meta.url)), // TEMPORARY: the event's teacher page
+        live: fileURLToPath(new URL('./live.html', import.meta.url)), // the video page
       },
     },
   },

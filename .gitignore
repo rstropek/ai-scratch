@@ -2,7 +2,7 @@ node_modules/
 .env
 dist/
 logs/
-# TEMPORARY: the teacher page's data (src/server/live.ts)
+# the event's teacher data (school codes, Locker cards): local only, never commit
 /live/
 test-results/
 playwright-report/
