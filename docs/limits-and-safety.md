@@ -74,12 +74,13 @@ changing questions or thresholds (it calls the real Jev, so it is not part of `n
   last 3000 characters of its text instead, and is screened with its own description of a chatbot (role
   play passes): [ki-block.md](ki-block.md).
 - The Jev model version is pinned (`JEV_MODEL`): the thresholds are tuned against it.
-- **Logs:** a message flagged as personal data is stored as a placeholder, never verbatim.
+- **Logs** (only with `LOG_DIR`, never in production since 2026-10-27): a message flagged as personal data is
+  stored as a placeholder, never verbatim.
 
 ## Access codes
 
-- One code per school, case-insensitive, from `ACCESS_CODES`. They group the research log by school and keep
-  strangers out; they are not security (no login hardening, by decision).
+- One code per school, case-insensitive, from `ACCESS_CODES`. They keep strangers out (and grouped the event's
+  research log by school); they are not security (no login hardening, by decision).
 - A kid types the code into the chat panel or gets it via `?code=` in the link. The link's code is removed from
   the address bar right away, so kids don't pass it on, and the browser remembers it (localStorage).
 - A 401 on any `/api` call sends the chat back to the gate.

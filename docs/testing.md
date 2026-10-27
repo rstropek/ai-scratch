@@ -60,7 +60,7 @@ virtual clock with seeded randomness, so even fast games are tested reliably and
   fault; confirm it with `play`/`project` first.
 - **Traps:**
   - The harness serves `dist/`, so run `npm run build` after client changes.
-  - Runs never log to Azure Blob (`LOG_BLOB_URL=''`), and run against local servers only.
+  - Runs log to their own folder (`LOG_DIR`) and run against local servers only.
 
 ## Traps
 
@@ -70,8 +70,9 @@ virtual clock with seeded randomness, so even fast games are tested reliably and
 
 ## Debugging a real session
 
-- Find the session in the research log ([research-log.md](research-log.md)); each call record has the model
-  input and the answer, including tool calls.
+- Find the session in a call log: the event's research log in Azure, or a local one with `LOG_DIR`
+  ([research-log.md](research-log.md)). Production stores nothing since 2026-10-27. Each call record has the
+  model input and the answer, including tool calls.
 - **Replay its tool calls** in the dev app (`npm run dev` only: the import needs Vite, so not on the
   production build or Azure). In the browser console, run
   `const { createToolRunner } = await import('/src/client/scratch/tool-runner.ts')`, create a runner with the

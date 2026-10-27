@@ -1,6 +1,7 @@
-// Research log at the wire level: every Anthropic call is stored with the exact request body and the
-// response rebuilt from the SSE stream (thinking incl. signature, text, tool_use, usage), independent of
-// any framework abstraction. The static prefix (system prompt + tools, ~50 KB) is stored once per hash.
+// Call log at the wire level: each Anthropic call with the exact request body and the response rebuilt from
+// the SSE stream (thinking incl. signature, text, tool_use, usage), independent of any framework abstraction.
+// The usage always feeds the stats; the call itself is stored only with LOG_DIR (game harness, e2e, dev), never
+// in production. The static prefix (system prompt + tools, ~50 KB) is stored once per hash.
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -50,6 +51,9 @@ export interface LogSink {
 /** the name a stored prefix gets, the same in every sink */
 export const prefixHash = (prefix: string): string =>
   crypto.createHash('sha256').update(prefix).digest('hex').slice(0, 16);
+
+/** Stores nothing: the default, so no kid's conversation is kept. */
+export const noLogSink: LogSink = { storePrefix: () => '', append: () => {}, appendGuard: () => {} };
 
 /** calls.jsonl + guard.jsonl + prefix-<hash>.json files in a directory. */
 export const createFileLogSink = (dir: string): LogSink => {
@@ -192,6 +196,6 @@ export const createLoggingFetch =
         sink.append(record);
         onCall(record, usage, res.ok);
       })
-      .catch((e: unknown) => console.error('research log failed', e));
+      .catch((e: unknown) => console.error('call log failed', e));
     return new Response(forSdk, { status: res.status, statusText: res.statusText, headers: res.headers });
   };

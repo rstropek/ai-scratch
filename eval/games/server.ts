@@ -1,6 +1,6 @@
 // The app server for a harness run: the production build (npm run build), started with the harness's own
-// access code (an admin_ code: no hearts), the model and prompt under test, and its research log in the
-// run directory. Never the Azure Blob log: eval sessions must not mix with the kids' research data.
+// access code (an admin_ code: no hearts), the model and prompt under test, and its call log in the run
+// directory (LOG_DIR).
 import { type ChildProcess, spawn } from 'node:child_process';
 import fs from 'node:fs';
 
@@ -32,7 +32,6 @@ export const startServer = async ({
     PORT: String(port),
     ACCESS_CODES: EVAL_CODE,
     LOG_DIR: logDir,
-    LOG_BLOB_URL: '',
     ...(model ? { MODEL: model } : {}),
     ...(effort ? { EFFORT: effort } : {}),
     ...(instructionsFile ? { INSTRUCTIONS_FILE: instructionsFile } : {}),

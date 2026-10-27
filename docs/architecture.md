@@ -45,7 +45,7 @@ same code, hearts and guard, and a plain JSON answer ([ki-block.md](ki-block.md)
 
 ## Identity
 
-- **Access code:** one per school, sent as `X-Access-Code` on every `/api` call. It groups the research log
+- **Access code:** one per school, sent as `X-Access-Code` on every `/api` call. It grouped the research log
   by school; it is not security.
 - **Session:** `crypto.randomUUID()` per page load, sent as `X-Session-Id` (no cookie). A reload starts a
   new session: fresh hearts, empty chat. Hearts are keyed by it.
@@ -71,7 +71,7 @@ browser. The server's TypeScript runs in Node without a build step, so only eras
 - **To the model:** tool errors are English and say what to fix; the model reads them and retries. That
   includes inputs the model got wrong before any tool ran ([tool-input.ts](../src/server/tool-input.ts)):
   one or two brackets too many or too few are repaired (Haiku's typical mistake in long `add_scripts`
-  calls; the research log keeps the original), other broken JSON gets the spot where it broke instead of
+  calls; the call log keeps the original), other broken JSON gets the spot where it broke instead of
   the whole input again, and a tool call cut short by `max_tokens` becomes a tool error too (see
   limits-and-safety.md).
 - **Never fail a chat for a side concern:** logging, the editor tidy-up after `add_scripts` and Jev outages

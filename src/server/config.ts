@@ -19,9 +19,8 @@ export interface Config {
   jevModel: string;
   /** normalized (lowercase), so kids can type them in any case */
   accessCodes: Set<string>;
-  logDir: string;
-  /** Blob container for the research log (Azure); without it the log goes to logDir */
-  logBlobUrl: string | undefined;
+  /** where calls and guard screenings are stored; unset (production) stores nothing */
+  logDir: string | undefined;
   /** built client + precompressed Scratch bundle (npm run build) */
   distDir: string;
   /** the deployed git commit (the Docker build sets APP_VERSION); shown by /healthz */
@@ -60,8 +59,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): Config => {
     jevApiKey: required(env, 'JEV_API_KEY'),
     jevModel: env.JEV_MODEL?.trim() || 'jev-1.13.0',
     accessCodes,
-    logDir: env.LOG_DIR?.trim() || 'logs',
-    logBlobUrl: env.LOG_BLOB_URL?.trim() || undefined,
+    logDir: env.LOG_DIR?.trim() || undefined,
     distDir: env.DIST_DIR?.trim() || 'dist',
     version: env.APP_VERSION?.trim() || 'dev',
     lockerUrl: env.LOCKER_URL?.trim() || LOCKER_SITE,

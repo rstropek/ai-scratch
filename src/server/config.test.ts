@@ -25,3 +25,9 @@ test('effort and a replacement prompt are optional; a wrong effort stops the ser
   });
   expect(() => loadConfig({ ...base, EFFORT: 'mittel' })).toThrow('EFFORT must be one of');
 });
+
+test('without LOG_DIR nothing is stored', () => {
+  const base = { ACCESS_CODES: 'schule1', ANTHROPIC_API_KEY: 'k', JEV_API_KEY: 'j' };
+  expect(loadConfig(base).logDir).toBeUndefined();
+  expect(loadConfig({ ...base, LOG_DIR: ' logs ' }).logDir).toBe('logs');
+});

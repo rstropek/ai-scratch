@@ -15,7 +15,7 @@ Browser                                         Server (Hono, Azure)            
 ┌──────────────────┬───────────────────────┐    ┌─────────────────────┐        ┌───────────────────┐
 │ Chat (React)     │ Scratch 3 editor      │───▶│ access code, limits │───────▶│ Claude Haiku 5.5  │
 │ runs the AI's    │ (unmodified, iframe)  │◀───│ builds the AI input │        │ (Anthropic)       │
-│ tools ──────────▶│ live project          │    │ logs every AI call  │───────▶│ Jev (TypeSafe):   │
+│ tools ──────────▶│ live project          │    │ counts tokens, cost │───────▶│ Jev (TypeSafe):   │
 └──────────────────┴───────────────────────┘    └─────────────────────┘        │ kids protection   │
                                                                                └───────────────────┘
 ```
@@ -27,7 +27,7 @@ Browser                                         Server (Hono, Azure)            
 - **Scripts in a format models get right.** The AI reads and writes a compact JSON form of real Scratch
   blocks, which the app compiles into blocks: 96% correct in our tests, against 80% for raw Scratch project
   data.
-- **Every AI call is logged** with its token use, for research on how kids work with AI.
+- **No conversations are stored** (since the event; the logs from the event day are kept for research).
 - **Saving:** Scratch's *Datei* menu saves the project as an .sb3 file, or in the kid's **CoderDojo Locker**
   ("Im Locker speichern" / "Aus dem Locker laden" / "Locker in neuem Tab öffnen", with the code on their
   Locker sticker;
@@ -101,8 +101,8 @@ npm run dev            # http://localhost:5173/?code=<one of your access codes>
 | `EFFORT` | the chat's thinking effort, default `high` |
 | `INSTRUCTIONS_FILE` | replaces the built-in system prompt + tool instructions (for prompt variants in `eval:games`; not for production) |
 | `JEV_MODEL` | default `jev-1.13.0` (the guard thresholds are tuned against it) |
-| `PORT`, `LOG_DIR`, `DIST_DIR` | default `3000`, `logs`, `dist` |
-| `LOG_BLOB_URL` | Blob container for the research log (Azure, managed identity); without it the log goes to `LOG_DIR` |
+| `PORT`, `DIST_DIR` | default `3000`, `dist` |
+| `LOG_DIR` | stores every AI call and guard check there (game harness, e2e, debugging); unset by default and in production: nothing is stored |
 | `LOCKER_URL` | the CoderDojo Locker for saving games, default `https://locker.coderdojo.net` |
 
 ### Commands
@@ -130,7 +130,7 @@ restarts production and interrupts kids mid-answer. The reasons behind the setup
 |---|---|
 | Web app | `ai-scratch` in RG `2026-digitalferien`, on the existing P0v3 plan `ts-web-playground`: https://ai-scratch.azurewebsites.net, staging https://ai-scratch-staging.azurewebsites.net; `GET /healthz` shows the running commit, `/slides/` the slide deck |
 | Secrets | Key Vault `kv-digiferien`, read by the app's managed identity |
-| Research logs | storage account `stdigiferien`, container `logs`: one JSON blob per AI call and per guard check. No retention rule; Rainer deletes them by hand |
+| Research logs | storage account `stdigiferien`, container `logs`: one JSON blob per AI call and per guard check of the event, no longer written. No retention rule; Rainer deletes them by hand |
 | Image | `acrars2025.azurecr.io/ai-scratch:<commit>` |
 | Workflows | [deploy.yml](.github/workflows/deploy.yml) (push to `main` → staging), [swap.yml](.github/workflows/swap.yml) (manual → production); GitHub logs in with OIDC |
 
@@ -148,7 +148,7 @@ index.html, editor.html   host page, editor iframe page
 src/shared/               runs in the browser and in Node: script format, block catalog, tools, prompt
 src/editor/               inside the iframe: mounts Scratch, UI pointer, "frage KI" block, Locker menu entries, exposes window.ki
 src/client/               React host: chat panel, access gate, tool runner, Locker dialog
-src/server/               Hono: /api/chat, /api/ask, /api/locker, access code, guards, research log, stats
+src/server/               Hono: /api/chat, /api/ask, /api/locker, access code, guards, call log (opt-in), stats
 test/support/             headless scratch-vm, fake Anthropic streams, fixtures
 e2e/                      Playwright specs
 eval/guard/               labelled kid messages + runner for the kids-protection guard

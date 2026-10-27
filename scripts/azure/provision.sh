@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Creates (or updates) the Azure resources for the event: web app + staging slot on the existing P0v3 plan,
-# Key Vault with the server secrets, storage account for the research logs. Safe to re-run; re-running also
+# Key Vault with the server secrets, storage account with the research logs of the event (no longer written;
+# the stored ones stay). Safe to re-run; re-running also
 # re-uploads the secrets from .env (e.g. after swapping in the event key or the real access codes).
 # The image is set by the deploy workflow (.github/workflows/deploy.yml). Both slots pull from ACR with their
 # managed identity: a swap restarts staging with production's settings, so production needs the flag too.
@@ -54,7 +55,6 @@ az storage account create -g "$RG" -n "$STORAGE" -l "$LOCATION" --sku Standard_L
   --https-only true -o none
 az storage container-rm create -g "$RG" --storage-account "$STORAGE" -n "$CONTAINER" --public-access off -o none
 STORAGE_ID=$(az storage account show -g "$RG" -n "$STORAGE" --query id -o tsv)
-CONTAINER_SCOPE="$STORAGE_ID/blobServices/default/containers/$CONTAINER"
 assign "$ME" "Storage Blob Data Reader" "$STORAGE_ID" User
 
 log "Key Vault $KV"
@@ -93,7 +93,6 @@ SETTINGS=(
   "ANTHROPIC_API_KEY=@Microsoft.KeyVault(VaultName=$KV;SecretName=anthropic-api-key)"
   "JEV_API_KEY=@Microsoft.KeyVault(VaultName=$KV;SecretName=jev-api-key)"
   "ACCESS_CODES=@Microsoft.KeyVault(VaultName=$KV;SecretName=access-codes)"
-  "LOG_BLOB_URL=https://$STORAGE.blob.core.windows.net/$CONTAINER"
 )
 for slot in "" "$SLOT"; do
   target=(-g "$RG" -n "$APP")
@@ -101,7 +100,6 @@ for slot in "" "$SLOT"; do
   log "Configure ${slot:-production}"
   principal=$(az webapp identity assign "${target[@]}" --query principalId -o tsv)
   assign "$principal" "Key Vault Secrets User" "$KV_ID"
-  assign "$principal" "Storage Blob Data Contributor" "$CONTAINER_SCOPE"
   assign "$principal" "AcrPull" "$ACR_ID"
   az webapp update "${target[@]}" --https-only true --client-affinity-enabled true -o none
   az webapp config set "${target[@]}" --always-on true --min-tls-version 1.2 --ftps-state Disabled \

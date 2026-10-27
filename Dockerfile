@@ -26,7 +26,6 @@ COPY package.json ./
 COPY src/server ./src/server
 COPY src/shared ./src/shared
 COPY --from=build /app/dist ./dist
-RUN mkdir logs && chown node logs
 USER node
 EXPOSE 3000
 CMD ["node", "src/server/main.ts"]

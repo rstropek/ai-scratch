@@ -84,7 +84,7 @@ reply names the session folder (`eval/games/sessions/<local time>-<game>/`).
 - A failed tool call's error is cut to 400 characters; the full text is in `result.json`.
 - At the end, run `report --judge` and give the user the report path, plus your own findings: what broke,
   in which turn, whether undo helped, prompt or tool weaknesses. Include the session folder; it also holds
-  `final.sb3` and the research log (`logs/calls.jsonl`, one line per model call with the exact model input
+  `final.sb3` and the call log (`logs/calls.jsonl`, one line per model call with the exact model input
   and the answer, including what each tool returned: [docs/research-log.md](../../../docs/research-log.md)).
 
 ## Comparing variants without playing yourself

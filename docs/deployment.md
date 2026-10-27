@@ -10,11 +10,10 @@ truth for settings and roles.
   (his choice: no extra cost; the plan and the registry live in other resource groups). The app, Key Vault and
   storage are in their own group `2026-digitalferien`.
 - **A one-day event, not a product:** the setup favors working reliably on that day over elaborate operations.
-  No database, no Redis, no monitoring stack. Live counters come from `/api/stats`, the record from the
-  research log.
+  No database, no Redis, no monitoring stack. Live counters come from `/api/stats`; the research log of the
+  event day stays in Blob storage, nothing new is written ([research-log.md](research-log.md)).
 - **Several instances are possible:** ARR affinity is on, so a kid stays on one instance; hearts and stats are
-  per instance, which is acceptable ([limits-and-safety.md](limits-and-safety.md)). The research log writes one
-  blob per record so instances never collide.
+  per instance, which is acceptable ([limits-and-safety.md](limits-and-safety.md)).
 - **Secrets** live in a dedicated Key Vault, read by app settings that reference it, with the app's managed
   identity. **Never use the vault `kvtswebplayground`** on the same subscription: an external student account
   can read its secrets.

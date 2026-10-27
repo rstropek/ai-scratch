@@ -36,7 +36,7 @@ once), `--report` (Markdown + screenshots + the judge), `--skip-judge`, `--kid-m
 (`claude-sonnet-5-5` and `claude-opus-5-5`; the Opus kid was ~75 % of a run's cost), `--headed` (watch it), `--out`.
 
 Output: `eval/games/runs/<time>/` (git-ignored; sessions go to `eval/games/sessions/`). The folder holds `summary.md` (one row per run), the
-research log of every variant (`logs-N/`), and one folder per run. Each run folder has `result.json`,
+call log of every variant (`logs-N/`), and one folder per run. Each run folder has `result.json`,
 `final.sb3` (open it in Scratch), and with `--report` also `report.md` plus screenshots.
 
 ## How it works
@@ -71,7 +71,7 @@ research log of every variant (`logs-N/`), and one folder per run. Each run fold
   board), then compares every number with the bombs around it. It reads numbers and bombs from the
   costume names („1“, „bomb“…), because the bot can't read the drawing.
 - **The judge** (with `--report`): Claude reads the transcript and rates the teaching mode (1–5) with findings.
-- **Cost:** the app's calls come from the run's research log, the kid's and the judge's from the AI SDK
+- **Cost:** the app's calls come from the run's call log, the kid's and the judge's from the AI SDK
   ([pricing.ts](pricing.ts)). The kid and the judge usually cost more than the app on Haiku.
 
 ## Adding a game
@@ -113,5 +113,4 @@ and each broken one must fail its check. A check that fails on the reference is 
   the Memory cards as one row. The pictures come after „stoppe alles“, which clears every speech bubble, so
   the kid's sentence names what the game said („Dabei sagt Korb „Game Over““). A Minesweeper bomb that opens like a safe cell („offen“ plus „Verloren!“)
   is still a bomb; counting it as a number told the kid „Ich finde keine Bomben“ for 20 turns.
-- Runs never log to Azure Blob (the server gets `LOG_BLOB_URL=''`), so eval sessions don't mix with the
-  kids' research data.
+- Each run's server logs to the run's own folder (`LOG_DIR`); nothing goes to Azure.

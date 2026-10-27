@@ -10,7 +10,7 @@ written for coding agents (and humans) who change this app; read [AGENTS.md](../
 | [tools-and-scripts.md](tools-and-scripts.md) | a tool, its wording, the script format or the system prompt |
 | [conversation.md](conversation.md) | the model input, prompt caching, "Zusammenfassen" or the Gedächtnis gauge |
 | [limits-and-safety.md](limits-and-safety.md) | access codes, hearts, the kids-protection guard or the output limits |
-| [research-log.md](research-log.md) | logging, `/api/stats`, cost, or the stored logs in Azure |
+| [research-log.md](research-log.md) | the opt-in call log, `/api/stats`, cost, or the stored event logs in Azure |
 | [deployment.md](deployment.md) | the Dockerfile, the workflows, `scripts/azure`, any Azure setting, or how `/slides/` is served |
 | [ki-block.md](ki-block.md) | the "frage KI" block in kids' own programs, `/api/ask` or its guard |
 | [locker.md](locker.md) | saving and loading games in the CoderDojo Locker: the Datei menu entries, the dialog, `/api/locker` |

@@ -23,7 +23,7 @@ This repo is the **real app** the students use: the official, unmodified **Scrat
 - `docs/tools-and-scripts.md`: the tool families, the nested-JSON script format, tool wording, teaching mode in the prompt.
 - `docs/conversation.md`: the model input rebuilt per turn, prompt caching, "Zusammenfassen", the Gedächtnis gauge.
 - `docs/limits-and-safety.md`: access codes, hearts, the kids-protection guard, output limits.
-- `docs/research-log.md`: the research log (local and Azure Blob), `/api/stats`, cost.
+- `docs/research-log.md`: the local call log (opt-in), the stored event logs in Azure Blob, `/api/stats`, cost.
 - `docs/deployment.md`: Azure, the workflows, the scripts, and the traps we hit.
 - `docs/ki-block.md`: the "frage KI" block in kids' own programs (chatbots): `/api/ask`, its guard, hearts and caching.
 - `docs/locker.md`: saving and loading games in the CoderDojo Locker (entries in Scratch's Datei menu, `/api/locker`).
@@ -55,7 +55,7 @@ Not ported:
 
 - **Editor:** the `@scratch/scratch-gui` standalone build, unmodified, in a same-origin iframe; driven through the VM API.
 - **Host:** Vite + React 19 + TypeScript, Tailwind 4 + shadcn/ui.
-- **Backend:** Hono + Vercel AI SDK v7. Tools run in the browser on the live VM. The server rebuilds the model input every turn and logs every Anthropic call.
+- **Backend:** Hono + Vercel AI SDK v7. Tools run in the browser on the live VM. The server rebuilds the model input every turn; it stores no conversations (only a local log with `LOG_DIR`).
 - **Model:** Claude Haiku 5.5 (effort high), called through the Anthropic API directly. Requests need the `anthropic-workspace-id` header.
 - **Scripts:** the model reads and writes the nested-JSON DSL, never raw sb3.
 
@@ -104,7 +104,7 @@ Commands and folder overview: [README.md](README.md).
   - Warn before closing or reloading the tab. There is no session resume.
   - **Undo per AI answer:** "Rückgängig" under each answer that changed the project restores the project as it was when the kid sent the message before it, without asking (later changes, the kid's own included, are lost). The copies live in browser memory only.
 - **Logging and budget:**
-  - Store **all** LLM interactions for research, with token stats.
+  - During the event all LLM interactions were stored for research (kept in Azure Blob, never delete them). **Since 2026-10-27 no conversations are stored**; token stats stay in memory (`/api/stats`).
   - **KI-Energie** (`src/shared/energy.ts`, shown under the chat's top bar): **3 hearts**, one refills every 20 s (a token bucket per session; `admin_` codes are exempt), and the **Gedächtnis** gauge, the context of the latest turn against an **80k limit**. At the limit the kid frees it by hand ("Zusammenfassen" via `/api/compact`, or "Neu anfangen"); Rainer explains both in the video. The server enforces what the client shows.
   - Budget: 200 €/month.
 - **Hosting:** everything is deployed to **Microsoft Azure** with the `az` CLI, subscription **"Microsoft Azure Sponsorship"**. Details: `docs/deployment.md`.
