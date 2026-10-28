@@ -2,15 +2,17 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { parseJsonEventStream, readUIMessageStream, uiMessageChunkSchema } from 'ai';
-import { describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import { anthropicMessage, anthropicSse, sseResponse } from '../../test/support/anthropic-sse.ts';
 import type { ChatMessage } from '../shared/chat-types.ts';
 import { CONTEXT_LIMIT } from '../shared/energy.ts';
-import { ASK_FAILED } from '../shared/ki-block.ts';
+import { ASK_FAILED, ASK_PATH } from '../shared/ki-block.ts';
+import { BUDGET_EMPTY, OPENROUTER_LABEL } from './access.ts';
 import { createApp } from './app.ts';
 import { PIECE } from './ask.ts';
 import type { Config } from './config.ts';
 import { BLOCK_QUESTIONS, JEV_URL, type Nouls, QUESTIONS } from './guard.ts';
+import { WRONG_LOCKER_CODE } from './locker.ts';
 import { CUT_TOOL_CALL_ERROR, MAX_STEPS_PER_TURN, THOUGHT_TOO_LONG } from './output-guard.ts';
 import type { CallRecord, GuardRecord, LogSink } from './wire-log.ts';
 
@@ -19,6 +21,8 @@ const config: Config = {
   anthropicApiKey: 'test-key',
   anthropicWorkspaceId: 'ws-test',
   model: 'claude-haiku-5-5',
+  openRouterUrl: 'https://openrouter.test/api/v1',
+  openRouterModel: 'anthropic/claude-haiku-5.5',
   effort: 'high',
   instructions: undefined,
   jevApiKey: 'jev-key',
@@ -40,8 +44,25 @@ const jevAnswer = (nouls: Nouls = {}) =>
     usage: { input_tokens: 500, output_tokens: 10 },
   });
 
+/** OpenRouter's GET /key for a key with a $5 limit, $4.99 left */
+const keyInfo = (data: Record<string, unknown> = {}) =>
+  Response.json({ data: { label: 'sk-or-v1-abc...xyz', limit: 5, limit_remaining: 4.99, usage: 0.01, ...data } });
+
+/** OpenRouter's GET /credits for an account with $10 bought, $1 used */
+const creditsInfo = (data: Record<string, unknown> = {}) =>
+  Response.json({ data: { total_credits: 10, total_usage: 1, ...data } });
+
+interface FakeOpenRouter {
+  /** GET /key */
+  key?: () => Response | Promise<Response>;
+  /** GET /credits */
+  credits?: () => Response | Promise<Response>;
+  /** answers a model call instead of the fake reply */
+  refuse?: () => Response | undefined;
+}
+
 /** `reply`: the fake Anthropic answer, or one per call (the last one repeats). */
-const setup = (reply: string | string[], nouls?: Nouls) => {
+const setup = (reply: string | string[], nouls?: Nouls, openRouter: FakeOpenRouter = {}) => {
   const replies = [reply].flat();
   const records: CallRecord[] = [];
   const guardRecords: GuardRecord[] = [];
@@ -52,19 +73,34 @@ const setup = (reply: string | string[], nouls?: Nouls) => {
   };
   const requests: { url: string; headers: Headers; body: Record<string, unknown> }[] = [];
   const jevRequests: Record<string, unknown>[] = [];
+  const keyChecks: Headers[] = [];
   const fakeFetch: typeof fetch = async (url, init) => {
+    if (String(url) === `${config.openRouterUrl}/key`) {
+      keyChecks.push(new Headers(init?.headers));
+      return (openRouter.key ?? keyInfo)();
+    }
+    if (String(url) === `${config.openRouterUrl}/credits`) return (openRouter.credits ?? creditsInfo)();
     if (String(url) === JEV_URL) {
       jevRequests.push(JSON.parse(String(init?.body)));
       return jevAnswer(nouls);
     }
     const body = JSON.parse(String(init?.body));
     requests.push({ url: String(url), headers: new Headers(init?.headers), body });
+    const refused = openRouter.refuse?.();
+    if (refused) return refused;
     const next = replies.length > 1 ? (replies.shift() as string) : (replies[0] as string);
     // generateText (compact) asks for a plain JSON message
     if (!body.stream) return Response.json(anthropicMessage(next));
     return sseResponse(next);
   };
-  return { app: createApp({ config, sink, fetch: fakeFetch }), records, guardRecords, requests, jevRequests };
+  return {
+    app: createApp({ config, sink, fetch: fakeFetch }),
+    records,
+    guardRecords,
+    requests,
+    jevRequests,
+    keyChecks,
+  };
 };
 
 const userMessage = (text: string, id = 'u1') => ({
@@ -568,6 +604,146 @@ describe('frage KI block', () => {
     const res = await ask(app, 'Hallo');
     expect(res.status).toBe(502);
     expect(await res.json()).toEqual({ error: ASK_FAILED });
+  });
+});
+
+describe("parents' own OpenRouter key", () => {
+  afterEach(() => vi.useRealTimers());
+  const KEY = 'sk-or-v1-AbCdEf0123456789';
+  const check = (app: ReturnType<typeof setup>['app'], key = KEY) =>
+    app.request('/api/access', { headers: { 'X-Access-Code': key } });
+
+  test('the gate asks OpenRouter about the key, unchanged in case, and remembers a good one', async () => {
+    const { app, keyChecks } = setup('');
+    expect((await check(app, `  ${KEY} `)).status).toBe(204);
+    expect(keyChecks[0]?.get('authorization')).toBe(`Bearer ${KEY}`);
+    expect((await check(app)).status).toBe(204);
+    expect(keyChecks).toHaveLength(1);
+  });
+
+  test('refuses an unknown key, a key without limit or money left, and says when OpenRouter is down', async () => {
+    const refusal = async (key: () => Response | Promise<Response>, credits?: () => Response) => {
+      const res = await check(setup('', undefined, { key, credits }).app);
+      return { status: res.status, body: await res.json() };
+    };
+    expect(await refusal(() => Response.json({ error: { code: 401 } }, { status: 401 }))).toMatchObject({
+      status: 401,
+      body: { reason: 'unknown' },
+    });
+    expect(await refusal(() => keyInfo({ limit: null, limit_remaining: null }))).toMatchObject({
+      status: 403,
+      body: { reason: 'no-limit' },
+    });
+    expect(await refusal(() => keyInfo({ limit_remaining: 0 }))).toEqual({
+      status: 402,
+      body: { reason: 'empty', error: BUDGET_EMPTY },
+    });
+    // a limit on the key, but nothing left on the account
+    expect(await refusal(keyInfo, () => creditsInfo({ total_usage: 10 }))).toMatchObject({
+      status: 402,
+      body: { reason: 'empty' },
+    });
+    expect(await refusal(() => new Response('', { status: 500 }))).toMatchObject({
+      status: 503,
+      body: { reason: 'down' },
+    });
+    expect(
+      await refusal(() => {
+        throw new TypeError('fetch failed');
+      }),
+    ).toMatchObject({ status: 503, body: { reason: 'down' } });
+  });
+
+  test("the chat calls OpenRouter with the parent's key; logs and hearts never see the key", async () => {
+    const { app, requests, records, guardRecords } = setup(anthropicSse({ text: 'Hallo Kind!' }));
+    const stream = await (await post(app, chatBody, KEY)).text();
+    expect(stream).toContain('"delta":"Hallo Kind!"');
+    const call = requests[0];
+    expect(call?.url).toBe('https://openrouter.test/api/v1/messages');
+    expect(call?.headers.get('authorization')).toBe(`Bearer ${KEY}`);
+    expect(call?.headers.get('x-api-key')).toBeNull();
+    expect(call?.headers.get('anthropic-workspace-id')).toBeNull();
+    expect(call?.body).toMatchObject({ model: 'anthropic/claude-haiku-5.5', thinking: { type: 'adaptive' } });
+    await expect.poll(() => records.length).toBe(1);
+    expect(records[0]).toMatchObject({ accessCode: OPENROUTER_LABEL, session: 'sess' });
+    expect(JSON.stringify([records, guardRecords])).not.toContain(KEY);
+    // hearts as for a school code
+    for (const id of ['u2', 'u3']) await (await post(app, { messages: [userMessage('Hi', id)] }, KEY)).text();
+    expect((await post(app, { messages: [userMessage('Hi', 'u4')] }, KEY)).status).toBe(429);
+  });
+
+  test('a spent budget reaches the kid in German; then the key is refused for a minute without a model call', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    let spent = true;
+    // only the "frage KI" block gets past the refusal: a plain JSON answer
+    const { app, keyChecks, requests, jevRequests } = setup('Ok', undefined, {
+      refuse: () =>
+        spent
+          ? Response.json(
+              {
+                error: { code: 403, message: 'Key limit exceeded', metadata: { limit_source: 'openrouter_key_limit' } },
+              },
+              { status: 403 },
+            )
+          : undefined,
+    });
+    const stream = await (await post(app, chatBody, KEY)).text();
+    expect(stream).toContain(JSON.stringify(JSON.stringify({ error: BUDGET_EMPTY })).slice(1, -1));
+    expect(requests).toHaveLength(1);
+    // OpenRouter's GET /key would still pass the key: refused anyway, before a heart, Jev or a model call
+    const compact = await post(app, { messages: [userMessage('Hallo')] }, KEY, '/api/compact');
+    expect(compact.status).toBe(402);
+    expect(await compact.json()).toEqual({ error: BUDGET_EMPTY, reason: 'empty' });
+    expect((await post(app, { messages: [userMessage('Hi', 'u2')] }, KEY)).status).toBe(402);
+    expect([requests.length, jevRequests.length, keyChecks.length]).toEqual([1, 1, 1]);
+    // the parents raised the limit: a minute later the key is asked about again
+    spent = false;
+    vi.setSystemTime(Date.now() + 61_000);
+    const ask = await post(app, { question: 'Hallo?' }, KEY, ASK_PATH);
+    expect(await ask.json()).toEqual({ answer: 'Ok' });
+    expect(keyChecks).toHaveLength(2);
+  });
+
+  test('a 403 without a budget behind it (moderation) is not a spent budget', async () => {
+    const { app } = setup('', undefined, {
+      refuse: () =>
+        Response.json({ error: { code: 403, message: 'flagged', metadata: { reasons: ['x'] } } }, { status: 403 }),
+    });
+    const res = await post(app, { question: 'Hallo?' }, KEY, ASK_PATH);
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({ error: ASK_FAILED });
+    expect((await check(app)).status).toBe(204);
+  });
+
+  test('the Locker works without money left or with OpenRouter down; an unknown key is refused', async () => {
+    const locker = (key: () => Response | Promise<Response>) =>
+      setup('', undefined, { key }).app.request('/api/locker', { headers: { 'X-Access-Code': KEY } });
+    for (const key of [() => keyInfo({ limit_remaining: 0 }), () => new Response('', { status: 500 })]) {
+      const res = await locker(key);
+      // past the access check: the route itself answers (no Locker code sent)
+      expect(await res.json()).toEqual({ error: WRONG_LOCKER_CODE });
+    }
+    expect((await locker(() => new Response('', { status: 401 }))).status).toBe(401);
+  });
+
+  test('/api/stats is for school codes; OpenRouter calls are not counted in it', async () => {
+    const { app, records } = setup(anthropicSse({ text: 'Hallo!' }));
+    expect((await app.request('/api/stats', { headers: { 'X-Access-Code': KEY } })).status).toBe(403);
+    await (await post(app, chatBody, KEY)).text();
+    // counted (or not) when the call's record is written
+    await expect.poll(() => records.length).toBe(1);
+    expect(await stats(app)).toMatchObject({ calls: 0, cost: 0 });
+    await (await post(app, chatBody)).text();
+    await expect.poll(async () => (await stats(app)).calls).toBe(1);
+  });
+
+  test('without credits (402) the "frage KI" block gets the budget text', async () => {
+    const { app } = setup('', undefined, {
+      refuse: () => Response.json({ error: { code: 402, message: 'Insufficient credits' } }, { status: 402 }),
+    });
+    const res = await post(app, { question: 'Hallo?' }, KEY, ASK_PATH);
+    expect(res.status).toBe(402);
+    expect(await res.json()).toEqual({ error: BUDGET_EMPTY });
   });
 });
 

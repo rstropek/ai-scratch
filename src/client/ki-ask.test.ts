@@ -74,7 +74,13 @@ describe('frage KI in the browser', () => {
     expect(await denied.ask('Hallo', signal())).toBe(ASK_NO_CODE);
     expect(denied.denied).toHaveBeenCalled();
 
-    const failed = setup('schule1', () => Response.json({ error: 'kaputt' }, { status: 502 }));
+    const failed = setup('schule1', () => new Response('<html>Bad Gateway</html>', { status: 502 }));
     expect(await failed.ask('Hallo', signal())).toBe(ASK_FAILED);
+
+    // the server's reason, e.g. a parent's key without money left or OpenRouter down: the program shows why
+    for (const status of [402, 403, 503]) {
+      const refused = setup('sk-or-v1-x', () => Response.json({ error: `Grund ${status}` }, { status }));
+      expect(await refused.ask('Hallo', signal())).toBe(`Grund ${status}`);
+    }
   });
 });

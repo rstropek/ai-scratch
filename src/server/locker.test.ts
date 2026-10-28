@@ -10,6 +10,8 @@ const config: Config = {
   anthropicApiKey: 'test-key',
   anthropicWorkspaceId: undefined,
   model: 'claude-haiku-5-5',
+  openRouterUrl: 'https://openrouter.test/api/v1',
+  openRouterModel: 'anthropic/claude-haiku-5.5',
   effort: 'high',
   instructions: undefined,
   jevApiKey: 'jev-key',

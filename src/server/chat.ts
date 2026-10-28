@@ -1,6 +1,5 @@
 // POST /api/chat: one model call per request. The tools have no `execute`: the browser runs them on the
 // live VM (useChat onToolCall) and sends the results back with the next request of the same turn.
-import { createAnthropic } from '@ai-sdk/anthropic';
 import {
   convertToModelMessages,
   createUIMessageStream,
@@ -17,10 +16,11 @@ import type { Context } from 'hono';
 import { type ChatMessage, type ChatMetadata, type GuardCategory, SESSION_HEADER } from '../shared/chat-types.ts';
 import { isAdminCode, memoryFull } from '../shared/energy.ts';
 import { buildInstructions, toolDefinitions } from '../shared/tools/index.ts';
-import { accessCodeOf } from './access.ts';
+import { accessCodeOf, type KeyChecker } from './access.ts';
 import type { Config } from './config.ts';
 import { FIXED_ANSWERS, type Screening, screen } from './guard.ts';
 import type { Hearts } from './hearts.ts';
+import { requestModel } from './model.ts';
 import { buildModelInput, turnNumber } from './model-input.ts';
 import {
   capAnswerText,
@@ -32,9 +32,9 @@ import {
   STEP_LIMIT_ANSWER,
   stepsInTurn,
 } from './output-guard.ts';
-import { recordCall, recordGuard, type Stats } from './stats.ts';
+import { recordGuard, type Stats } from './stats.ts';
 import { repairToolInput, toolErrorText } from './tool-input.ts';
-import { type CallContext, createLoggingFetch, type LogSink } from './wire-log.ts';
+import type { CallContext, LogSink } from './wire-log.ts';
 
 const INSTRUCTIONS = buildInstructions();
 const TOOLS: Record<string, Tool> = Object.fromEntries(
@@ -68,7 +68,9 @@ export interface ChatDeps {
   sink: LogSink;
   stats: Stats;
   hearts: Hearts;
-  /** the fetch for Anthropic and Jev (tests pass a fake) */
+  /** parents' OpenRouter keys (access.ts) */
+  keys: KeyChecker;
+  /** the fetch for Anthropic, OpenRouter and Jev (tests pass a fake) */
   fetch?: typeof fetch;
 }
 
@@ -144,7 +146,7 @@ const guardNewMessage = async (
 export const createChatHandler =
   (deps: ChatDeps) =>
   async (c: Context): Promise<Response> => {
-    const { config, sink, stats, hearts, fetch: baseFetch } = deps;
+    const { config, stats, hearts } = deps;
     const body: unknown = await c.req.json().catch(() => undefined);
     const messages = (body as { messages?: unknown } | undefined)?.messages;
     if (!isChatMessages(messages)) return c.json({ error: 'Ungültige Anfrage' }, 400);
@@ -179,18 +181,14 @@ export const createChatHandler =
     const abort = new AbortController();
     // the kid's "Stopp" (or a closed tab) ends the model call too; nothing reads the rest
     c.req.raw.signal.addEventListener('abort', () => abort.abort(), { once: true });
-    const anthropic = createAnthropic({
-      apiKey: config.anthropicApiKey,
-      headers: config.anthropicWorkspaceId ? { 'anthropic-workspace-id': config.anthropicWorkspaceId } : {},
-      fetch: createLoggingFetch(sink, ctx, (_record, usage, ok) => recordCall(stats, usage, ok), baseFetch),
-    });
+    const { model, refusal: keyRefusal } = requestModel(c, deps, ctx);
     const input = await modelMessages(messages);
     /** One model call as a UI message stream. */
     const answer = (effort: Config['effort']) =>
       closeCutToolCalls(
         toUIMessageStream<typeof TOOLS, ChatMessage>({
           stream: streamText({
-            model: anthropic(config.model),
+            model,
             instructions: {
               role: 'system',
               content: config.instructions ?? INSTRUCTIONS,
@@ -216,7 +214,11 @@ export const createChatHandler =
             part.type === 'finish'
               ? { usage: part.totalUsage, ...(newTurn ? { context: part.totalUsage.inputTokens } : {}) }
               : undefined,
-          onError: toolErrorText,
+          // a refused key reads like the server's JSON errors, so the chat shows its German text
+          onError: (e) => {
+            const refusal = keyRefusal(e);
+            return refusal ? JSON.stringify({ error: refusal.error }) : toolErrorText(e);
+          },
         }),
         () => {
           stats.outputCaps.toolCuts += 1;

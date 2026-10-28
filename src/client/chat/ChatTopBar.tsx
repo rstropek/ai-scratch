@@ -1,6 +1,6 @@
 // The chat's top bar: continues Scratch's purple menu bar (same height and colour). It holds the font
-// size buttons, the tool-call toggle and the fold button. KI-Energie sits in its own strip below (EnergyBar).
-import { AArrowDown, AArrowUp, PanelLeftClose, Wrench } from 'lucide-react';
+// size buttons, the tool-call toggle, "Schlüssel vergessen" (with a parent's key) and the fold button. KI-Energie sits in its own strip below (EnergyBar).
+import { AArrowDown, AArrowUp, LogOut, PanelLeftClose, Wrench } from 'lucide-react';
 import type { ComponentProps } from 'react';
 import { cn } from '@/lib/utils';
 import { FONT_SIZE } from '../ui-prefs.ts';
@@ -11,6 +11,8 @@ export interface ChatTopBarProps {
   /** without it there is no tool toggle (the access gate) */
   showTools?: boolean;
   onShowTools?: (show: boolean) => void;
+  /** only with a parent's OpenRouter key: forget it on this computer */
+  onForgetKey?: () => void;
   onFold: () => void;
 }
 
@@ -28,7 +30,7 @@ export const BarButton = ({ className, ...props }: ComponentProps<'button'>) => 
   />
 );
 
-export const ChatTopBar = ({ fontSize, onFontSize, showTools, onShowTools, onFold }: ChatTopBarProps) => (
+export const ChatTopBar = ({ fontSize, onFontSize, showTools, onShowTools, onForgetKey, onFold }: ChatTopBarProps) => (
   <div className="flex h-12 flex-none items-center gap-0.5 bg-primary pr-1.5 pl-3 text-primary-foreground">
     <span className="mr-auto pr-2 text-sm font-bold whitespace-nowrap">KI-Helfer</span>
     <BarButton
@@ -55,6 +57,11 @@ export const ChatTopBar = ({ fontSize, onFontSize, showTools, onShowTools, onFol
         onClick={() => onShowTools(!showTools)}
       >
         <Wrench />
+      </BarButton>
+    )}
+    {onForgetKey && (
+      <BarButton aria-label="Schlüssel vergessen" title="Schlüssel vergessen" onClick={onForgetKey}>
+        <LogOut />
       </BarButton>
     )}
     <span className="mx-1 h-5 w-px bg-white/30" aria-hidden />

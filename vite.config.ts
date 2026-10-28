@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 import { LIVE_PATH } from './src/shared/live.ts';
 
 const SERVER_PORT = Number(process.env.PORT ?? 3000);
@@ -56,7 +56,18 @@ export default defineConfig({
             'src/client/**/*.test.ts',
             'src/editor/**/*.test.ts',
           ],
+          exclude: [...configDefaults.exclude, '**/*.live.test.ts'],
           testTimeout: 20_000,
+        },
+      },
+      {
+        // real calls with the keys in .env: npm run test:live
+        extends: true,
+        test: {
+          name: 'live',
+          environment: 'node',
+          include: ['src/**/*.live.test.ts'],
+          testTimeout: 120_000,
         },
       },
       {

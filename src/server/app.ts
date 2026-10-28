@@ -5,7 +5,7 @@ import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import { ASK_PATH } from '../shared/ki-block.ts';
 import { LIVE_PATH } from '../shared/live.ts';
-import { requireAccessCode } from './access.ts';
+import { createKeyChecker, requireAccess, requireBudget, schoolOnly } from './access.ts';
 import { createAskHandler } from './ask.ts';
 import { createChatHandler } from './chat.ts';
 import { createCompactHandler } from './compact.ts';
@@ -18,25 +18,28 @@ import type { LogSink } from './wire-log.ts';
 export interface AppDeps {
   config: Config;
   sink: LogSink;
-  /** the fetch for Anthropic and Jev (tests pass a fake) */
+  /** the fetch for Anthropic, OpenRouter and Jev (tests pass a fake) */
   fetch?: typeof fetch;
 }
 
 export const createApp = ({ config, sink, fetch }: AppDeps): Hono => {
   const stats = createStats();
-  const deps = { config, sink, stats, hearts: createHearts(), fetch };
+  const keys = createKeyChecker(config.openRouterUrl, fetch);
+  const deps = { config, sink, stats, hearts: createHearts(), keys, fetch };
   const app = new Hono();
 
   // for the deploy workflow and App Service: which commit is running, no access code needed
   app.get('/healthz', (c) => c.json({ version: config.version }));
-  app.use('/api/*', requireAccessCode(config.accessCodes));
-  // the gate's check of a typed-in code: the middleware above does the work
-  app.get('/api/access', (c) => c.body(null, 204));
-  app.post('/api/chat', createChatHandler(deps));
-  app.post('/api/compact', createCompactHandler(deps));
-  app.post(ASK_PATH, createAskHandler(deps));
+  app.use('/api/*', requireAccess(config.accessCodes, keys));
+  // a parent's key needs money left wherever the model is called; the Locker works without
+  const budget = requireBudget(keys);
+  // the gate's check of a typed-in code or key: the middlewares do the work
+  app.get('/api/access', budget, (c) => c.body(null, 204));
+  app.post('/api/chat', budget, createChatHandler(deps));
+  app.post('/api/compact', budget, createCompactHandler(deps));
+  app.post(ASK_PATH, budget, createAskHandler(deps));
   addLockerRoutes(app, deps);
-  app.get('/api/stats', (c) => c.json(stats));
+  app.get('/api/stats', schoolOnly, (c) => c.json(stats));
   app.all('/api/*', (c) => c.json({ error: 'Nicht gefunden' }, 404));
 
   // The slide deck for the video tutorial (slides/, built with base /slides/), public like the editor.

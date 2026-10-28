@@ -9,6 +9,10 @@ export interface Config {
   /** the product owner's key is identity-linked and needs this header on every request */
   anthropicWorkspaceId: string | undefined;
   model: string;
+  /** OpenRouter's API, for parents' own keys (model.ts) */
+  openRouterUrl: string;
+  /** the same model under OpenRouter's name */
+  openRouterModel: string;
   /** the chat's thinking effort */
   effort: Effort;
   /** replaces the built-in system prompt + tool instructions (eval/games tries prompt variants with it) */
@@ -54,6 +58,8 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): Config => {
     anthropicApiKey: required(env, 'ANTHROPIC_API_KEY'),
     anthropicWorkspaceId: env.ANTHROPIC_WORKSPACE_ID?.trim() || undefined,
     model: env.MODEL?.trim() || 'claude-haiku-5-5',
+    openRouterUrl: env.OPENROUTER_URL?.trim() || 'https://openrouter.ai/api/v1',
+    openRouterModel: env.OPENROUTER_MODEL?.trim() || 'anthropic/claude-haiku-5.5',
     effort: effortOf(env.EFFORT),
     instructions: env.INSTRUCTIONS_FILE?.trim() ? fs.readFileSync(env.INSTRUCTIONS_FILE.trim(), 'utf8') : undefined,
     jevApiKey: required(env, 'JEV_API_KEY'),

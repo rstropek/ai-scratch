@@ -49,7 +49,8 @@ by Rainer's decision; only the normal path must not store content. Read before t
 
 ## Live stats
 
-- `GET /api/stats` (any valid access code): calls, errors, tokens incl. cache reads and writes, cost, guard
+- `GET /api/stats` (any school's code, not a parent's OpenRouter key): Anthropic calls with school codes only
+  (parents' OpenRouter calls are not counted), errors, tokens incl. cache reads and writes, cost, guard
   categories and outages, output caps, refusals for hearts and memory, summaries, answers of the "frage KI" block (`asks`).
 - In memory, **per instance**, since its last start: a restart or a swap resets them, and with several
   instances each shows its own share. Nothing else records production use anymore.

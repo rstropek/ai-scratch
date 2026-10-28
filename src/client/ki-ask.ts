@@ -49,12 +49,14 @@ export const createAsk =
         onAccessDenied();
         return ASK_NO_CODE;
       }
-      const body = (await res.json().catch(() => ({}))) as { answer?: unknown; retryInMs?: unknown };
+      const body = (await res.json().catch(() => ({}))) as { answer?: unknown; error?: unknown; retryInMs?: unknown };
       // the server counted differently: wait for its next heart
       if (res.status === 429 && typeof body.retryInMs === 'number') {
         hearts.sync(body.retryInMs);
         continue;
       }
-      return res.ok && typeof body.answer === 'string' ? body.answer : ASK_FAILED;
+      if (res.ok && typeof body.answer === 'string') return body.answer;
+      // the server's German reason (e.g. a parent's key without money left) instead of a vague failure
+      return !res.ok && typeof body.error === 'string' ? body.error : ASK_FAILED;
     }
   };

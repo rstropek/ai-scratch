@@ -1,5 +1,6 @@
-// Live counters since the server started (GET /api/stats): Anthropic calls, the kids-protection guard,
-// the output guard, KI-Energie, the "frage KI" block and the Locker.
+// Live counters since the server started (GET /api/stats): Anthropic calls (school codes only: parents pay
+// OpenRouter themselves), the kids-protection guard, the output guard, KI-Energie, the "frage KI" block and
+// the Locker.
 import type { GuardCategory } from '../shared/chat-types.ts';
 import { type AnthropicUsage, costOf } from './cost.ts';
 

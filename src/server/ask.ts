@@ -3,7 +3,6 @@
 // own work: their program joins the conversation into one text. Same rules as a chat message: it costs a
 // heart, and the kids-protection guard screens it, with its own description of the block (role play is fine).
 // Only the last 3000 characters reach Jev and the model.
-import { createAnthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import type { Context } from 'hono';
 import { SESSION_HEADER } from '../shared/chat-types.ts';
@@ -12,8 +11,8 @@ import { ASK_FAILED, type AskResponse } from '../shared/ki-block.ts';
 import { accessCodeOf } from './access.ts';
 import { type ChatDeps, heartsEmpty, screenAndRecord } from './chat.ts';
 import { BLOCK_SCREENING, FIXED_ANSWERS } from './guard.ts';
-import { recordCall } from './stats.ts';
-import { type CallContext, createLoggingFetch } from './wire-log.ts';
+import { requestModel } from './model.ts';
+import type { CallContext } from './wire-log.ts';
 
 export const ASK_INSTRUCTIONS = `You are the AI behind the "frage KI" block in Scratch. A kid aged 10 to 16 at a supervised school workshop built a program that sends you a text, usually a chatbot: the text is what the kid typed into it.
 - Answer in German (or in the language of the text), friendly, honest and suitable for kids, in simple words.
@@ -53,7 +52,7 @@ export const askContent = (text: string) => {
 export const createAskHandler =
   (deps: ChatDeps) =>
   async (c: Context): Promise<Response> => {
-    const { config, sink, stats, hearts, fetch: baseFetch } = deps;
+    const { stats, hearts } = deps;
     const body: unknown = await c.req.json().catch(() => undefined);
     const question = (body as { question?: unknown } | undefined)?.question;
     if (typeof question !== 'string' || !question.trim()) return c.json({ error: 'Ungültige Anfrage' }, 400);
@@ -76,14 +75,10 @@ export const createAskHandler =
     const category = await screenAndRecord(text, undefined, ctx, deps, BLOCK_SCREENING);
     if (category) return c.json({ answer: FIXED_ANSWERS[category], guard: category } satisfies AskResponse);
 
-    const anthropic = createAnthropic({
-      apiKey: config.anthropicApiKey,
-      headers: config.anthropicWorkspaceId ? { 'anthropic-workspace-id': config.anthropicWorkspaceId } : {},
-      fetch: createLoggingFetch(sink, ctx, (_record, usage, ok) => recordCall(stats, usage, ok), baseFetch),
-    });
+    const { model, refusal: keyRefusal } = requestModel(c, deps, ctx);
     try {
       const result = await generateText({
-        model: anthropic(config.model),
+        model,
         instructions: ASK_INSTRUCTIONS,
         messages: [{ role: 'user', content }],
         maxOutputTokens: MAX_OUTPUT_TOKENS,
@@ -95,6 +90,9 @@ export const createAskHandler =
       stats.asks += 1;
       return c.json({ answer } satisfies AskResponse);
     } catch (e) {
+      // the block shows the text in the kid's program, so the budget message reaches them there too
+      const refusal = keyRefusal(e);
+      if (refusal) return c.json({ error: refusal.error }, refusal.status);
       console.error('ask failed', e);
       return c.json({ error: ASK_FAILED }, 502);
     }

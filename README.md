@@ -50,7 +50,8 @@ Browser                                         Server (Hono, Azure)            
   screened like one. Projects with this block open only in this app, not on scratch.mit.edu.
   Details: [docs/ki-block.md](docs/ki-block.md).
 - Until the school's **access code** is entered (or comes with the link as `?code=`), only the chat is locked;
-  Scratch works.
+  Scratch works. Outside the schools, parents can enter their own **OpenRouter key** with a spending limit
+  instead; they agree to terms of use first ([docs/limits-and-safety.md](docs/limits-and-safety.md#parents-own-openrouter-key)).
 
 ## The slide deck
 
@@ -104,6 +105,8 @@ npm run dev            # http://localhost:5173/?code=<one of your access codes>
 | `PORT`, `DIST_DIR` | default `3000`, `dist` |
 | `LOG_DIR` | stores every AI call and guard check there (game harness, e2e, debugging); unset by default and in production: nothing is stored |
 | `LOCKER_URL` | the CoderDojo Locker for saving games, default `https://locker.coderdojo.net` |
+| `OPENROUTER_URL`, `OPENROUTER_MODEL` | for parents' own keys; default `https://openrouter.ai/api/v1`, `anthropic/claude-haiku-5.5` |
+| `OPENROUTER_API_KEY` | only for `npm run test:live` (a key with a spending limit); the server never reads it |
 
 ### Commands
 
@@ -114,6 +117,7 @@ npm run dev            # http://localhost:5173/?code=<one of your access codes>
 | `npm start` | production server: API + `dist/` on :3000 (the slide deck at `/slides/` once `npm run build --prefix slides` has run before `npm run build`) |
 | `npm test` | unit and component tests (Vitest, headless scratch-vm, no network) |
 | `npm run e2e` | Playwright against the production build, model mocked |
+| `npm run test:live` | the OpenRouter path with the real key in `.env` (`OPENROUTER_API_KEY`): gate, two chat turns, "Zusammenfassen", "frage KI"; about 2 cents |
 | `npm run eval:games` | a simulated kid builds a game (Memory, Fangspiel, Fang mich, Space Shooter, Minesweeper) with the real app and model, a bot plays and checks each version ([eval/games](eval/games/README.md)); costs real money |
 | `npm run eval:guard` | runs the labelled kid messages against the real Jev guard, writes [docs/kids-protection.md](docs/kids-protection.md) |
 | `npm run check` | Biome + TypeScript |

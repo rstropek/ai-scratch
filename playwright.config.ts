@@ -25,6 +25,8 @@ export default defineConfig({
       ACCESS_CODES: 'e2e',
       ANTHROPIC_API_KEY: 'e2e-no-real-calls',
       JEV_API_KEY: 'e2e-no-real-calls',
+      // a key typed into the gate is never checked with the real OpenRouter (tests mock /api/access)
+      OPENROUTER_URL: 'http://127.0.0.1:9/api/v1',
       LOG_DIR: 'test-results/logs',
     },
   },

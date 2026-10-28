@@ -26,6 +26,11 @@ Prefer the lowest layer that can show the bug: unit > component > e2e.
   editor silently dropping scripts were only visible in a browser ([scratch-editor.md](scratch-editor.md)).
   Verify UI fixes in the real app before claiming they work.
 - **The model.** Nothing in `npm test` or e2e calls Claude. See [Game tests](#game-tests-the-real-model).
+- **OpenRouter.** Server tests fake it, and e2e points `OPENROUTER_URL` at a dead port and mocks `/api/access`.
+  `npm run test:live` runs the key path against the real OpenRouter with `OPENROUTER_API_KEY` from `.env`
+  (`*.live.test.ts`, its own Vitest project; `npm test` leaves it out). A full game through OpenRouter: the
+  game harness with `ANTHROPIC_BASE_URL=https://openrouter.ai/api/v1`, the key as `ANTHROPIC_API_KEY` and
+  `--model anthropic/claude-haiku-5.5`.
 - **Jev.** `npm run eval:guard` calls the real guard model and rewrites
   [kids-protection.md](kids-protection.md); run it after changing guard questions or thresholds.
 - **The slide deck** has no tests of its own; only its `/slides` route is tested (server tests). Look at a

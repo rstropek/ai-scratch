@@ -46,7 +46,8 @@ same code, hearts and guard, and a plain JSON answer ([ki-block.md](ki-block.md)
 ## Identity
 
 - **Access code:** one per school, sent as `X-Access-Code` on every `/api` call. It grouped the research log
-  by school; it is not security.
+  by school; it is not security. Instead of a code, the header can carry a parent's own OpenRouter key; the
+  model calls then go through OpenRouter on that key ([limits-and-safety.md](limits-and-safety.md#parents-own-openrouter-key)).
 - **Session:** `crypto.randomUUID()` per page load, sent as `X-Session-Id` (no cookie). A reload starts a
   new session: fresh hearts, empty chat. Hearts are keyed by it.
 

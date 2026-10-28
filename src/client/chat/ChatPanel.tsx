@@ -56,6 +56,8 @@ export interface ChatPanelProps {
   onBusyChange: (busy: boolean) => void;
   /** the server no longer accepts the access code (401) */
   onAccessDenied: () => void;
+  /** only with a parent's OpenRouter key: forgets it on this computer and shows the gate again */
+  onForgetKey?: () => void;
   /** counts projects loaded from the Locker: the undo copies belong to the project before */
   projectLoads?: number;
 }
@@ -112,9 +114,11 @@ export const ChatPanel = ({
   onFold,
   onBusyChange,
   onAccessDenied,
+  onForgetKey,
   projectLoads = 0,
 }: ChatPanelProps) => {
   const [input, setInput] = useState('');
+  const [forgetting, setForgetting] = useState(false);
   const runToolRef = useRef(runTool);
   runToolRef.current = runTool;
   const deniedRef = useRef(onAccessDenied);
@@ -308,8 +312,32 @@ export const ChatPanel = ({
         onFontSize={(fontSize) => onPrefs({ fontSize })}
         showTools={prefs.showTools}
         onShowTools={(showTools) => onPrefs({ showTools })}
+        onForgetKey={onForgetKey && (() => setForgetting(true))}
         onFold={onFold}
       />
+      {onForgetKey && forgetting && (
+        <div className="flex flex-none flex-col gap-2 border-b bg-alert px-3 py-2 text-[0.9em]" role="alert">
+          <p className="font-bold">
+            Schlüssel auf diesem Computer vergessen? Das Gespräch wird gelöscht, dein Projekt bleibt.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant="destructive"
+              className={SEND_BUTTON}
+              onClick={() => {
+                void stop();
+                onForgetKey();
+              }}
+            >
+              Ja, vergessen
+            </Button>
+            <Button size="sm" variant="outline" className={SEND_BUTTON} onClick={() => setForgetting(false)}>
+              Abbrechen
+            </Button>
+          </div>
+        </div>
+      )}
       <EnergyBar
         hearts={hearts}
         refill={admin ? 1 : refill(bucket, now).hearts % 1}

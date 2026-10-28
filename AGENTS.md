@@ -56,7 +56,7 @@ Not ported:
 - **Editor:** the `@scratch/scratch-gui` standalone build, unmodified, in a same-origin iframe; driven through the VM API.
 - **Host:** Vite + React 19 + TypeScript, Tailwind 4 + shadcn/ui.
 - **Backend:** Hono + Vercel AI SDK v7. Tools run in the browser on the live VM. The server rebuilds the model input every turn; it stores no conversations (only a local log with `LOG_DIR`).
-- **Model:** Claude Haiku 5.5 (effort high), called through the Anthropic API directly. Requests need the `anthropic-workspace-id` header.
+- **Model:** Claude Haiku 5.5 (effort high), called through the Anthropic API directly. Requests need the `anthropic-workspace-id` header. With a parent's own key, the same model through OpenRouter (`src/server/model.ts`).
 - **Scripts:** the model reads and writes the nested-JSON DSL, never raw sb3.
 
 ## Tooling
@@ -100,6 +100,7 @@ Commands and folder overview: [README.md](README.md).
   - Projects are saved and loaded via Scratch's *Datei* menu: its own .sb3 entries, plus ours for the **CoderDojo Locker** (save, load, open the Locker's page) (the code on the kid's Locker sticker; `docs/locker.md`). The Locker belongs to a friend of Rainer's: don't change it.
 - **Access and sessions:**
   - **10 access codes, one per school.** Without a valid code the chat is locked (Scratch works): the kid types the code into the chat panel (`src/client/chat/AccessGate.tsx`) or gets it via `?code=` in the link; the browser remembers it. Codes are not case-sensitive.
+  - **Or a parent's own OpenRouter key** (users outside the schools): the gate makes the kid choose; parents enter a key with a spending limit (keys without one are refused) and agree to the terms of use. Model calls then go through OpenRouter on that key; hearts stay; the key is never stored or logged on the server. Details: `docs/limits-and-safety.md`.
   - A kid is identified by a random id per page load (`X-Session-Id` header, no cookie). This is intentionally not secure.
   - Warn before closing or reloading the tab. There is no session resume.
   - **Undo per AI answer:** "Rückgängig" under each answer that changed the project restores the project as it was when the kid sent the message before it, without asking (later changes, the kid's own included, are lost). The copies live in browser memory only.

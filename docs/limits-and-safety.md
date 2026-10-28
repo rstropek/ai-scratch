@@ -7,14 +7,16 @@ codes, hearts, the guard or the output limits.
 
 1. **Adults in the room.** The kids are always supervised. Every other layer is deliberately lean because of
    this (Rainer's stance); don't add hardening the event doesn't need.
-2. **Access code** per school: without one the chat is locked, Scratch still works.
+2. **Access code** per school, or a parent's own **OpenRouter key**: without one the chat is locked, Scratch
+   still works.
 3. **Hearts:** 3 messages, one refills every 20 s. A question from the "frage KI" block costs one too
    ([ki-block.md](ki-block.md)).
 4. **Gedächtnis:** the 80k context limit ([conversation.md](conversation.md)).
 5. **Kids-protection guard (Jev):** screens every new kid message, and every text of the "frage KI" block,
    before Claude sees it.
 6. **Output limits:** visible text per answer and model calls per turn.
-7. **Budget:** 200 €/month on the Anthropic key. The emergency stop is disabling the key.
+7. **Budget:** 200 €/month on the Anthropic key. The emergency stop is disabling the key. Key users pay
+   OpenRouter themselves, up to their key's limit.
 
 ## Client shows, server enforces
 
@@ -86,3 +88,39 @@ changing questions or thresholds (it calls the real Jev, so it is not part of `n
 - A 401 on any `/api` call sends the chat back to the gate.
 - New codes: edit `.env`, re-run `scripts/azure/provision.sh`, restart both slots
   ([deployment.md](deployment.md)).
+
+## Parents' own OpenRouter key
+
+For users outside the schools: a parent creates an OpenRouter key with a small spending limit, so the app can
+never spend more than that. The gate makes the kid choose actively ("Zugangscode" or "eigener Schlüssel");
+the key path is for the parents: key, a summary of the terms, the full terms
+([TermsDialog.tsx](../src/client/chat/TermsDialog.tsx)) and a consent box.
+
+- **One header:** the key travels in `X-Access-Code` like a code and is told apart by its `sk-or-` prefix
+  ([shared/access.ts](../src/shared/access.ts)). Keys are case-sensitive: never normalize them. A key in a
+  `?code=` link is dropped; parents enter it themselves.
+- **The server checks it with OpenRouter** (`GET /key` for the key's limit, `GET /credits` for the account's
+  balance, [access.ts](../src/server/access.ts)): unknown → 401, **no limit → refused** (403, Rainer's
+  decision: the terms promise a budget-limited key), under 5 cents left on the key or the account → 402,
+  OpenRouter unreachable → 503. A key that passed is not asked about again for 5 minutes, a refused one for
+  15 s. A failed `/credits` doesn't refuse anyone: the model's 402 is the backstop.
+- **Only the routes that call the model check the budget** (chat, "Zusammenfassen", "frage KI" and the gate's
+  check). Every other `/api` route needs only a key OpenRouter knows: the Locker still saves a game when the
+  money is used up or OpenRouter is down. `/api/stats` is for school codes only (anyone can make a key).
+- **Model calls** go through OpenRouter's Anthropic-compatible Messages API with the same SDK and options
+  ([model.ts](../src/server/model.ts)): base URL, the key as Bearer token, model `anthropic/claude-haiku-5.5`,
+  no workspace header. Prompt caching and signed thinking work (tested 2026-10-27 with a full game; OpenRouter
+  routed to "Claude Platform on AWS"). OpenRouter charges Anthropic's list prices.
+- **A spent budget mid-session** (OpenRouter 402, or 403 with an `error.metadata.limit_source`; a moderation
+  403 has none) becomes a German message in the chat, in "Zusammenfassen" and in the "frage KI" block. The
+  key is then refused for a minute before any heart, screening or model call, because `GET /key` may still
+  pass it (a balance too small for a turn). A revoked key (401) sends the kid back to the gate.
+- **Two sets of texts:** the server's refusals are for the kid ("du"); the gate reads only their `reason` and
+  shows its own texts for the parents ("Sie", [App.tsx](../src/client/App.tsx)).
+- **Hearts stay** for key users (Rainer's decision); the remaining budget is shown nowhere.
+- **The key is never stored or logged on the server:** log records and hearts see `openrouter` instead of the
+  key; the call log stores request bodies, never headers. The browser remembers it (localStorage) with the
+  version of the accepted terms; new terms (`TERMS_VERSION` in [client/access.ts](../src/client/access.ts))
+  ask the parents again. „Schlüssel vergessen“ in the chat's top bar forgets both.
+- The Jev guard still runs on Rainer's TypeSafe key for key users. Their model calls are not counted in
+  `/api/stats` (Rainer's decision): the stats watch the Anthropic budget.
