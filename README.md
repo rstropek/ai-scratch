@@ -58,7 +58,7 @@ Browser                                         Server (Hono, Azure)            
 The slides Rainer records into the video tutorial live in [slides/](slides/README.md): a standalone
 [Slidev](https://sli.dev) app in a sticker-album look, with its own packages, sharing only the Scratch
 colours with the app. The app serves the built deck at **`/slides/`** without an access code
-(https://ai-scratch.azurewebsites.net/slides/, presenter view at `/slides/presenter/`).
+(https://ai-scratch.dev/slides/, presenter view at `/slides/presenter/`).
 
 ## Keeping kids safe and costs bounded
 
@@ -132,7 +132,8 @@ restarts production and interrupts kids mid-answer. The reasons behind the setup
 
 | What | Where |
 |---|---|
-| Web app | `ai-scratch` in RG `2026-digitalferien`, on the existing P0v3 plan `ts-web-playground`: https://ai-scratch.azurewebsites.net, staging https://ai-scratch-staging.azurewebsites.net; `GET /healthz` shows the running commit, `/slides/` the slide deck |
+| Web app | `ai-scratch` in RG `2026-digitalferien`, on the existing P0v3 plan `ts-web-playground`: **https://ai-scratch.dev** (also `www.`, and the old https://ai-scratch.azurewebsites.net), staging https://ai-scratch-staging.azurewebsites.net; `GET /healthz` shows the running commit, `/slides/` the slide deck |
+| Domain | `ai-scratch.dev`, DNS at Cloudflare (`cf` CLI, `npm install --global cf`): CNAMEs to `ai-scratch.azurewebsites.net` plus `asuid` TXT records, DNS only; free App Service managed certificates |
 | Secrets | Key Vault `kv-digiferien`, read by the app's managed identity |
 | Research logs | storage account `stdigiferien`, container `logs`: one JSON blob per AI call and per guard check of the event, no longer written. No retention rule; Rainer deletes them by hand |
 | Image | `acrars2025.azurecr.io/ai-scratch:<commit>` |

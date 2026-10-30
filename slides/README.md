@@ -8,7 +8,7 @@ cd slides
 npm install
 npm run dev      # http://localhost:3030, presenter view at /presenter
 npm run export   # PDF (needs playwright-chromium)
-npm run build    # into ../dist/slides; the app serves it at /slides/ (ai-scratch.azurewebsites.net/slides)
+npm run build    # into ../dist/slides; the app serves it at /slides/ (ai-scratch.dev/slides)
 ```
 
 Picture and video paths in `slides.md` start at `public/` (`/art/robot.svg`); components pass them through

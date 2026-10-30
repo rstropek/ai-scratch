@@ -10,7 +10,7 @@ web
 
 ## Stack
 
-Slidev (https://sli.dev), as a completely independent Node app in `slides/` with its own package.json; how far it shares code or assets with the app is delegated. Rainer presents and records from `npm run dev` locally. `npm run build` also bakes the deck into the app's Docker image, which serves it at `/slides/` (ai-scratch.azurewebsites.net/slides).
+Slidev (https://sli.dev), as a completely independent Node app in `slides/` with its own package.json; how far it shares code or assets with the app is delegated. Rainer presents and records from `npm run dev` locally. `npm run build` also bakes the deck into the app's Docker image, which serves it at `/slides/` (ai-scratch.dev/slides).
 
 ## Users
 

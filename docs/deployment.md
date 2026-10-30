@@ -20,6 +20,23 @@ truth for settings and roles.
 - **No keys anywhere:** the storage account has shared-key access disabled, both slots pull from ACR with their
   managed identity, and GitHub logs in with OIDC.
 
+## Domain
+
+- **`ai-scratch.dev` (and `www.`) point at production only**, through CNAMEs at Cloudflare (the apex one is
+  flattened) plus `asuid`/`asuid.www` TXT records with the app's `customDomainVerificationId`. Staging keeps
+  its `azurewebsites.net` name; the workflows check `/healthz` there.
+- **DNS only, no Cloudflare proxy:** the free App Service managed certificates are issued and renewed only
+  while the name resolves straight to the app, and the chat's SSE stream doesn't need another proxy (and its
+  100 s timeout) in between.
+- **Managed certificate traps:** `az webapp config ssl create` fails with a JSON error but still issues the
+  certificate. `ssl list` doesn't show it; `az resource list --resource-type Microsoft.Web/certificates`
+  does (in `2026-digitalferien`). Bind it with `ssl bind --ssl-type SNI`. For a minute or two after that,
+  some requests still get the `*.azurewebsites.net` certificate.
+- **`.dev` is on the HSTS preload list:** browsers use only HTTPS, so the name is unusable until a
+  certificate is bound.
+- The old `ai-scratch.azurewebsites.net` keeps working. Browser storage is per origin, so a kid who switches
+  names types the access code again.
+
 ## Release flow
 
 - Every push to `main`: check + unit tests, build the image (tagged with the commit), run it in **staging**,
