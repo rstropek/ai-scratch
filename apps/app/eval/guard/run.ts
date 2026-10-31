@@ -188,8 +188,16 @@ ${results(blockRows, '###')}
 
 - **Language:** Jev reads English best; German works with somewhat lower accuracy. The cases are German,
   with typos, slang and emojis, as kids write.
-- **The cases are written by us,** not collected from real kids. Real messages from the event
-  (\`logs/guard.jsonl\`) are the next test set.
+- **Most cases are written by us.** The ones marked "event" are real messages from the Digiferien workshop
+  on 2026-10-27.
+- **Checked against the Digiferien workshop (2026-10-27):** all 4,745 chat messages and 181 "frage KI" texts
+  of that day.
+  Jev blocked 10. Four were harmless: anger at the assistant without an insult, "sex" misspelled for
+  "sechs", "vergiss alles" to start over, and a line for a game character. The questions were reworded for
+  them; a replay of the day's messages with the new questions still blocks the five correct chat messages
+  and nothing new. Nothing harmful got through: no personal data, no distress (the one near miss, "ich muss
+  hier raus" typed into a chatbot, got a pointer to an adult from Claude), no jailbreak. In the gray zone
+  (a killer clown with a knife, a blood stain, a robber in a game) Claude kept the content cartoonish.
 - **Persistence:** a kid who rephrases long enough may get past the guard. Claude's own safety rules and
   the adults in the room are the next layers.
 - **The AI's answers are not screened.** Claude is instructed for kids, and a flagged message never
