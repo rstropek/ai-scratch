@@ -1,5 +1,6 @@
-import { expect, type Page, test } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { texts } from '../lib/texts.ts';
+import { expect, test } from './fixtures.ts';
 import { E2E_ADMIN } from './settings.ts';
 
 const signIn = async (page: Page, password: string) => {
@@ -10,30 +11,30 @@ const signIn = async (page: Page, password: string) => {
 
 test('the start page needs a login', async ({ page }) => {
   await page.goto('/');
-  await expect(page).toHaveURL(/\/anmelden$/);
+  await expect(page).toHaveURL(/\/login$/);
   await expect(page.getByRole('heading', { name: texts.login.title })).toBeVisible();
 });
 
 test('a wrong password is refused', async ({ page }) => {
-  await page.goto('/anmelden');
+  await page.goto('/login');
   await signIn(page, 'not-the-password');
   // Next.js's route announcer is an alert too
   await expect(page.getByRole('alert').filter({ hasText: texts.login.failed })).toBeVisible();
-  await expect(page).toHaveURL(/\/anmelden$/);
+  await expect(page).toHaveURL(/\/login$/);
 });
 
-test('the admin signs in, sees the hello page, and signs out', async ({ page }) => {
-  await page.goto('/anmelden');
+test('the admin signs in, sees the start page, and signs out', async ({ page }) => {
+  await page.goto('/login');
   await signIn(page, E2E_ADMIN.password);
   await expect(page.getByRole('heading', { name: texts.home.greeting(E2E_ADMIN.name) })).toBeVisible();
   await expect(page.getByText(texts.home.admin)).toBeVisible();
 
   // a signed-in admin who opens the login page goes straight back
-  await page.goto('/anmelden');
+  await page.goto('/login');
   await expect(page).toHaveURL(/\/$/);
 
   await page.getByRole('button', { name: texts.shell.signOut }).click();
-  await expect(page).toHaveURL(/\/anmelden$/);
+  await expect(page).toHaveURL(/\/login$/);
   await page.goto('/');
-  await expect(page).toHaveURL(/\/anmelden$/);
+  await expect(page).toHaveURL(/\/login$/);
 });

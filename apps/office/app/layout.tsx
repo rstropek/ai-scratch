@@ -3,7 +3,7 @@ import { texts } from '../lib/texts.ts';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: texts.appName,
+  title: { default: texts.appName, template: `%s · ${texts.appName}` },
   robots: { index: false },
 };
 

@@ -15,7 +15,8 @@ export function TopBar({ children }: { children?: ReactNode }) {
           unoptimized
           className="size-7 rounded-button bg-white/95 p-0.5"
         />
-        <span className="whitespace-nowrap font-bold">{texts.appName}</span>
+        {/* narrow screens: the logo alone, so the bar's links fit */}
+        <span className="hidden whitespace-nowrap font-bold sm:inline">{texts.appName}</span>
         {children && <div className="ml-auto flex min-w-0 items-center gap-2 text-sm">{children}</div>}
       </div>
     </header>

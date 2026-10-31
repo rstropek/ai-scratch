@@ -84,6 +84,10 @@ truth for settings and roles.
   this region"). Still in the EU; a few milliseconds per query. Check a region with
   `az postgres flexible-server list-skus -l <region>` (the `reason` field).
 - Database `aiscratch`, role and migrations: [database.md](database.md).
+- **The office's secrets come from the same vault as the kids' app's:** `resend-api-key` and `jev-api-key`
+  (uploaded by the kids' app's provision.sh), `turnstile-secret-key` (by hand, see Domain). provision.sh stops
+  when one is missing. Without them the office starts, but registration, mails and applications fail: the
+  services are read on first use ([registration.md](registration.md)).
 - **GitHub's deploy identity** needs Website Contributor on each web app; provision.sh grants it for the office.
 - **The first admin account** comes from `npm run seed:admin -w apps/office` on Rainer's machine with
   `PGHOST`, `PGDATABASE` and `PGUSER` (his UPN) set and `DATABASE_URL=` empty (the office's `.env` would win):

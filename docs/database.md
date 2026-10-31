@@ -6,7 +6,9 @@ by the kids' app later. Setup: [deployment.md](deployment.md#office-and-database
 ## Schema and migrations
 
 - **One schema** in `packages/db/src/schema`. `auth.ts` is **generated** by better-auth's CLI
-  (`npm run auth:schema -w apps/office`, after a plugin or auth option change); don't edit it by hand.
+  (`npm run auth:schema -w apps/office`, after a plugin or auth option change); don't edit it by hand. The
+  office's own tables are in `office.ts` (profiles, teacher applications, registration attempts:
+  [registration.md](registration.md)); they reference better-auth's `user` but never change its tables.
 - **Migrations are generated, never written:** change the schema, then `npm run generate -w packages/db -- --name <what>`.
   Commit `drizzle/` with the change. Biome skips `drizzle/`.
 - **The office migrates on start** (`instrumentation.ts`, before it takes requests), behind a Postgres advisory

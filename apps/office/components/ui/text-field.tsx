@@ -1,6 +1,15 @@
-import { CircleAlert } from 'lucide-react';
 import { type ComponentProps, type ReactNode, useId } from 'react';
 import { cx } from './cx.ts';
+import { FieldError } from './field-error.tsx';
+
+/** The look of text inputs and text areas: border, focus halo, error edge. */
+export const fieldClass = (invalid: boolean) =>
+  cx(
+    'w-full rounded-field border bg-surface text-base text-foreground placeholder:text-muted',
+    'transition-[border-color,box-shadow] duration-150 ease-out hover:border-border-strong',
+    'focus:border-primary focus:focus-ring disabled:cursor-not-allowed disabled:bg-subtle disabled:text-muted',
+    invalid ? 'border-error-edge hover:border-error-edge focus:border-error-edge' : 'border-border',
+  );
 
 type TextFieldProps = Omit<ComponentProps<'input'>, 'id'> & {
   label: ReactNode;
@@ -29,20 +38,10 @@ export function TextField({ label, hint, error, className, ...props }: TextField
         id={id}
         aria-invalid={error ? true : undefined}
         aria-describedby={cx(hintId, errorId) || undefined}
-        className={cx(
-          'h-10 w-full rounded-field border bg-surface px-3 text-base text-foreground placeholder:text-muted',
-          'transition-[border-color,box-shadow] duration-150 ease-out hover:border-border-strong',
-          'focus:border-primary focus:focus-ring disabled:cursor-not-allowed disabled:bg-subtle disabled:text-muted',
-          error ? 'border-error-edge hover:border-error-edge focus:border-error-edge' : 'border-border',
-        )}
+        className={cx('h-10 px-3', fieldClass(Boolean(error)))}
         {...props}
       />
-      {error && (
-        <p id={errorId} className="flex items-start gap-1.5 font-bold text-error-ink text-xs">
-          <CircleAlert aria-hidden className="mt-px size-3.75 shrink-0" />
-          {error}
-        </p>
-      )}
+      {error && errorId && <FieldError id={errorId}>{error}</FieldError>}
     </div>
   );
 }

@@ -1,6 +1,8 @@
 # Platform plan: from event app to classroom offering
 
-Status: **iteration 1 of the office implemented** (login, one protected page; Azure setup pending). The outcome of the architecture discussion of 2026-10-31. Each point is
+Status: **iteration 2 of the office implemented** (registration of parents and teachers, email confirmation,
+teacher applications screened by Jev, the admin's account list and decisions, password reset); access codes and
+keys come next. The outcome of the architecture discussion of 2026-10-31. Each point is
 marked **decided** (Rainer agreed), **proposed** (Claude's suggestion, not confirmed yet) or **open**.
 
 ## Why
@@ -43,8 +45,9 @@ Postgres                Azure Database for PostgreSQL Flexible Server, Burstable
 - **Done (iteration 1):** a second App Service web app for the office (`ai-scratch-office`) on the existing P0v3
   plan `ts-web-playground`, deployed by CI straight to production, no staging slot (Next.js
   `output: 'standalone'`). Script: `apps/office/scripts/azure/provision.sh`.
-- **Open:** where the public content pages live (what it is, exercises, videos, safety, Impressum, Datenschutz,
-  terms of use): in the office, or as static pages in the kids' app.
+- **Done (2026-10-31):** the legal pages live in the office, public and static (`app/(info)/`); the terms of
+  use at `/terms` (draft for a lawyer, `docs/legal-texts.md`). **Open:** where the other content pages live
+  (what it is, exercises, videos, safety): in the office, or as static pages in the kids' app.
 - **Open:** whether the event's video page (`/digiferien-2026-live`) and the slide deck (`/slides/`) move to
   the office or stay in the kids' app.
 
@@ -96,11 +99,12 @@ Postgres                Azure Database for PostgreSQL Flexible Server, Burstable
 - **Done (iteration 1):** no open sign-up (`disableSignUp`); your account has the admin role (created with
   `npm run seed:admin -w apps/office`); sessions end after 8 hours without use (shared school PCs), "Abmelden"
   always visible; passwords at least 12 characters.
-- **Proposed:**
+- **Done (iteration 2):**
   - Accounts are created on the confirmation page, where people set their password
-    ([registration](#registration-and-teacher-applications)). This replaces the earlier proposal that accepting
-    an application creates the account.
-  - Password reset by email.
+    ([registration](#registration-and-teacher-applications)).
+  - Password reset by email (`/forgot-password`, better-auth's reset link, all sessions end).
+- **Decided (Rainer, 2026-10-31):** all URL parts are English (`/login`, `/register`, `/apply`, `/admin`, `/terms`);
+  the pages stay German.
 - **Later (discussed, not scheduled):**
   - Email one-time code (better-auth `emailOTP`; it has no "remember me", which is fine).
   - SSO with a multi-tenant Entra app:
@@ -118,8 +122,8 @@ Decided by Rainer on 2026-10-31; it replaces the earlier teacher-only applicatio
 
 **Two kinds of adults:**
 
-- **Parents** (and other adults) enter budget-limited OpenRouter keys (at most €25, see
-  [own OpenRouter keys](#own-openrouter-keys-teachers-and-parents)). They can create codes once they have a
+- **Parents** (and other adults) enter budget-limited OpenRouter keys (at most $25 left when a code is
+  created, see [own OpenRouter keys](#own-openrouter-keys-teachers-and-parents)). They can create codes once they have a
   valid key.
 - **Teachers** can do the same, and can also use the free budget (donated keys).
 - **A teacher whose application isn't accepted is treated like a parent.**
@@ -135,7 +139,7 @@ Decided by Rainer on 2026-10-31; it replaces the earlier teacher-only applicatio
    - Agreeing that AI processing can happen outside the EU
      ([where data is processed](#where-data-is-processed)).
 2. **Confirmation email:** a link with the email address and an expiry time, symmetrically encrypted. Nothing
-   is stored in the database before the link is used. Rainer named 5 minutes as the expiry.
+   is stored in the database before the link is used. **Decided (Rainer, 2026-10-31): valid for 30 minutes.**
 3. **The link:** for a parent, the registration is complete.
 4. **Teachers only:**
    - They fill in the school's name, the school's URL and a summary of why they want access.
@@ -150,10 +154,8 @@ Decided by Rainer on 2026-10-31; it replaces the earlier teacher-only applicatio
   address** (no mail bombing via the form). Counted in Postgres (several instances), from the client IP App
   Service forwards.
 
-**Proposed:**
+**Done (iteration 2)**, details and traps in `docs/registration.md`:
 
-- **The link is valid for 30–60 minutes instead of 5.** School mail servers often hold back a first email
-  from an unknown sender for 5–15 minutes, so many links would arrive expired.
 - **The link only opens a page.** The account is created when the person sets a password there and submits
   it, because mail scanners (Outlook Safe Links, Defender) open links on their own. Sign-up stays disabled in
   better-auth (`disableSignUp`); the server creates the account.
@@ -168,16 +170,24 @@ Decided by Rainer on 2026-10-31; it replaces the earlier teacher-only applicatio
   says "Sie haben schon ein Konto" with a link to reset the password.
 - **The teacher form also asks for the grades they teach** (Schulstufen), ticked from a list: Volksschule,
   Mittelschule/AHS-Unterstufe, Oberstufe.
-- **Jev answers are capped per account** (each check costs money). When Jev refuses an answer, the form says
-  why, so a real teacher can fix it.
+- **Jev checks every application** (decided, Rainer 2026-10-31), at most 5 times per account (each check costs
+  money); after that, or when Jev fails, the application reaches you unchecked. When Jev refuses an answer, the
+  form says why, so a real teacher can fix it.
 - **Your email hints when the email domain doesn't match the school's URL.** It's a hint, not a gate.
 - **Labels for the choice:** "Lehrkraft" and "Eltern oder andere Erwachsene (z. B. CoderDojo, Jugendgruppe)".
-- **One terms document with a section per role**, so there's one version to track. The page shows the key
-  points for the role chosen.
+- **One terms document with a section per role**, so there's one version to track (`TERMS_VERSION` in
+  `apps/office/lib/terms.ts`).
 - **Later applications:** a parent can apply later from their account ("Als Lehrkraft bewerben"). Someone
   rejected may apply again, and you see the earlier rejection.
 - **Emails to the teacher** on acceptance and rejection, through Resend from `mail.ai-scratch.dev`.
-- **Legal texts that change with parent accounts:**
+  **Decided (Rainer, 2026-10-31):** the rejection says the teacher status can't be confirmed at the moment, but
+  AI-Scratch works with their own OpenRouter keys.
+- **The admin's list** (`/admin`): every registered adult, filtered by open applications, teachers (registered
+  or applied as one), parents, all; searchable by name, email and school. Each account's page shows its consent,
+  every application with Jev's verdict, and Annehmen/Ablehnen (rejecting behind a confirmation).
+- **The key points of the terms** on the registration page come from the terms page (`content/terms.tsx`), one
+  list for both roles, not one per role.
+- **Still open: legal texts that change with parent accounts:**
   - The privacy statement: we store adults' email addresses and encrypted keys, not only teachers' details.
   - The safety table: "Codes only from teachers" becomes "Codes only from adults with an account".
 
@@ -269,18 +279,17 @@ Every way needs an adult: kids can't get access on their own. The per-school cod
 ## Own OpenRouter keys (teachers and parents)
 
 - **Decided:** teachers and parents can enter budget-limited OpenRouter keys and create codes from them.
-- **Decided (Rainer, 2026-10-31):** we never hold an OpenRouter key that can spend more than **€25**, whoever
-  entered it (teacher or parent). If a key leaks, at most that much is lost. Checked when the key is entered and
-  **every time a code is created from it**.
+- **Decided (Rainer, 2026-10-31, replaces the earlier "never hold a key worth more than €25"):** when a code
+  is created from a key, and **only then**, the key's remaining budget, OpenRouter's `limit_remaining`, must be
+  **at most $25** (dollars as OpenRouter reports them, no conversion). Otherwise the code isn't created.
+  - Keys whose limit resets (daily, weekly, monthly) are allowed.
+  - Keys without a limit are refused (no `limit_remaining`).
+  - Entering a key only checks that it works; no cap. A key worth more can be stored, but no code is created
+    from it until its remaining budget is at most $25.
+  - No later checks: raising the limit or a reset after the code was created doesn't stop the code. The terms
+    make the key's owner responsible for its limit.
 - **Proposed:**
-  - The cap applies to what the key can still spend, OpenRouter's `limit_remaining` (in dollars, converted
-    with `USD_PER_EUR`), not to its `limit`. A key with no reset can then be topped up, by raising its limit by
-    at most €25 above what it has already spent, without ever being worth more than €25.
-  - Keys whose limit resets (daily, weekly, monthly) are refused: a leaked key would lose €25 again after every
-    reset.
-  - The kids' app checks the cap too, with its existing `GET /key` check (every 5 minutes). A key raised
-    above the cap after the code was created stops its codes, and its owner gets an email.
-  - Checked like keys typed into the kids' app today (`GET /key`; keys without a limit are refused).
+  - Checked with OpenRouter's `GET /key`, like keys typed into the kids' app today.
   - Stored encrypted (AES-GCM, master key in Key Vault, readable by both apps). Unlike keys typed into the
     kids' app, they are stored, so the terms must say so.
   - Deleting a key stops its codes.
@@ -364,7 +373,8 @@ Every way needs an adult: kids can't get access on their own. The per-school cod
    No other logic. On top: deployment at office.ai-scratch.dev (own web app, CI deploys to production) and
    Rainer's account from a seed script. **Open:** running the Azure scripts and the seed against production.
    Then: content pages.
-2. Database, registration and applications, admin, login, codes with the key pool and budgets.
+2. Database, registration and applications, admin, login (**done 2026-10-31**, iteration 2 of the office); then
+   codes with the key pool and budgets.
 3. Own OpenRouter keys (teachers and parents).
 4. Exercises with starter projects.
 

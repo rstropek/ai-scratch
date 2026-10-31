@@ -1,6 +1,6 @@
 # The teachers' office (apps/office)
 
-Next.js (App Router) at office.ai-scratch.dev: registration and teacher applications, the area for teachers and parents (access codes, own OpenRouter keys) and Rainer's admin. **Iteration 1 so far:** email + password login (better-auth, admin plugin), one protected page. What comes next, and what is decided, proposed or open: `docs/platform-plan.md`. Database and migrations: `docs/database.md`.
+Next.js (App Router) at office.ai-scratch.dev: registration and teacher applications, the area for teachers and parents (access codes, own OpenRouter keys) and Rainer's admin. **So far (iteration 2):** login, registration of parents and teachers with an email link, teacher applications screened by Jev, the admin's account list with accept/reject, password reset (`docs/registration.md`). What comes next, and what is decided, proposed or open: `docs/platform-plan.md`. Database and migrations: `docs/database.md`.
 
 ## Commands
 
@@ -25,8 +25,12 @@ Run them here (or from the root with `-w apps/office`). The `.env` is `apps/offi
 - **Sign-in and sign-out go through `/api/auth` from the browser** (`lib/auth-client.ts`), not through server actions: better-auth's rate limit only applies to HTTP requests, never to `auth.api` calls.
 - **`lib/auth.ts` is a factory without Next.js imports**, so tests run it on PGlite and `scripts/` run it with plain Node. `lib/session.ts` holds the app's instance; it is created on first use, because `next build` imports routes without any environment. Call `headers()` before anything that needs the environment, or `next build` prerenders the page and fails.
 - **Relative imports end in `.ts`/`.tsx`, no `@/` alias:** the seed script runs the same files with Node's type stripping.
-- **No open sign-up** (`disableSignUp`). Accounts come from `npm run seed:admin` for now; `auth.api.createUser` works without a session only server-side.
-- **User-facing texts live in `lib/texts.ts`** (German, `Sie` for teachers).
+- **No open sign-up** (`disableSignUp`). Accounts come from the confirmation page (`lib/registration.ts`) and `npm run seed:admin`; `auth.api.createUser` works without a session only server-side.
+- **URLs are English** (`/login`, `/register`, `/apply`, `/admin`), page texts German (Rainer).
+- **Mail, Turnstile and Jev are created on first use** (`lib/services.ts`, settings in `lib/env.ts` `loadServicesEnv`), like the auth instance; server actions get them through `lib/deps.ts`. `lib/registration.ts` and `lib/applications.ts` take their dependencies as arguments, so unit tests run them on PGlite with fakes.
+- **Server actions return `FormState`** (`lib/form-state.ts`): field errors, a banner, and the answers, because React resets a form after its action. Limits the forms and the server share live in `lib/rules.ts` (no imports: client components load it).
+- **User-facing texts live in `lib/texts.ts`** (German, `Sie` for teachers). Long texts (legal pages) live in `content/`, one file each, rendered inside `Prose`; read `docs/legal-texts.md` before changing one.
+- **Public info pages** (legal texts, no login) sit in the route group `app/(info)/` with their own layout; they stay static (no `headers()`, no session).
 - **The look follows `docs/office-design.html`** (Rainer approved it): Scratch 3's palette like the kids' app, at adult density.
 - **No duplicated styling (Rainer's rule).** Colours, type sizes, radii, the font and the focus halo exist only as tokens in `app/globals.css`; Tailwind's own palette and type scale are switched off there, so use the tokens (`bg-primary`, `text-muted`, `text-sm`, `rounded-field`, `focus-visible:focus-ring`) and never raw values. The first time a UI element is needed, it becomes a component in `components/ui/` (layout pieces like the shell in `components/`), and every later use goes through it, so all appearances look and behave the same. Extend a component with a prop rather than restyling it at the call site; `className` is for placement (margins, width, grid), not looks.
 - **Shared with the kids' app only what must be identical.** The two apps keep their own CSS and components, even where values match today.

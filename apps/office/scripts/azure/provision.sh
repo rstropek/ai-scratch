@@ -20,6 +20,8 @@ PLAN_ID="/subscriptions/$(az account show -s "$SUBSCRIPTION" --query id -o tsv)/
 KV="kv-digiferien"
 ACR="acrars2025"
 PLACEHOLDER_IMAGE="mcr.microsoft.com/appsvc/staticsite:latest"
+# the Turnstile widget of office.ai-scratch.dev (public; its secret is turnstile-secret-key in the vault)
+TURNSTILE_SITE_KEY="0x4AAAAAAFt9P51346HQ8eXj"
 REPO="$(cd "$(dirname "$0")/../../../.." && pwd)"
 
 az account set -s "$SUBSCRIPTION"
@@ -65,6 +67,11 @@ az postgres flexible-server firewall-rule create -g "$RG" -s "$DB_SERVER" -n adm
   --start-ip-address "$MY_IP" --end-ip-address "$MY_IP" -o none
 
 KV_ID=$(az keyvault show -g "$RG" -n "$KV" --query id -o tsv)
+# uploaded by apps/app/scripts/azure/provision.sh (resend-api-key, jev-api-key) and by hand (turnstile-secret-key)
+for secret in resend-api-key jev-api-key turnstile-secret-key; do
+  az keyvault secret show --vault-name "$KV" -n "$secret" --query name -o none ||
+    { echo "Missing Key Vault secret $secret (docs/deployment.md)" >&2; exit 1; }
+done
 if ! az keyvault secret show --vault-name "$KV" -n office-auth-secret -o none 2>/dev/null; then
   log "Secret office-auth-secret"
   az keyvault secret set --vault-name "$KV" -n office-auth-secret --file <(openssl rand -base64 32) -o none
@@ -91,7 +98,11 @@ az webapp config appsettings set -g "$RG" -n "$APP" -o none --settings \
   "PGDATABASE=$DATABASE" \
   "PGUSER=$ROLE" \
   "BETTER_AUTH_URL=$URL" \
-  "BETTER_AUTH_SECRET=@Microsoft.KeyVault(VaultName=$KV;SecretName=office-auth-secret)"
+  "BETTER_AUTH_SECRET=@Microsoft.KeyVault(VaultName=$KV;SecretName=office-auth-secret)" \
+  "RESEND_API_KEY=@Microsoft.KeyVault(VaultName=$KV;SecretName=resend-api-key)" \
+  "TURNSTILE_SITE_KEY=$TURNSTILE_SITE_KEY" \
+  "TURNSTILE_SECRET_KEY=@Microsoft.KeyVault(VaultName=$KV;SecretName=turnstile-secret-key)" \
+  "JEV_API_KEY=@Microsoft.KeyVault(VaultName=$KV;SecretName=jev-api-key)"
 
 az postgres flexible-server db create -g "$RG" -s "$DB_SERVER" -n "$DATABASE" -o none
 # the web app's identity logs in as $ROLE and owns the database (and so the tables its migrations create);

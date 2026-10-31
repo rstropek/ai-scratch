@@ -23,7 +23,11 @@ Prefer the lowest layer that can show the bug: unit > component > e2e.
 - **The office** (`apps/office`): unit tests run better-auth with our configuration on **PGlite** (in-memory
   Postgres with the real migrations), component tests (jsdom) mock `lib/auth-client.ts` and `next/navigation`,
   e2e runs the standalone build against a real Postgres (`docker compose up -d db` locally, a service container
-  in CI). Next.js's route announcer is an element with `role="alert"` too: filter alerts by text.
+  in CI). Next.js's route announcer is an element with `role="alert"` too: filter alerts by text. Mails land
+  in `mail-outbox/e2e` (the tests read the links there), Turnstile uses Cloudflare's dummy keys (the e2e run
+  needs the internet), Jev is off (`JEV_DISABLED=1`; unit tests fake it). Every test page sends its own
+  `X-Client-IP` (`e2e/fixtures.ts`): better-auth's sign-in limit (3 per 10 s) and the registration limits count
+  per IP.
 
 ## What the tests can't show
 

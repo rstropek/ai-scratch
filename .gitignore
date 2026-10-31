@@ -9,6 +9,8 @@ playwright-report/
 # office (Next.js): build output and generated type declarations (npm run typecheck regenerates them)
 .next/
 next-env.d.ts
+# office: mails written instead of sent (MAIL_OUTBOX_DIR, local development and e2e)
+mail-outbox/
 
 # impeccable skill engine: the wrapper downloads a version-pinned, checksum-verified copy on first use
 .claude/skills/impeccable/scripts/bin/

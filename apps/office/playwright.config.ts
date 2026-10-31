@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { defineConfig, devices } from '@playwright/test';
-import { E2E_DATABASE_URL } from './e2e/settings.ts';
+import { E2E_ADMIN, E2E_DATABASE_URL, E2E_OUTBOX } from './e2e/settings.ts';
 
 const PORT = 3110;
 
@@ -24,6 +24,12 @@ export default defineConfig({
       DATABASE_URL: E2E_DATABASE_URL,
       BETTER_AUTH_SECRET: randomBytes(32).toString('base64'),
       BETTER_AUTH_URL: `http://localhost:${PORT}`,
+      MAIL_OUTBOX_DIR: E2E_OUTBOX,
+      ADMIN_NOTIFY_EMAIL: E2E_ADMIN.email,
+      // Cloudflare's dummy keys: the widget passes at once, siteverify accepts its token
+      TURNSTILE_SITE_KEY: '1x00000000000000000000AA',
+      TURNSTILE_SECRET_KEY: '1x0000000000000000000000000000000AA',
+      JEV_DISABLED: '1',
     },
   },
 });
