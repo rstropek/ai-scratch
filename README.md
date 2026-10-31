@@ -134,7 +134,7 @@ At the root: `npm run check` (Biome over the whole repo + each workspace's type 
 
 ## Deployment (Azure)
 
-Every push to `main` is tested and deployed to the **staging** slot. **Production** changes only through the
+Every push to `main` is tested; one that changes the kids' app is deployed to the **staging** slot. **Production** changes only through the
 manual *Swap to production* workflow; running it again rolls back. **No swaps during the event:** a swap
 restarts production and interrupts kids mid-answer. The reasons behind the setup and the traps we hit:
 [docs/deployment.md](docs/deployment.md).
@@ -146,7 +146,7 @@ restarts production and interrupts kids mid-answer. The reasons behind the setup
 | Secrets | Key Vault `kv-digiferien`, read by the app's managed identity |
 | Research logs | storage account `stdigiferien`, container `logs`: one JSON blob per AI call and per guard check of the event, no longer written. No retention rule; Rainer deletes them by hand |
 | Image | `acrars2025.azurecr.io/ai-scratch:<commit>` |
-| Workflows | [deploy.yml](.github/workflows/deploy.yml) (push to `main` → staging), [swap.yml](.github/workflows/swap.yml) (manual → production); GitHub logs in with OIDC |
+| Workflows | [deploy.yml](.github/workflows/deploy.yml) (every push and PR: all tests; push to `main` that changes the kids' app → staging), [swap.yml](.github/workflows/swap.yml) (manual → production); GitHub logs in with OIDC |
 
 Operations (`az login` with Owner on the subscription; both scripts are safe to re-run):
 

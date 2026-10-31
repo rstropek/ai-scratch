@@ -28,7 +28,7 @@ jobs:
           version=$(curl -sf --max-time 10 https://ai-scratch-staging.azurewebsites.net/healthz | jq -r .version)
           [[ -n "$version" && "$version" != null ]] || { echo "::error::staging does not answer /healthz"; exit 1; }
           echo "version=$version" >> "$GITHUB_OUTPUT"
-      - uses: azure/login@v2
+      - uses: azure/login@v3
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}

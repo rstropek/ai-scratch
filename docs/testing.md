@@ -35,8 +35,9 @@ Prefer the lowest layer that can show the bug: unit > component > e2e.
   [kids-protection.md](kids-protection.md); run it after changing guard questions or thresholds.
 - **The slide deck** has no tests of its own; only its `/slides` route is tested (server tests). Look at a
   deck change in the browser (`npm run dev` in `slides/`).
-- **CI runs only** `npm run check` and the unit/component tests. Run `npm run e2e` locally before pushing UI
-  changes.
+- **CI runs everything that needs no real keys** on every push and pull request: check, unit/component
+  tests, the office build, e2e, and the game checks against the reference games (`--references`, about 6 min,
+  no model calls). Only `test:live`, `eval:guard` and model runs of `eval:games` stay local.
 
 ## Game tests (the real model)
 

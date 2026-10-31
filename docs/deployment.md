@@ -42,10 +42,10 @@ truth for settings and roles.
 
 ## Release flow
 
-- Every push to `main` that touches the kids' app (`apps/app/**` or the shared root files: lock file, `biome.json`,
-  `tsconfig.base.json`): check + unit tests, build the image (tagged with the commit), run it in **staging**,
-  wait until staging's `/healthz` reports that commit ([deploy.yml](../.github/workflows/deploy.yml)). e2e
-  tests don't run in CI; run them locally before pushing UI changes.
+- Every push to `main`: all CI tests ([deploy.yml](../.github/workflows/deploy.yml), `docs/testing.md`). Only
+  when the push changes the kids' app (`apps/app/**` or a shared root file: lock file, `.npmrc`,
+  `tsconfig.base.json`): build the image (tagged with the commit), run it in **staging**, wait until staging's
+  `/healthz` reports that commit. Office-only and docs-only pushes don't touch staging.
 - **Production changes only by the manual swap** ([swap.yml](../.github/workflows/swap.yml)), which checks
   afterwards that production reports the staging commit. Running it again swaps back (rollback).
 - **No deploy to production and no swap during the event:** a swap restarts production and cuts the turns in

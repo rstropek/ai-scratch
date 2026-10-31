@@ -1,27 +1,17 @@
-# The kids' app (apps/app): every push to main that touches it: check + unit tests, build the image, push it to ACR
-# and run it in the staging slot. Production only changes through the "Swap to production" workflow (swap.yml).
-name: Deploy to staging
+# Every push and pull request: all tests that need no real API keys (check, unit/component tests, the office build,
+# e2e, the game checks against the reference games). Then, on main and only when the kids' app or a shared root
+# file changed: build the image, push it to ACR and run it in the staging slot. Production only changes through
+# the "Swap to production" workflow (swap.yml).
+name: CI and staging deploy
 
 on:
   push:
     branches: [main]
-    paths:
-      - apps/app/**
-      - package.json
-      - package-lock.json
-      - .npmrc
-      - tsconfig.base.json
-      - biome.json
-      - .github/workflows/deploy.yml
+  pull_request:
   workflow_dispatch:
 
 permissions:
-  id-token: write
   contents: read
-
-concurrency:
-  group: azure-ai-scratch
-  cancel-in-progress: false
 
 env:
   REGISTRY: acrars2025.azurecr.io
@@ -33,28 +23,95 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
       - run: npm ci
       - run: npm run check
       - run: npm test
+      - run: npm run build -w apps/office
 
-  deploy:
-    needs: test
+  e2e:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: azure/login@v2
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+        working-directory: apps/app
+      - run: npm run e2e -w apps/app
+
+  # the harness's automatic game checks against hand-built and CoderDojo games: no model calls
+  games:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+        working-directory: apps/app
+      - run: npm run build -w apps/app
+      - run: node eval/games/reference.ts
+        working-directory: apps/app
+      - run: npm run eval:games -w apps/app -- --references
+        env:
+          # the app's server needs keys to start; the reference checks never call a model
+          ANTHROPIC_API_KEY: ci-no-real-calls
+          JEV_API_KEY: ci-no-real-calls
+
+  # does this push change what the kids' app's image is built from?
+  changes:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      app: ${{ steps.diff.outputs.app }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: diff
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" != push ]] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            echo "app=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          files=$(git diff --name-only "$BEFORE" "$GITHUB_SHA")
+          echo "$files"
+          if grep -qE '^(apps/app/|package\.json$|package-lock\.json$|\.npmrc$|tsconfig\.base\.json$|\.github/workflows/deploy\.yml$)' <<< "$files"; then
+            echo "app=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "app=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    needs: [test, e2e, games, changes]
+    if: github.ref == 'refs/heads/main' && needs.changes.outputs.app == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    concurrency:
+      group: azure-ai-scratch
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - uses: azure/login@v3
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
       - run: az acr login -n acrars2025
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: apps/app/Dockerfile
