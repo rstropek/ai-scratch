@@ -2,6 +2,9 @@
 
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useState } from 'react';
+import { Banner } from '../../components/ui/banner.tsx';
+import { Button } from '../../components/ui/button.tsx';
+import { TextField } from '../../components/ui/text-field.tsx';
 import { authClient } from '../../lib/auth-client.ts';
 import { texts } from '../../lib/texts.ts';
 
@@ -35,39 +38,19 @@ export function LoginForm() {
   };
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-4">
-      <label className="flex flex-col gap-1 font-medium text-sm">
-        {texts.login.email}
-        <input
-          name="email"
-          type="email"
-          autoComplete="username"
-          required
-          className="rounded-md border border-slate-300 bg-white px-3 py-2 font-normal text-base"
-        />
-      </label>
-      <label className="flex flex-col gap-1 font-medium text-sm">
-        {texts.login.password}
-        <input
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          className="rounded-md border border-slate-300 bg-white px-3 py-2 font-normal text-base"
-        />
-      </label>
-      {error && (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-red-800 text-sm">
-          {error}
-        </p>
-      )}
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-md bg-slate-900 px-3 py-2 font-semibold text-white hover:bg-slate-700 disabled:opacity-60"
-      >
+    <form onSubmit={submit} className="grid gap-4">
+      <TextField label={texts.login.email} name="email" type="email" autoComplete="username" required />
+      <TextField
+        label={texts.login.password}
+        name="password"
+        type="password"
+        autoComplete="current-password"
+        required
+      />
+      {error && <Banner tone="error">{error}</Banner>}
+      <Button type="submit" pending={pending}>
         {pending ? texts.login.submitting : texts.login.submit}
-      </button>
+      </Button>
     </form>
   );
 }

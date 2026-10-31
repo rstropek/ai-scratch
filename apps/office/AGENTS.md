@@ -27,6 +27,9 @@ Run them here (or from the root with `-w apps/office`). The `.env` is `apps/offi
 - **Relative imports end in `.ts`/`.tsx`, no `@/` alias:** the seed script runs the same files with Node's type stripping.
 - **No open sign-up** (`disableSignUp`). Accounts come from `npm run seed:admin` for now; `auth.api.createUser` works without a session only server-side.
 - **User-facing texts live in `lib/texts.ts`** (German, `Sie` for teachers).
+- **The look follows `docs/office-design.html`** (Rainer approved it): Scratch 3's palette like the kids' app, at adult density.
+- **No duplicated styling (Rainer's rule).** Colours, type sizes, radii, the font and the focus halo exist only as tokens in `app/globals.css`; Tailwind's own palette and type scale are switched off there, so use the tokens (`bg-primary`, `text-muted`, `text-sm`, `rounded-field`, `focus-visible:focus-ring`) and never raw values. The first time a UI element is needed, it becomes a component in `components/ui/` (layout pieces like the shell in `components/`), and every later use goes through it, so all appearances look and behave the same. Extend a component with a prop rather than restyling it at the call site; `className` is for placement (margins, width, grid), not looks.
+- **Shared with the kids' app only what must be identical.** The two apps keep their own CSS and components, even where values match today.
 - `next-env.d.ts` and `.next/` are generated and git-ignored. `next dev` re-adds the block below when it's missing.
 
 <!-- BEGIN:nextjs-agent-rules -->

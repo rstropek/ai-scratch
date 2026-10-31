@@ -1,0 +1,1145 @@
+<title>AI-Scratch Office Design</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  /* Layout: a spec sheet in the office's own world. Purple Scratch menu bar on top, light-blue panel ground,
+     a sticky section index on wide screens, and each specimen in a white "screen" frame. Light only: the office,
+     like Scratch, has one look. Every token maps to apps/app/src/client/index.css where that file has one. */
+  :root {
+    color-scheme: light;
+    /* Scratch 3 GUI palette (scratch-gui colors.css), as in the kids' app */
+    --primary: #855cd6;        /* looks-secondary: menu bar, primary buttons, selection */
+    --primary-hover: #714eb6;  /* looks-secondary-dark: hover, links (6.1:1 on white) */
+    --primary-light: #ede7f9;  /* active nav item, selected row, "Neu" chip */
+    --primary-ink: #3b2a6b;    /* text on primary-light */
+    --ring: hsla(260, 60%, 60%, 0.35); /* looks-transparent: the 4px focus halo */
+    --ground: #e9f1fc;         /* ui-secondary: page ground */
+    --ground-2: #f5f8fd;       /* table header, quiet fills inside panels */
+    --tertiary: #d9e3f2;       /* ui-tertiary: row hover, meter track */
+    --panel: #ffffff;
+    --ink: #575e75;            /* text-primary (6.4:1 on white, 5.7:1 on ground) */
+    --ink-soft: #6b7186;       /* hints, secondary columns: only on white and ground-2 (≥4.5:1) */
+    --line: hsla(0, 0%, 0%, 0.15);    /* ui-black-transparent: field borders */
+    --line-soft: hsla(225, 30%, 40%, 0.12); /* table rules, panel edges */
+    --overlay: hsla(215, 100%, 65%, 0.9); /* ui-modal-overlay */
+    /* state colours: always with an icon or a word, never colour alone */
+    --info: #4c97ff;   --info-bg: #e6f0ff;   --info-ink: #1d5fbf;   /* motion-primary: information, "Geplant" */
+    --ok: #0fbd8c;     --ok-bg: #e0f6ef;     --ok-ink: #0b7a5c;     /* extensions-primary: running, done */
+    --warn: #ffab19;   --warn-bg: #fff4d6;   --warn-ink: #7a4d00;   /* control-primary: attention */
+    --error: #ff8c1a;  --error-bg: #fff0df;  --error-ink: #b04600;  /* error-primary + ui-alert-orange */
+    --error-edge: #e64d00;     /* red-tertiary: invalid field border */
+    --danger: #c23d00;         /* destructive buttons, white text 5.3:1 */
+    --danger-hover: #a33300;
+    --mute-bg: #eceef3;        /* "Abgelaufen", "Abgelehnt" */
+
+    --font: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, Menlo, Consolas, monospace;
+    /* type scale (px): 13 hint · 14 label/table · 15 body · 18 section · 24 page title */
+    --t-hint: 0.8125rem; --t-small: 0.875rem; --t-body: 0.9375rem; --t-h3: 1.125rem; --t-h2: 1.5rem;
+    --r-field: 5px; --r-button: 0.25rem; --r-panel: 0.5rem;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  .banner[hidden] { display: none; }
+  body {
+    background: var(--ground); color: var(--ink);
+    font: var(--t-body)/1.5 var(--font);
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--ring); }
+  :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+  table { font: inherit; color: inherit; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  a { color: var(--primary-hover); text-underline-offset: 2px; }
+  a:hover { color: var(--primary-ink); }
+  h1, h2, h3, h4 { text-wrap: balance; margin: 0; line-height: 1.25; }
+  p { margin: 0; }
+  svg.i { width: 1rem; height: 1rem; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ---------- the proposal page's own frame ---------- */
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--primary); }
+  .docbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--primary); color: #fff; }
+  .docbar .in { max-width: 76rem; margin: 0 auto; height: 3rem; display: flex; align-items: center; gap: 0.75rem;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .logo { width: 1.75rem; height: 1.75rem; border-radius: 0.375rem; background: rgba(255,255,255,0.95); padding: 2px; flex: none; }
+  .docbar b { font-weight: 700; letter-spacing: 0.01em; white-space: nowrap; }
+  .docbar span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .page { max-width: 76rem; margin: 0 auto; display: grid; grid-template-columns: 12rem minmax(0, 1fr); gap: 2.5rem;
+    padding-block: 2rem 4rem;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .toc { position: sticky; top: 4.5rem; align-self: start; display: grid; gap: 0.125rem; font-size: var(--t-small); }
+  .toc a { color: var(--ink); text-decoration: none; padding: 0.375rem 0.625rem; border-radius: var(--r-button); font-weight: 700; }
+  .toc a:hover { background: var(--tertiary); color: var(--ink); }
+  main { min-width: 0; display: grid; gap: 4rem; }
+  .intro { display: grid; gap: 1rem; max-width: 46rem; }
+  .intro h1 { font-size: 2rem; color: var(--primary-ink); }
+  .intro p { font-size: 1.0625rem; }
+  .principles { display: grid; gap: 0.625rem; margin: 0.5rem 0 0; padding: 0; list-style: none; }
+  .principles li { display: grid; grid-template-columns: 1.5rem 1fr; gap: 0.5rem; }
+  .principles :where(li svg) { margin-top: 0.25rem; color: var(--primary); }
+
+  section.spec { display: grid; gap: 1.25rem; scroll-margin-top: 4.5rem; }
+  .spec > header { display: grid; gap: 0.375rem; max-width: 46rem; }
+  .spec > :where(header h2) { font-size: var(--t-h2); color: var(--primary-ink); }
+  .notes { display: grid; gap: 0.375rem; margin: 0; padding-left: 1.125rem; font-size: var(--t-small); max-width: 52rem; }
+  .notes li::marker { color: var(--primary); }
+  .label-ex { font-size: var(--t-hint); color: var(--ink); background: var(--panel); border: 1px dashed var(--line); border-radius: 999px; padding: 0.0625rem 0.5rem; justify-self: start; }
+  code { font-family: var(--mono); font-size: 0.875em; background: var(--panel); border-radius: 0.25rem; padding: 0.1em 0.35em; }
+
+  /* a specimen: one screen of the office */
+  .screen { background: var(--ground); border-radius: var(--r-panel); overflow: hidden;
+    box-shadow: 0 1px 2px rgba(40, 50, 90, 0.08), 0 8px 24px -8px rgba(40, 50, 90, 0.18); border: 1px solid var(--line-soft); }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 1.25rem; align-items: start; }
+  .board { background: var(--panel); border-radius: var(--r-panel); border: 1px solid var(--line-soft); padding: 1.25rem; display: grid; gap: 1rem; min-width: 0; }
+  .board > h3 { font-size: var(--t-small); text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); }
+
+  /* ---------- tokens ---------- */
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr)); gap: 0.75rem; }
+  .sw { display: grid; grid-template-columns: 2.75rem 1fr; gap: 0.75rem; align-items: center; font-size: var(--t-hint); }
+  .sw i { height: 2.75rem; border-radius: 0.375rem; border: 1px solid var(--line-soft); }
+  .sw b { display: block; font-size: var(--t-small); }
+  .sw span { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+  .typescale { display: grid; gap: 0.75rem; }
+  .typescale div { display: grid; grid-template-columns: 5.5rem 1fr; gap: 1rem; align-items: baseline; }
+  .typescale small { font-size: var(--t-hint); color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+
+  /* ---------- the office shell ---------- */
+  .obar { background: var(--primary); color: #fff; display: flex; align-items: center; gap: 0.75rem; padding: 0 1rem; height: 3rem; }
+  .obar .name { font-weight: 700; white-space: nowrap; }
+  .onav { display: flex; gap: 0.25rem; margin-left: 0.75rem; overflow-x: auto; scrollbar-width: none; min-width: 0; }
+  .onav a { color: #fff; text-decoration: none; font-weight: 700; font-size: var(--t-small); padding: 0.375rem 0.75rem; border-radius: 0.375rem; white-space: nowrap; }
+  .onav a:hover { background: rgba(255,255,255,0.15); color: #fff; }
+  .onav a[aria-current="page"] { background: rgba(255,255,255,0.22); box-shadow: inset 0 -2px 0 #fff; }
+  .ouser { margin-left: auto; display: flex; align-items: center; gap: 0.5rem; font-size: var(--t-small); white-space: nowrap; }
+  .ghost-w { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.55); border-radius: var(--r-button); padding: 0.3125rem 0.625rem; font-weight: 700; font-size: var(--t-small); cursor: pointer; display: inline-flex; gap: 0.375rem; align-items: center; }
+  .ghost-w:hover { background: rgba(255,255,255,0.15); }
+  .obody { padding: 1.5rem; display: grid; gap: 1.25rem; }
+  .phead { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 0.75rem 1rem; }
+  .phead h1 { font-size: var(--t-h2); color: var(--ink); }
+  .phead p { font-size: var(--t-small); }
+  .panel { background: var(--panel); border-radius: var(--r-panel); border: 1px solid var(--line-soft); min-width: 0; }
+
+  /* month summary: one quiet strip, not metric tiles */
+  .month { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1.5rem; padding: 0.75rem 1rem; font-size: var(--t-small); }
+  .month .m { display: flex; align-items: center; gap: 0.625rem; min-width: 0; }
+  .month b { font-variant-numeric: tabular-nums; }
+  .month .sep { width: 1px; align-self: stretch; background: var(--line-soft); }
+
+  /* meter: the kids' Gedächtnis gauge, grown up */
+  .meter { width: 6rem; height: 0.375rem; border-radius: 999px; background: var(--tertiary); overflow: hidden; flex: none; }
+  .meter i { display: block; height: 100%; border-radius: inherit; background: var(--info); }
+  .meter.hi :where(i) { background: var(--warn); }
+  .meter.full :where(i) { background: var(--error); }
+  .money { display: grid; gap: 0.25rem; font-variant-numeric: tabular-nums; }
+  .money span { font-size: var(--t-hint); color: var(--ink-soft); }
+
+  /* ---------- buttons ---------- */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: var(--r-button); border: 1px solid transparent;
+    font-weight: 700; font-size: var(--t-small); line-height: 1; padding: 0.6875rem 1rem; cursor: pointer; white-space: nowrap; text-decoration: none;
+    transition: background-color 150ms ease-out, border-color 150ms ease-out; }
+  .btn:focus-visible { outline: none; box-shadow: 0 0 0 4px var(--ring); }
+  .btn.primary { background: var(--primary); color: #fff; }
+  .btn.primary:hover { background: var(--primary-hover); color: #fff; }
+  .btn.secondary { background: var(--panel); color: var(--ink); border-color: var(--line); }
+  .btn.secondary:hover { background: var(--ground-2); color: var(--ink); }
+  .btn.danger { background: var(--danger); color: #fff; }
+  .btn.danger:hover { background: var(--danger-hover); color: #fff; }
+  .btn.quiet { background: transparent; color: var(--primary-hover); padding-inline: 0.5rem; }
+  .btn.quiet:hover { background: var(--primary-light); color: var(--primary-ink); }
+  .btn[disabled], .btn[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; }
+  .btn.sm { padding: 0.4375rem 0.625rem; }
+  .iconbtn { display: inline-grid; place-items: center; width: 2rem; height: 2rem; border-radius: var(--r-button); border: 0; background: transparent; color: var(--ink-soft); cursor: pointer; }
+  .iconbtn:hover { background: var(--tertiary); color: var(--ink); }
+  .iconbtn:focus-visible { outline: none; box-shadow: 0 0 0 4px var(--ring); }
+  .spin { animation: spin 0.9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .btnrow { display: flex; flex-wrap: wrap; gap: 0.625rem; align-items: center; }
+
+  /* ---------- toolbar: tabs + search ---------- */
+  .toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-bottom: 1px solid var(--line-soft); }
+  .tabs { display: flex; gap: 0.25rem; flex-wrap: wrap; }
+  .tabs button { border: 0; background: transparent; padding: 0.4375rem 0.75rem; border-radius: 999px; font-weight: 700; font-size: var(--t-small); color: var(--ink); cursor: pointer; display: inline-flex; gap: 0.375rem; align-items: center; }
+  .tabs button:hover { background: var(--ground-2); }
+  .tabs button[aria-selected="true"] { background: var(--primary-light); color: var(--primary-ink); }
+  .tabs .n { font-variant-numeric: tabular-nums; font-weight: 400; }
+  .search { position: relative; width: min(100%, 17rem); }
+  .search svg { position: absolute; left: 0.625rem; top: 50%; translate: 0 -50%; color: var(--ink-soft); }
+  .search input { padding-left: 2.125rem; }
+
+  /* ---------- the data grid ---------- */
+  .tablewrap { overflow-x: auto; }
+  table.grid { width: 100%; border-collapse: collapse; font-size: var(--t-small); font-variant-numeric: tabular-nums; }
+  .grid th { text-align: left; font-weight: 700; color: var(--ink); background: var(--ground-2); padding: 0; border-bottom: 1px solid var(--line-soft); white-space: nowrap; }
+  .grid :where(th > span, th > button) { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.625rem 1rem; }
+  .grid th > button { border: 0; background: transparent; font-weight: 700; cursor: pointer; width: 100%; }
+  .grid th > button:hover { color: var(--primary-ink); }
+  .grid :where(th > button svg) { color: var(--ink-soft); width: 0.875rem; height: 0.875rem; }
+  .grid :where(th[aria-sort] > button) svg { color: var(--primary); }
+  .grid td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+  .grid tbody tr:last-child td { border-bottom: 0; }
+  .grid tbody tr:hover td { background: var(--ground-2); }
+  .grid .num { text-align: right; }
+  .grid .act { width: 1%; white-space: nowrap; text-align: right; padding-block: 0.25rem; }
+  .grid .sub { display: block; font-size: var(--t-hint); color: var(--ink-soft); }
+  .when { white-space: nowrap; }
+  .tfoot { padding: 0.625rem 1rem; font-size: var(--t-hint); color: var(--ink-soft); border-top: 1px solid var(--line-soft); display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+
+  /* the signature: the code as kids will type it */
+  .code { display: inline-flex; align-items: center; gap: 0.25rem; }
+  .code b { white-space: nowrap; font-weight: 700; letter-spacing: 0.06em; color: var(--primary-ink); background: var(--primary-light); border-radius: var(--r-button); padding: 0.1875rem 0.5rem; font-variant-numeric: tabular-nums; }
+  .code .iconbtn { width: 1.75rem; height: 1.75rem; }
+
+  /* status chips */
+  .chip { display: inline-flex; align-items: center; gap: 0.375rem; border-radius: 999px; padding: 0.1875rem 0.625rem 0.1875rem 0.5rem; font-size: var(--t-hint); font-weight: 700; white-space: nowrap; }
+  .chip::before { content: ""; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: currentColor; }
+  .chip.run { background: var(--ok-bg); color: var(--ok-ink); }
+  .chip.run::before { background: var(--ok); box-shadow: 0 0 0 3px rgba(15, 189, 140, 0.25); }
+  .chip.plan { background: var(--info-bg); color: var(--info-ink); }
+  .chip.plan::before { background: var(--info); }
+  .chip.past { background: var(--mute-bg); color: var(--ink); }
+  .chip.past::before { background: #9aa0b3; }
+  .chip.new { background: var(--primary-light); color: var(--primary-ink); }
+  .chip.new::before { background: var(--primary); }
+  .chip.stop { background: var(--error-bg); color: var(--error-ink); }
+  .chip.stop::before { background: var(--error); }
+  .onoff { display: inline-flex; align-items: center; gap: 0.375rem; }
+  .onoff svg { width: 0.875rem; height: 0.875rem; }
+  .onoff.on :where(svg) { color: var(--ok-ink); }
+  .onoff.off { color: var(--ink-soft); }
+
+  /* phone: rows become stacked records */
+  @media (max-width: 40rem) {
+    .grid.stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    .grid.stack, .grid.stack tbody { display: block; }
+    .grid.stack tr { display: grid; grid-template-columns: 1fr auto; gap: 0.375rem 1rem; padding: 0.875rem 1rem; border-bottom: 1px solid var(--line-soft); }
+    .grid.stack tbody tr:last-child { border-bottom: 0; }
+    .grid.stack td { display: grid; grid-template-columns: 6.5rem 1fr; gap: 0.75rem; padding: 0; border: 0; grid-column: 1 / -1; text-align: left; }
+    .grid.stack td::before { content: attr(data-label); font-size: var(--t-hint); color: var(--ink-soft); }
+    .grid.stack td.lead { grid-column: 1; display: block; }
+    .grid.stack td.lead::before, .grid.stack td.act::before { content: none; }
+    .grid.stack td.act { grid-column: 2; grid-row: 1; display: block; width: auto; }
+    .grid.stack td { justify-items: start; align-items: start; }
+    .menu [role="menu"] { display: none; }
+    .grid.stack td .sub { grid-column: 2; }
+    .grid.stack tbody tr:hover td { background: transparent; }
+    .obody { padding: 1rem; }
+    .ouser .who { display: none; }
+    .obar { flex-wrap: wrap; height: auto; padding-block: 0.5rem; row-gap: 0.375rem; }
+    .onav { order: 3; width: 100%; margin-left: -0.75rem; }
+    .month .sep { display: none; }
+  }
+
+  /* row menu */
+  .menu { position: relative; display: inline-block; }
+  .menu [role="menu"] { position: absolute; right: 0; top: calc(100% + 0.25rem); z-index: 2; background: var(--panel); border: 1px solid var(--line-soft); border-radius: var(--r-panel);
+    box-shadow: 0 4px 16px -4px rgba(40, 50, 90, 0.25); padding: 0.25rem; min-width: 11rem; display: grid; text-align: left; }
+  .menu [role="menuitem"] { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.625rem; border-radius: var(--r-button); border: 0; background: transparent; cursor: pointer; font-size: var(--t-small); color: var(--ink); text-align: left; }
+  .menu [role="menuitem"]:hover { background: var(--ground-2); }
+  .menu [role="menuitem"].bad { color: var(--error-ink); }
+  .menu hr { border: 0; border-top: 1px solid var(--line-soft); margin: 0.25rem 0; }
+
+  /* grid states */
+  .state { display: grid; justify-items: center; text-align: center; gap: 0.625rem; padding: 2.25rem 1.25rem; }
+  .state .disc { width: 3rem; height: 3rem; border-radius: 50%; display: grid; place-items: center; background: var(--ground); color: var(--ink-soft); }
+  .state :where(.disc svg) { width: 1.5rem; height: 1.5rem; }
+  .state.err :where(.disc) { background: var(--error-bg); color: var(--error-ink); }
+  .state :where(strong) { color: var(--ink); }
+  .state p { font-size: var(--t-small); max-width: 34ch; }
+  .skel { display: grid; gap: 0; }
+  .skel div { display: grid; grid-template-columns: 6rem 1fr 4rem; gap: 1rem; padding: 0.875rem 1rem; border-bottom: 1px solid var(--line-soft); }
+  .skel div:last-child { border-bottom: 0; }
+  .skel i { height: 0.75rem; border-radius: 999px; background: linear-gradient(90deg, var(--tertiary) 0%, var(--ground-2) 50%, var(--tertiary) 100%); background-size: 200% 100%; animation: shimmer 1.4s ease-in-out infinite; }
+  @keyframes shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+
+  /* ---------- fields ---------- */
+  .form { display: grid; gap: 1.25rem; }
+  .field { display: grid; gap: 0.375rem; align-content: start; min-width: 0; }
+  .field > label, .field > .lbl, legend { font-size: var(--t-small); font-weight: 700; color: var(--ink); padding: 0; }
+  .opt { font-weight: 400; color: var(--ink-soft); }
+  .hint { font-size: var(--t-hint); color: var(--ink-soft); }
+  .input, select.input, textarea.input { width: 100%; height: 2.5rem; border: 1px solid var(--line); border-radius: var(--r-field); background: var(--panel); padding: 0 0.75rem; font-size: var(--t-body); color: var(--ink); caret-color: var(--primary);
+    transition: border-color 150ms ease-out, box-shadow 150ms ease-out; }
+  textarea.input { height: auto; min-height: 6rem; padding: 0.5rem 0.75rem; resize: vertical; line-height: 1.5; }
+  select.input { appearance: none; padding-right: 2.25rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7186' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 0.625rem center; background-size: 1rem; }
+  .input::placeholder { color: var(--ink-soft); }
+  .input:hover { border-color: hsla(0, 0%, 0%, 0.3); }
+  .input:focus, .input.is-focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px var(--ring); }
+  .input[aria-invalid="true"] { border-color: var(--error-edge); }
+  .input[aria-invalid="true"]:focus { box-shadow: 0 0 0 4px rgba(255, 140, 26, 0.3); }
+  .input:disabled { background: var(--ground-2); color: var(--ink-soft); cursor: not-allowed; }
+  .input[readonly] { background: var(--ground-2); border-style: dashed; }
+  .ferr { display: flex; gap: 0.375rem; align-items: flex-start; font-size: var(--t-hint); font-weight: 700; color: var(--error-ink); }
+  .ferr svg { width: 0.9375rem; height: 0.9375rem; margin-top: 0.0625rem; }
+  .count { font-size: var(--t-hint); color: var(--ink-soft); font-variant-numeric: tabular-nums; justify-self: end; }
+  .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: 1rem; }
+  .row.two { grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr)); }
+  .foot { display: flex; flex-wrap: wrap; gap: 0.625rem; align-items: center; padding-top: 0.25rem; }
+  .foot .hint { margin-left: auto; }
+
+  /* checkboxes, radios, switch: native controls, Scratch purple */
+  input[type="checkbox"], input[type="radio"] { accent-color: var(--primary); width: 1.125rem; height: 1.125rem; margin: 0.125rem 0 0; flex: none; }
+  .check { display: flex; gap: 0.625rem; align-items: flex-start; font-size: var(--t-body); cursor: pointer; }
+  .check.is-invalid :where(input) { outline: 2px solid var(--error-edge); outline-offset: 1px; }
+  fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 0.5rem; min-width: 0; }
+  .pills { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .pills label { display: inline-flex; align-items: center; gap: 0.5rem; border: 1px solid var(--line); border-radius: var(--r-field); padding: 0.5rem 0.75rem; cursor: pointer; font-size: var(--t-small); background: var(--panel); }
+  .pills label:has(input:checked) { border-color: var(--primary); background: var(--primary-light); color: var(--primary-ink); font-weight: 700; }
+  .pills :where(label:has(input:focus-visible)) { box-shadow: 0 0 0 4px var(--ring); }
+  .pills[aria-invalid="true"] :where(label) { border-color: var(--error-edge); }
+  .pills input { margin: 0; }
+  .radios { display: grid; gap: 0.5rem; }
+  .switch { display: flex; gap: 0.75rem; align-items: flex-start; cursor: pointer; }
+  .switch input { appearance: none; width: 2.25rem; height: 1.25rem; border-radius: 999px; background: #b9bfce; position: relative; flex: none; margin: 0.125rem 0 0; cursor: pointer; transition: background-color 150ms ease-out; }
+  .switch input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 1rem; height: 1rem; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.25); transition: translate 150ms ease-out; }
+  .switch input:checked { background: var(--primary); }
+  .switch input:checked::after { translate: 1rem 0; }
+  .switch input:focus-visible { outline: none; box-shadow: 0 0 0 4px var(--ring); }
+  .switch b { display: block; font-size: var(--t-small); }
+  .switch span { font-size: var(--t-hint); color: var(--ink-soft); display: block; }
+
+  /* ---------- feedback ---------- */
+  .banner { display: grid; grid-template-columns: 1.25rem 1fr auto; gap: 0.75rem; align-items: start; border-radius: var(--r-panel); padding: 0.75rem 1rem; border: 1px solid; font-size: var(--t-small); }
+  .banner svg.i { width: 1.25rem; height: 1.25rem; }
+  .banner strong { display: block; }
+  .banner .x { margin: -0.375rem -0.5rem -0.375rem 0; color: inherit; }
+  .banner.info { background: var(--info-bg); border-color: rgba(76, 151, 255, 0.45); color: var(--info-ink); }
+  .banner.ok { background: var(--ok-bg); border-color: rgba(15, 189, 140, 0.5); color: var(--ok-ink); }
+  .banner.warn { background: var(--warn-bg); border-color: rgba(255, 171, 25, 0.7); color: var(--warn-ink); }
+  .banner.err { background: var(--error-bg); border-color: var(--error); color: var(--error-ink); }
+  .banner p { color: inherit; }
+  .banner ul { margin: 0.375rem 0 0; padding-left: 1.125rem; }
+  .banner a { color: inherit; font-weight: 700; }
+
+  /* Scratch's modal: blue overlay, purple header, centred title */
+  .overlay { background: var(--overlay); padding: 2.5rem 1rem; display: grid; place-items: center; border-radius: var(--r-panel); }
+  .modal { width: min(100%, 26rem); background: var(--panel); border-radius: var(--r-panel); overflow: hidden; box-shadow: 0 0 0 4px hsla(0, 0%, 100%, 0.25); }
+  .modal header { background: var(--primary); color: #fff; height: 3rem; display: grid; grid-template-columns: 2rem 1fr 2rem; align-items: center; padding: 0 0.5rem; }
+  .modal header h4 { text-align: center; font-size: 1rem; }
+  .modal header .iconbtn { color: #fff; }
+  .modal header .iconbtn:hover { background: rgba(255,255,255,0.18); color: #fff; }
+  .modal .mb { padding: 1.25rem; display: grid; gap: 1rem; font-size: var(--t-body); }
+  .modal .btnrow { justify-content: flex-end; }
+
+  /* the hand-over card: the signature moment after a code is created */
+  .handover { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1.25rem; align-items: center; padding: 1.25rem 1.5rem; }
+  .handover .big { display: grid; gap: 0.25rem; }
+  .handover .url { font-size: var(--t-h3); font-weight: 700; color: var(--ink); }
+  .handover .kcode { font-size: clamp(2rem, 6vw, 3.25rem); font-weight: 700; letter-spacing: 0.08em; color: var(--primary-ink); line-height: 1.1; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .handover .meta { font-size: var(--t-small); }
+  .handover .side { display: grid; gap: 0.5rem; justify-items: stretch; }
+  @media (max-width: 40rem) { .handover { grid-template-columns: 1fr; } }
+
+  /* public application page */
+  .pubbar { background: var(--primary); color: #fff; display: flex; align-items: center; gap: 0.75rem; height: 3rem; padding: 0 1rem; }
+  .pubbar a { margin-left: auto; color: #fff; font-weight: 700; font-size: var(--t-small); text-decoration: none; padding: 0.375rem 0.625rem; border-radius: 0.375rem; }
+  .pubbar a:hover { background: rgba(255,255,255,0.15); color: #fff; }
+  .apply { display: grid; grid-template-columns: minmax(0, 16rem) minmax(0, 36rem); gap: 2.5rem; padding: 2rem 1.5rem 2.5rem; justify-content: center; }
+  .apply aside { display: grid; gap: 1rem; align-content: start; font-size: var(--t-small); }
+  .apply aside h1 { font-size: var(--t-h2); color: var(--primary-ink); }
+  .apply aside .hint { color: var(--ink); }
+  .apply aside ol { margin: 0; padding-left: 1.125rem; display: grid; gap: 0.5rem; }
+  .apply aside ol li::marker { color: var(--primary); font-weight: 700; }
+  .apply form.panel { padding: 1.5rem; }
+  .group { display: grid; gap: 1rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--line-soft); }
+  .group:last-of-type { border-bottom: 0; padding-bottom: 0; }
+  .group > h2 { font-size: var(--t-h3); color: var(--ink); }
+  .turnstile { display: flex; align-items: center; gap: 0.75rem; border: 1px solid var(--line); border-radius: var(--r-field); background: var(--ground-2); padding: 0.75rem 1rem; font-size: var(--t-small); max-width: 18.75rem; }
+  .turnstile .tick { width: 1.5rem; height: 1.5rem; border-radius: 50%; background: var(--ok); display: grid; place-items: center; color: #fff; flex: none; }
+  .turnstile .tick svg { width: 0.875rem; height: 0.875rem; stroke-width: 3; }
+  .turnstile small { display: block; color: var(--ink-soft); font-size: var(--t-hint); }
+  @media (max-width: 52rem) { .apply { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; padding: 1.25rem 1rem 2rem; } }
+  .done { display: grid; gap: 1rem; justify-items: start; padding: 1.5rem; }
+  .done .disc { width: 3rem; height: 3rem; border-radius: 50%; background: var(--ok); color: #fff; display: grid; place-items: center; }
+  .done :where(.disc svg) { width: 1.5rem; height: 1.5rem; }
+  .done h2 { font-size: var(--t-h2); color: var(--ink); }
+
+  @media (max-width: 60rem) {
+    .page { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; padding-block: 1.5rem 3rem; }
+    .toc { position: static; display: flex; flex-wrap: wrap; gap: 0.25rem; }
+    .toc a { background: var(--panel); }
+    main { gap: 3rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .spin, .skel i { animation: none; }
+    .btn, .input, .switch input, .switch input::after { transition: none; }
+  }
+</style>
+
+<!-- lucide icons (the kids' app uses lucide-react), as one sprite -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></symbol>
+    <symbol id="i-sort" viewBox="0 0 24 24"><path d="m21 16-4 4-4-4M17 20V4M3 8l4-4 4 4M7 4v16"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14M19 12l-7 7-7-7"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+    <symbol id="i-ok" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-warn" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/></symbol>
+    <symbol id="i-err" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></symbol>
+    <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
+    <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+    <symbol id="i-loader" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.22-8.56"/></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6M15.5 7.5l3 3L22 7l-3-3"/></symbol>
+    <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
+    <symbol id="i-searchx" viewBox="0 0 24 24"><path d="m13.5 8.5-5 5M8.5 8.5l5 5"/><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+    <symbol id="i-cloudoff" viewBox="0 0 24 24"><path d="m2 2 20 20M5.78 5.78A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.31-.2M21.53 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7 7 0 0 0 9.5 5.07"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+    <symbol id="logo" viewBox="0 0 32 32">
+      <g fill="#dfe5f0" stroke="#7f8aa6" stroke-width="1.5" stroke-linejoin="round"><rect x="9.5" y="1" width="4" height="8" rx="1.5"/><rect x="18.5" y="1" width="4" height="8" rx="1.5"/><rect x="9.5" y="23" width="4" height="8" rx="1.5"/><rect x="18.5" y="23" width="4" height="8" rx="1.5"/><rect x="1" y="9.5" width="8" height="4" rx="1.5"/><rect x="1" y="18.5" width="8" height="4" rx="1.5"/><rect x="23" y="9.5" width="8" height="4" rx="1.5"/><rect x="23" y="18.5" width="8" height="4" rx="1.5"/></g>
+      <rect x="5" y="5" width="22" height="22" rx="5" fill="#4d5b80" stroke="#2a3352" stroke-width="2"/>
+      <g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M 10.5 11 V 21 M 16.5 11 L 11 16 L 16.5 21 M 21.5 11 V 21" stroke="#1b1340" stroke-width="4.4"/><path d="M 10.5 11 V 21 M 16.5 11 L 11 16 L 16.5 21 M 21.5 11 V 21" stroke="#fff" stroke-width="2.4"/></g>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="docbar"><div class="in">
+  <svg class="logo" aria-hidden="true"><use href="#logo"/></svg>
+  <b>AI-Scratch Office</b><span>Design proposal · 31.10.2026</span>
+</div></div>
+
+<div class="page">
+  <nav class="toc" aria-label="Sections">
+    <a href="#principles">Principles</a>
+    <a href="#tokens">Tokens</a>
+    <a href="#codes">Grid: access codes</a>
+    <a href="#applications">Grid: applications</a>
+    <a href="#newcode">Form: new code</a>
+    <a href="#antrag">Application form</a>
+    <a href="#feedback">Feedback</a>
+    <a href="#controls">Controls</a>
+  </nav>
+
+  <main>
+    <!-- ================= PRINCIPLES ================= -->
+    <section class="intro" id="principles">
+      <h1>The office in Scratch's world, at adult density</h1>
+      <p>The office uses the kids' app's own visual language: Scratch 3's GUI palette, Helvetica Neue and the purple menu bar. Teachers recognise the product they hand to their class. The work area is calm: white panels on Scratch's light-blue ground, tables instead of cards, purple only where something can be clicked or has focus.</p>
+      <ul class="principles">
+        <li><svg class="i" aria-hidden="true"><use href="#i-check"/></svg><span><b>Same palette as the kids' app, defined once in the office.</b> The tokens live only in <code>apps/office/app/globals.css</code> (Tailwind's own palette and type scale are switched off); components in <code>apps/office/components/ui</code>. No slate, no Tailwind greys.</span></li>
+        <li><svg class="i" aria-hidden="true"><use href="#i-check"/></svg><span><b>Adult density.</b> 15 px body, 40 px fields (the kids' 48 px fields are for the dialog kids meet), 14 px tables. Nothing bounces, no hearts.</span></li>
+        <li><svg class="i" aria-hidden="true"><use href="#i-check"/></svg><span><b>Colour does jobs.</b> Purple: navigation, actions, focus. Blue: information and time ("Geplant"). Green: running, done. Yellow: attention. Scratch's orange: errors and destructive actions. A state always has a word or an icon too.</span></li>
+        <li><svg class="i" aria-hidden="true"><use href="#i-check"/></svg><span><b>The code is the hero.</b> An access code always appears the way kids will type it: bold, spaced, lilac, with a copy button. After creating one, the teacher gets a hand-over card big enough to project.</span></li>
+        <li><svg class="i" aria-hidden="true"><use href="#i-check"/></svg><span><b>No toasts, few dialogs.</b> After an action, a banner on the next page says what happened and stays. A dialog only guards something destructive, built like Scratch's own (and the Locker dialog).</span></li>
+      </ul>
+    </section>
+
+    <!-- ================= TOKENS ================= -->
+    <section class="spec" id="tokens">
+      <header>
+        <h2>Tokens</h2>
+        <p>Names follow the kids' app where it has the token. New ones: the state colours with a background and an ink each, measured to WCAG AA (ink on its background ≥ 4.5:1).</p>
+      </header>
+      <div class="grid2">
+        <div class="board">
+          <h3>Frame and text</h3>
+          <div class="swatches">
+            <div class="sw"><i style="background:#855cd6"></i><div><b>--primary</b><span>#855cd6 · bar, actions</span></div></div>
+            <div class="sw"><i style="background:#714eb6"></i><div><b>--primary-hover</b><span>#714eb6 · hover, links</span></div></div>
+            <div class="sw"><i style="background:#ede7f9"></i><div><b>--primary-light</b><span>#ede7f9 · selected, code</span></div></div>
+            <div class="sw"><i style="background:#3b2a6b"></i><div><b>--primary-ink</b><span>#3b2a6b · on lilac</span></div></div>
+            <div class="sw"><i style="background:#e9f1fc"></i><div><b>--secondary</b><span>#e9f1fc · page ground</span></div></div>
+            <div class="sw"><i style="background:#d9e3f2"></i><div><b>--accent</b><span>#d9e3f2 · hover, tracks</span></div></div>
+            <div class="sw"><i style="background:#575e75"></i><div><b>--foreground</b><span>#575e75 · text 6.4:1</span></div></div>
+            <div class="sw"><i style="background:#6b7186"></i><div><b>--muted-foreground</b><span>#6b7186 · hints, white only</span></div></div>
+          </div>
+        </div>
+        <div class="board">
+          <h3>States (accent · background · ink)</h3>
+          <div class="swatches">
+            <div class="sw"><i style="background:linear-gradient(90deg,#4c97ff 33%,#e6f0ff 33% 66%,#1d5fbf 66%)"></i><div><b>info</b><span>#4c97ff · #e6f0ff · #1d5fbf</span></div></div>
+            <div class="sw"><i style="background:linear-gradient(90deg,#0fbd8c 33%,#e0f6ef 33% 66%,#0b7a5c 66%)"></i><div><b>success</b><span>#0fbd8c · #e0f6ef · #0b7a5c</span></div></div>
+            <div class="sw"><i style="background:linear-gradient(90deg,#ffab19 33%,#fff4d6 33% 66%,#7a4d00 66%)"></i><div><b>warning</b><span>#ffab19 · #fff4d6 · #7a4d00</span></div></div>
+            <div class="sw"><i style="background:linear-gradient(90deg,#ff8c1a 33%,#fff0df 33% 66%,#b04600 66%)"></i><div><b>error</b><span>#ff8c1a · #fff0df · #b04600</span></div></div>
+            <div class="sw"><i style="background:#c23d00"></i><div><b>--danger</b><span>#c23d00 · delete buttons</span></div></div>
+            <div class="sw"><i style="background:#e64d00"></i><div><b>--error-edge</b><span>#e64d00 · invalid border</span></div></div>
+          </div>
+        </div>
+        <div class="board">
+          <h3>Type: Helvetica Neue, Helvetica, Arial</h3>
+          <div class="typescale">
+            <div><small>24 / bold</small><span style="font-size:1.5rem;font-weight:700">Zugangscodes</span></div>
+            <div><small>18 / bold</small><span style="font-size:1.125rem;font-weight:700">Ihre Schule</span></div>
+            <div><small>15 / regular</small><span>Wir prüfen jeden Antrag und antworten per E-Mail.</span></div>
+            <div><small>14 / bold</small><span style="font-size:.875rem;font-weight:700">E-Mail-Adresse</span></div>
+            <div><small>13 / regular</small><span style="font-size:.8125rem;color:var(--ink-soft)">Am besten Ihre dienstliche Adresse.</span></div>
+          </div>
+        </div>
+        <div class="board">
+          <h3>Shape and focus</h3>
+          <ul class="notes">
+            <li>Fields: 40 px high, radius 5 px, border <code>hsla(0,0%,0%,.15)</code>; focus is a purple border plus Scratch's 4 px lilac halo (<code>--ring</code>), as in the Locker dialog.</li>
+            <li>Buttons: radius 4 px, bold 14 px. Panels: radius 8 px, a 1 px blue-grey edge, no shadow. Only specimens on this page get a shadow.</li>
+            <li>Digits in tables, money and codes: <code>tabular-nums</code>. Money as <code>1,20 €</code>, dates as <code>Fr 31.10.2026</code>, times as <code>08:00–09:40</code> (Vienna time).</li>
+            <li>Icons: lucide, 16 px, 2 px stroke, the set the kids' app already ships.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= GRID: CODES ================= -->
+    <section class="spec" id="codes">
+      <header>
+        <h2>Data grid: the teacher's access codes</h2>
+        <p>The teacher's home page. A plain HTML table: sortable headers, status as a chip, spend as a small meter against the 5 € per code. No column picker, no inline editing, no pagination (a teacher makes at most 5 codes a month).</p>
+      </header>
+      <span class="label-ex">Example data</span>
+      <div class="screen">
+        <div class="obar">
+          <svg class="logo" aria-hidden="true"><use href="#logo"/></svg>
+          <span class="name">AI-Scratch Office</span>
+          <nav class="onav" aria-label="Office">
+            <a href="#codes" aria-current="page">Zugangscodes</a>
+            <a href="#codes">OpenRouter-Schlüssel</a>
+            <a href="#codes">Konto</a>
+          </nav>
+          <div class="ouser"><span class="who">Sabine Leitner</span><button class="ghost-w" type="button"><svg class="i" aria-hidden="true"><use href="#i-logout"/></svg>Abmelden</button></div>
+        </div>
+        <div class="obody">
+          <div class="banner ok" role="status">
+            <svg class="i" aria-hidden="true"><use href="#i-ok"/></svg>
+            <div><strong>Code TIGER-4821 erstellt.</strong><p>Er gilt am Mo 3.11.2026 von 08:00 bis 09:40.</p></div>
+            <button class="iconbtn x" type="button" aria-label="Meldung schließen"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg></button>
+          </div>
+          <div class="phead">
+            <div><h1>Zugangscodes</h1><p>Kinder geben den Code auf ai-scratch.dev ein. Er gilt nur im gewählten Zeitfenster.</p></div>
+            <a class="btn primary" href="#newcode"><svg class="i" aria-hidden="true"><use href="#i-plus"/></svg>Neuer Code</a>
+          </div>
+          <div class="panel month">
+            <div class="m"><span>Oktober 2026</span></div>
+            <span class="sep" aria-hidden="true"></span>
+            <div class="m"><span class="meter" aria-hidden="true"><i style="width:67.5%"></i></span><span><b>6,75 €</b> von 10,00 € verbraucht</span></div>
+            <span class="sep" aria-hidden="true"></span>
+            <div class="m"><span><b>3</b> von 5 Codes erstellt</span></div>
+          </div>
+          <div class="panel">
+            <div class="toolbar">
+              <div class="tabs" role="tablist" aria-label="Filter">
+                <button role="tab" aria-selected="true" type="button">Alle <span class="n">4</span></button>
+                <button role="tab" aria-selected="false" type="button">Aktiv und geplant <span class="n">2</span></button>
+                <button role="tab" aria-selected="false" type="button">Abgelaufen <span class="n">2</span></button>
+              </div>
+              <div class="search">
+                <svg class="i" aria-hidden="true"><use href="#i-search"/></svg>
+                <input class="input" id="q-codes" type="search" placeholder="Code oder Kommentar" aria-label="Codes durchsuchen">
+              </div>
+            </div>
+            <div class="tablewrap">
+              <table class="grid stack">
+                <thead>
+                  <tr>
+                    <th scope="col"><span>Code</span></th>
+                    <th scope="col"><span>Kommentar</span></th>
+                    <th scope="col" aria-sort="descending"><button type="button">Zeitfenster <svg class="i" aria-hidden="true"><use href="#i-down"/></svg></button></th>
+                    <th scope="col"><button type="button">Verbraucht <svg class="i" aria-hidden="true"><use href="#i-sort"/></svg></button></th>
+                    <th scope="col"><span>„frage KI“</span></th>
+                    <th scope="col"><span>Status</span></th>
+                    <th scope="col"><span class="sr" style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">Aktionen</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="lead"><span class="code"><b>TIGER-4821</b><button class="iconbtn" type="button" aria-label="TIGER-4821 kopieren"><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg></button></span></td>
+                    <td data-label="Kommentar">1A Digitale Grundbildung</td>
+                    <td data-label="Zeitfenster" class="when">Mo 3.11.2026<span class="sub">08:00–09:40</span></td>
+                    <td data-label="Verbraucht"><div class="money"><span class="meter" aria-hidden="true"><i style="width:0%"></i></span>0,00 € <span>von 5,00 €</span></div></td>
+                    <td data-label="„frage KI“"><span class="onoff on"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>An</span></td>
+                    <td data-label="Status"><span class="chip plan">Geplant</span></td>
+                    <td class="act"><button class="iconbtn" type="button" aria-label="Aktionen für TIGER-4821"><svg class="i" aria-hidden="true"><use href="#i-more"/></svg></button></td>
+                  </tr>
+                  <tr>
+                    <td class="lead"><span class="code"><b>OTTER-1937</b><button class="iconbtn" type="button" aria-label="OTTER-1937 kopieren"><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg></button></span></td>
+                    <td data-label="Kommentar">2B Digitale Grundbildung, Spiele bauen</td>
+                    <td data-label="Zeitfenster" class="when">Fr 31.10.2026<span class="sub">10:00–11:40</span></td>
+                    <td data-label="Verbraucht"><div class="money"><span class="meter hi" aria-hidden="true"><i style="width:82%"></i></span>4,10 € <span>von 5,00 €</span></div></td>
+                    <td data-label="„frage KI“"><span class="onoff off"><svg class="i" aria-hidden="true"><use href="#i-minus"/></svg>Aus</span></td>
+                    <td data-label="Status"><span class="chip run">Läuft bis 11:40</span></td>
+                    <td class="act">
+                      <div class="menu">
+                        <button class="iconbtn" type="button" aria-label="Aktionen für OTTER-1937" aria-expanded="true" aria-haspopup="menu"><svg class="i" aria-hidden="true"><use href="#i-more"/></svg></button>
+                        <div role="menu">
+                          <button role="menuitem" type="button"><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg>Code kopieren</button>
+                          <button role="menuitem" type="button"><svg class="i" aria-hidden="true"><use href="#i-pencil"/></svg>Bearbeiten</button>
+                          <hr>
+                          <button role="menuitem" type="button" class="bad"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg>Löschen …</button>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="lead"><span class="code"><b>ROBOTIK-AG</b><button class="iconbtn" type="button" aria-label="ROBOTIK-AG kopieren"><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg></button></span></td>
+                    <td data-label="Kommentar">Robotik-AG, Projektnachmittag</td>
+                    <td data-label="Zeitfenster" class="when">Do 30.10.2026<span class="sub">13:00–17:00</span></td>
+                    <td data-label="Verbraucht"><div class="money"><span class="meter" aria-hidden="true"><i style="width:53%"></i></span>2,65 € <span>von 5,00 €</span></div></td>
+                    <td data-label="„frage KI“"><span class="onoff on"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>An</span></td>
+                    <td data-label="Status"><span class="chip past">Abgelaufen</span></td>
+                    <td class="act"><button class="iconbtn" type="button" aria-label="Aktionen für ROBOTIK-AG"><svg class="i" aria-hidden="true"><use href="#i-more"/></svg></button></td>
+                  </tr>
+                  <tr>
+                    <td class="lead"><span class="code"><b>KOALA-5520</b><button class="iconbtn" type="button" aria-label="KOALA-5520 kopieren"><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg></button></span></td>
+                    <td data-label="Kommentar">4C Vertretungsstunde</td>
+                    <td data-label="Zeitfenster" class="when">Di 23.9.2026<span class="sub">09:50–10:40</span></td>
+                    <td data-label="Verbraucht"><div class="money"><span class="meter full" aria-hidden="true"><i style="width:100%"></i></span>5,00 € <span>Budget aufgebraucht</span></div></td>
+                    <td data-label="„frage KI“"><span class="onoff on"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>An</span></td>
+                    <td data-label="Status"><span class="chip past">Abgelaufen</span></td>
+                    <td class="act"><button class="iconbtn" type="button" aria-label="Aktionen für KOALA-5520"><svg class="i" aria-hidden="true"><use href="#i-more"/></svg></button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <ul class="notes">
+        <li><b>Status</b> is about time (Geplant, Läuft bis …, Abgelaufen); <b>money</b> lives in its own column. A code that is in its window but out of budget shows the orange chip "Gestoppt: Budget aufgebraucht".</li>
+        <li><b>Meter colours</b> follow the kids' Gedächtnis gauge: blue, yellow from 80 %, orange at 100 %.</li>
+        <li><b>Row actions</b> sit in one menu; the copy button stays next to the code, because copying is the most frequent action. "Löschen …" opens the confirmation dialog (see Feedback).</li>
+        <li><b>Under 640 px</b> every row becomes a stacked record: code and menu on top, the other columns as label and value. Narrow the window to see it.</li>
+        <li>Sorting and filtering are links with query parameters (<code>?status=aktiv&amp;sort=zeit</code>), server-rendered: the page works without client JavaScript and survives a reload.</li>
+      </ul>
+
+      <div class="grid2">
+        <div class="board"><h3>Loading</h3>
+          <div class="panel skel" role="status" aria-busy="true" aria-label="Codes werden geladen">
+            <div><i></i><i></i><i></i></div><div><i></i><i style="width:70%"></i><i></i></div><div><i></i><i style="width:85%"></i><i></i></div>
+          </div>
+        </div>
+        <div class="board"><h3>Empty</h3>
+          <div class="panel state">
+            <span class="disc"><svg class="i" aria-hidden="true"><use href="#i-key"/></svg></span>
+            <strong>Noch keine Zugangscodes</strong>
+            <p>Erstellen Sie einen Code für Ihre nächste Stunde. Er gilt nur im Zeitfenster, das Sie wählen.</p>
+            <a class="btn primary sm" href="#newcode"><svg class="i" aria-hidden="true"><use href="#i-plus"/></svg>Neuer Code</a>
+          </div>
+        </div>
+        <div class="board"><h3>No search result</h3>
+          <div class="panel state">
+            <span class="disc"><svg class="i" aria-hidden="true"><use href="#i-searchx"/></svg></span>
+            <strong>Kein Code passt zu „3C“</strong>
+            <p>Gesucht wird in Code und Kommentar.</p>
+            <button class="btn secondary sm" type="button">Suche zurücksetzen</button>
+          </div>
+        </div>
+        <div class="board"><h3>Load failed</h3>
+          <div class="panel state err">
+            <span class="disc"><svg class="i" aria-hidden="true"><use href="#i-cloudoff"/></svg></span>
+            <strong>Die Codes konnten nicht geladen werden</strong>
+            <p>Der Server antwortet gerade nicht. Laden Sie die Seite in einer Minute neu.</p>
+            <button class="btn secondary sm" type="button">Neu laden</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= GRID: APPLICATIONS ================= -->
+    <section class="spec" id="applications">
+      <header>
+        <h2>Data grid: Rainer's application inbox</h2>
+        <p>The same table component in the admin area. The admin bar has more items; the role is visible next to the name. "Prüfen" opens the application as its own page, with Annehmen and Ablehnen at the bottom.</p>
+      </header>
+      <span class="label-ex">Example data</span>
+      <div class="screen">
+        <div class="obar">
+          <svg class="logo" aria-hidden="true"><use href="#logo"/></svg>
+          <span class="name">AI-Scratch Office</span>
+          <nav class="onav" aria-label="Admin">
+            <a href="#applications" aria-current="page">Anträge</a>
+            <a href="#applications">Lehrkräfte</a>
+            <a href="#applications">Budget</a>
+            <a href="#applications">Zugangscodes</a>
+          </nav>
+          <div class="ouser"><span class="who">Rainer Stropek · Admin</span><button class="ghost-w" type="button"><svg class="i" aria-hidden="true"><use href="#i-logout"/></svg>Abmelden</button></div>
+        </div>
+        <div class="obody">
+          <div class="phead"><div><h1>Anträge</h1><p>Nur Anträge mit bestätigter E-Mail-Adresse erscheinen hier.</p></div></div>
+          <div class="panel">
+            <div class="toolbar">
+              <div class="tabs" role="tablist" aria-label="Filter">
+                <button role="tab" aria-selected="true" type="button">Offen <span class="n">3</span></button>
+                <button role="tab" aria-selected="false" type="button">Angenommen <span class="n">41</span></button>
+                <button role="tab" aria-selected="false" type="button">Abgelehnt <span class="n">2</span></button>
+              </div>
+              <div class="search">
+                <svg class="i" aria-hidden="true"><use href="#i-search"/></svg>
+                <input class="input" id="q-apps" type="search" placeholder="Name, Schule oder E-Mail" aria-label="Anträge durchsuchen">
+              </div>
+            </div>
+            <div class="tablewrap">
+              <table class="grid stack">
+                <thead>
+                  <tr>
+                    <th scope="col" aria-sort="ascending"><button type="button">Eingang <svg class="i" aria-hidden="true" style="rotate:180deg"><use href="#i-down"/></svg></button></th>
+                    <th scope="col"><span>Lehrkraft</span></th>
+                    <th scope="col"><span>Schule</span></th>
+                    <th scope="col"><span>Schulstufen</span></th>
+                    <th scope="col"><span>Status</span></th>
+                    <th scope="col"><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">Aktion</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="lead when">Mi 29.10.2026<span class="sub">vor 2 Tagen</span></td>
+                    <td data-label="Lehrkraft">Thomas Gruber<span class="sub">t.gruber@brg-seestrasse.at</span></td>
+                    <td data-label="Schule">BRG Seestraße<span class="sub">9020 Klagenfurt</span></td>
+                    <td data-label="Schulstufen">7., 8.</td>
+                    <td data-label="Status"><span class="chip new">Neu</span></td>
+                    <td class="act"><a class="btn secondary sm" href="#applications">Prüfen</a></td>
+                  </tr>
+                  <tr>
+                    <td class="lead when">Do 30.10.2026<span class="sub">gestern</span></td>
+                    <td data-label="Lehrkraft">Ayşe Demir<span class="sub">a.demir@ms-am-bach.at</span></td>
+                    <td data-label="Schule">Mittelschule am Bach<span class="sub">8010 Graz</span></td>
+                    <td data-label="Schulstufen">5., 6.</td>
+                    <td data-label="Status"><span class="chip new">Neu</span></td>
+                    <td class="act"><a class="btn secondary sm" href="#applications">Prüfen</a></td>
+                  </tr>
+                  <tr>
+                    <td class="lead when">Fr 31.10.2026<span class="sub">14:12</span></td>
+                    <td data-label="Lehrkraft">Sabine Leitner<span class="sub">s.leitner@ms-lindenweg.at</span></td>
+                    <td data-label="Schule">MS Lindenweg<span class="sub">4020 Linz</span></td>
+                    <td data-label="Schulstufen">5.–8.</td>
+                    <td data-label="Status"><span class="chip new">Neu</span></td>
+                    <td class="act"><a class="btn secondary sm" href="#applications">Prüfen</a></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="tfoot"><span>3 offene Anträge, älteste zuerst</span><span>Monat: 64,20 € von 100,00 € verbraucht</span></div>
+          </div>
+        </div>
+      </div>
+      <ul class="notes">
+        <li>Open applications sort <b>oldest first</b>: the inbox is a queue. Closed tabs sort newest first.</li>
+        <li>The admin bar keeps the teacher's "Zugangscodes" so Rainer can make codes for himself; impersonating a teacher shows a yellow banner across the top of every page ("Sie sehen das Office als Sabine Leitner. Zurück zu Ihrem Konto").</li>
+      </ul>
+    </section>
+
+    <!-- ================= FORM: NEW CODE ================= -->
+    <section class="spec" id="newcode">
+      <header>
+        <h2>Simple form: a new access code</h2>
+        <p>One column, labels above fields, hints under labels, errors under fields. Shown after a submit with two errors: the summary at the top names them and links to each field; focus moves to it.</p>
+      </header>
+      <div class="screen">
+        <div class="obar">
+          <svg class="logo" aria-hidden="true"><use href="#logo"/></svg>
+          <span class="name">AI-Scratch Office</span>
+          <nav class="onav" aria-label="Office">
+            <a href="#codes" aria-current="page">Zugangscodes</a>
+            <a href="#codes">OpenRouter-Schlüssel</a>
+            <a href="#codes">Konto</a>
+          </nav>
+          <div class="ouser"><span class="who">Sabine Leitner</span><button class="ghost-w" type="button"><svg class="i" aria-hidden="true"><use href="#i-logout"/></svg>Abmelden</button></div>
+        </div>
+        <div class="obody" style="max-width:42rem">
+          <div class="phead"><div><p><a href="#codes">Zugangscodes</a></p><h1>Neuer Zugangscode</h1></div></div>
+          <form class="panel form" style="padding:1.5rem" novalidate onsubmit="event.preventDefault()">
+            <div class="banner err" role="alert" tabindex="-1">
+              <svg class="i" aria-hidden="true"><use href="#i-err"/></svg>
+              <div><strong>Bitte prüfen Sie 2 Angaben.</strong>
+                <ul><li><a href="#nc-own">Der Code TIGER-4821 ist gerade vergeben.</a></li><li><a href="#nc-to">Das Zeitfenster ist länger als 4 Stunden.</a></li></ul>
+              </div>
+              <span></span>
+            </div>
+            <fieldset>
+              <legend>Code</legend>
+              <div class="radios">
+                <label class="check"><input type="radio" name="nc-kind" id="nc-auto"> <span>Automatisch erzeugen <span class="hint">(ein Tierwort und vier Ziffern, etwa OTTER-1937)</span></span></label>
+                <label class="check"><input type="radio" name="nc-kind" id="nc-mine" checked> <span>Eigenen Code wählen</span></label>
+              </div>
+              <div class="field" style="padding-left:1.75rem">
+                <input class="input" id="nc-own" value="TIGER-4821" aria-invalid="true" aria-describedby="nc-own-h nc-own-e" autocomplete="off" style="text-transform:uppercase;letter-spacing:.06em;font-weight:700;max-width:16rem">
+                <span class="hint" id="nc-own-h">Mindestens 6 Zeichen: Buchstaben, Ziffern, Bindestrich. Groß- und Kleinschreibung zählt nicht.</span>
+                <span class="ferr" id="nc-own-e"><svg class="i" aria-hidden="true"><use href="#i-err"/></svg>Dieser Code ist gerade vergeben. Wählen Sie einen anderen oder lassen Sie ihn erzeugen.</span>
+              </div>
+            </fieldset>
+            <div class="row">
+              <div class="field"><label for="nc-day">Tag</label><input class="input" id="nc-day" type="date" value="2026-11-04"></div>
+              <div class="field"><label for="nc-from">Von</label><input class="input" id="nc-from" type="time" value="08:00"></div>
+              <div class="field"><label for="nc-to">Bis</label><input class="input" id="nc-to" type="time" value="12:30" aria-invalid="true" aria-describedby="nc-to-e"></div>
+            </div>
+            <span class="ferr" id="nc-to-e" style="margin-top:-0.875rem"><svg class="i" aria-hidden="true"><use href="#i-err"/></svg>Von 08:00 bis 12:30 sind 4 h 30 min. Ein Code gilt höchstens 4 Stunden; wählen Sie spätestens 12:00.</span>
+            <div class="field">
+              <label for="nc-note">Kommentar <span class="opt">(optional)</span></label>
+              <span class="hint" id="nc-note-h">Nur für Sie sichtbar. Bitte keine Namen von Kindern.</span>
+              <textarea class="input" id="nc-note" rows="2" maxlength="200" aria-describedby="nc-note-h nc-note-c">1A Digitale Grundbildung, Stationenbetrieb</textarea>
+              <span class="count" id="nc-note-c">42 / 200</span>
+            </div>
+            <label class="switch"><input type="checkbox" id="nc-ki" checked><span><b>„frage KI“-Block erlauben</b><span>Kinder können in ihrem Programm der KI kurze Fragen stellen. Jede Frage wird auf Jugendschutz geprüft.</span></span></label>
+            <div class="banner info">
+              <svg class="i" aria-hidden="true"><use href="#i-info"/></svg>
+              <div><p>Jeder Code hat 5,00 € Budget. Ist es verbraucht, stoppt der KI-Helfer für diesen Code. Sie haben im Oktober noch <b>2 von 5</b> Codes und <b>3,25 €</b> Monatsbudget.</p></div>
+              <span></span>
+            </div>
+            <div class="foot">
+              <button class="btn primary" type="submit">Code erstellen</button>
+              <a class="btn secondary" href="#codes">Abbrechen</a>
+            </div>
+          </form>
+        </div>
+      </div>
+      <ul class="notes">
+        <li>The server validates (it must anyway); the client adds only the native <code>required</code>, <code>maxlength</code> and the live counter. After a failed submit the page keeps every value.</li>
+        <li>An error says what is wrong and what to do, in "Sie", and names the value ("Von 08:00 bis 12:30 …"). Errors appear on submit, then clear per field as soon as the input is valid.</li>
+        <li>The default of the "frage KI" switch is still open in the platform plan; the form shows "on" only as an example.</li>
+      </ul>
+
+      <h3 style="font-size:var(--t-h3);color:var(--primary-ink);margin-top:0.5rem">After saving: the hand-over card</h3>
+      <div class="panel handover">
+        <div class="big">
+          <span class="meta">Die Kinder öffnen</span>
+          <span class="url">ai-scratch.dev</span>
+          <span class="meta">und geben diesen Code ein:</span>
+          <span class="kcode">TIGER-4821</span>
+          <span class="meta">Mo 3.11.2026, 08:00–09:40 · 1A Digitale Grundbildung</span>
+        </div>
+        <div class="side">
+          <button class="btn primary" type="button"><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg>Code kopieren</button>
+          <button class="btn secondary" type="button">Für den Beamer zeigen</button>
+          <a class="btn quiet" href="#codes">Zur Übersicht</a>
+        </div>
+      </div>
+      <ul class="notes">
+        <li>The one place the office gets big: what the teacher writes on the board or projects. "Für den Beamer zeigen" opens the same card full screen on white, nothing else on it.</li>
+      </ul>
+    </section>
+
+    <!-- ================= APPLICATION FORM ================= -->
+    <section class="spec" id="antrag">
+      <header>
+        <h2>The application form (/antrag)</h2>
+        <p>Public, no login. The bar carries only the logo and "Anmelden". A short column on the left says what happens next; the form is grouped by topic, not split into steps. This one is live: it opens after a submit with three errors. Fix them and send it.</p>
+      </header>
+      <div class="screen">
+        <div class="pubbar"><svg class="logo" aria-hidden="true"><use href="#logo"/></svg><span class="name" style="font-weight:700">AI-Scratch</span><a href="#antrag">Anmelden</a></div>
+        <div class="apply">
+          <aside>
+            <h1>Zugang für Ihre Klassen beantragen</h1>
+            <p>AI-Scratch ist für Lehrkräfte kostenlos. Erzählen Sie uns kurz, wer Sie sind und was Sie vorhaben.</p>
+            <ol>
+              <li>Sie senden den Antrag.</li>
+              <li>Sie bestätigen Ihre E-Mail-Adresse.</li>
+              <li>Wir prüfen den Antrag und antworten per E-Mail.</li>
+              <li>Mit der Zusage legen Sie Ihr Passwort fest und erstellen Codes.</li>
+            </ol>
+            <p class="hint">Wir speichern Ihre Angaben auf Servern in der EU. Kinder brauchen kein Konto. <a href="#antrag">Datenschutz</a></p>
+          </aside>
+          <div id="apply-wrap">
+            <form class="panel form" id="apply" novalidate>
+              <div class="banner err" id="ap-summary" role="alert" tabindex="-1">
+                <svg class="i" aria-hidden="true"><use href="#i-err"/></svg>
+                <div><strong id="ap-sum-title">Bitte prüfen Sie 3 Angaben.</strong><ul id="ap-sum-list"></ul></div>
+                <span></span>
+              </div>
+
+              <div class="group">
+                <h2>Über Sie</h2>
+                <div class="row two">
+                  <div class="field"><label for="ap-first">Vorname</label><input class="input" id="ap-first" autocomplete="given-name" value="Sabine" required></div>
+                  <div class="field"><label for="ap-last">Nachname</label><input class="input" id="ap-last" autocomplete="family-name" value="Leitner" required></div>
+                </div>
+                <div class="field">
+                  <label for="ap-mail">E-Mail-Adresse</label>
+                  <span class="hint" id="ap-mail-h">Am besten Ihre dienstliche Adresse. Dorthin schicken wir den Bestätigungslink.</span>
+                  <input class="input" id="ap-mail" type="email" autocomplete="email" value="s.leitner@ms-lindenweg" required aria-describedby="ap-mail-h">
+                </div>
+              </div>
+
+              <div class="group">
+                <h2>Ihre Schule</h2>
+                <div class="field"><label for="ap-school">Name der Schule</label><input class="input" id="ap-school" autocomplete="organization" value="MS Lindenweg" required></div>
+                <div class="row two">
+                  <div class="field"><label for="ap-town">PLZ und Ort</label><input class="input" id="ap-town" value="4020 Linz" required></div>
+                  <div class="field"><label for="ap-skz">Schulkennzahl <span class="opt">(optional)</span></label><input class="input" id="ap-skz" inputmode="numeric" maxlength="6" value="" aria-describedby="ap-skz-h"><span class="hint" id="ap-skz-h">Sechs Ziffern. Hilft uns bei der Prüfung.</span></div>
+                </div>
+              </div>
+
+              <div class="group">
+                <h2>Ihr Unterricht</h2>
+                <div class="field"><label for="ap-subject">Gegenstand</label><input class="input" id="ap-subject" value="Digitale Grundbildung" required></div>
+                <fieldset id="ap-grades-set">
+                  <legend>Schulstufen der Kinder</legend>
+                  <div class="pills" id="ap-grades">
+                    <label><input type="checkbox" name="grade" value="5">5. (10–11 J.)</label>
+                    <label><input type="checkbox" name="grade" value="6">6. (11–12 J.)</label>
+                    <label><input type="checkbox" name="grade" value="7">7. (12–13 J.)</label>
+                    <label><input type="checkbox" name="grade" value="8">8. (13–14 J.)</label>
+                    <label><input type="checkbox" name="grade" value="x">andere</label>
+                  </div>
+                </fieldset>
+                <div class="field">
+                  <label for="ap-classes">Wie viele Klassen?</label>
+                  <select class="input" id="ap-classes" style="max-width:12rem"><option>1</option><option selected>2–3</option><option>4 oder mehr</option></select>
+                </div>
+              </div>
+
+              <div class="group">
+                <h2>Ihr Vorhaben</h2>
+                <div class="field">
+                  <label for="ap-plan">Was planen Sie mit AI-Scratch?</label>
+                  <span class="hint" id="ap-plan-h">Zwei, drei Sätze reichen: welche Klassen, wie oft, wofür.</span>
+                  <textarea class="input" id="ap-plan" rows="4" maxlength="1000" required aria-describedby="ap-plan-h ap-plan-c">Ab November einmal pro Woche in zwei 2. Klassen: Die Kinder bauen kleine Spiele und lernen dabei, mit einer KI zu arbeiten und ihre Antworten zu prüfen.</textarea>
+                  <span class="count" id="ap-plan-c">0 / 1000</span>
+                </div>
+              </div>
+
+              <div class="group">
+                <h2>Zustimmung</h2>
+                <label class="check" id="ap-terms-l"><input type="checkbox" id="ap-terms" required><span>Ich habe die <a href="#antrag">Nutzungsbedingungen</a> gelesen und stimme ihnen zu.</span></label>
+                <label class="check"><input type="checkbox" id="ap-kids" checked><span>Ich sage den Kindern, dass sie keine Namen, Adressen oder Telefonnummern eingeben.</span></label>
+                <div class="turnstile">
+                  <span class="tick"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg></span>
+                  <span>Sicherheitsprüfung bestanden<small>Cloudflare Turnstile, ohne Tracking-Cookies</small></span>
+                </div>
+              </div>
+
+              <div class="foot">
+                <button class="btn primary" type="submit" id="ap-send">Antrag senden</button>
+                <span class="hint">Alle Felder ohne „optional“ sind nötig.</span>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      <ul class="notes">
+        <li>Groups instead of a wizard: the form is short enough for one page, and a teacher can see everything that's asked before starting.</li>
+        <li>The <b>Turnstile widget</b> is drawn here as a stand-in. The real one renders Cloudflare's own box in managed mode; most visitors never click it.</li>
+        <li>The <b>Schulkennzahl</b> is a suggestion (not in the plan yet): Austrian schools have a six-digit number that makes checking an application quick.</li>
+        <li>"Sent" leads to <b>"confirm your email"</b>, not to "done", because the plan only notifies Rainer after the confirmation.</li>
+      </ul>
+    </section>
+
+    <!-- ================= FEEDBACK ================= -->
+    <section class="spec" id="feedback">
+      <header>
+        <h2>Feedback: banners and the one dialog</h2>
+        <p>Banners sit at the top of the page content, under the title bar, in the order they happened. Success and info can be closed; warnings and errors stay until the cause is gone.</p>
+      </header>
+      <div class="grid2">
+        <div class="board">
+          <h3>Banners</h3>
+          <div class="banner info" role="status"><svg class="i" aria-hidden="true"><use href="#i-info"/></svg><div><strong>Sie wurden abgemeldet.</strong><p>Nach 8 Stunden ohne Aktivität melden wir Sie ab, damit am Schul-PC niemand weiterarbeitet. Bitte melden Sie sich neu an.</p></div><span></span></div>
+          <div class="banner ok" role="status"><svg class="i" aria-hidden="true"><use href="#i-ok"/></svg><div><strong>Antrag angenommen.</strong><p>Sabine Leitner bekommt eine E-Mail mit dem Link, um ihr Passwort festzulegen.</p></div><button class="iconbtn x" type="button" aria-label="Meldung schließen"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+          <div class="banner warn" role="status"><svg class="i" aria-hidden="true"><use href="#i-warn"/></svg><div><strong>8,10 € von 10,00 € Ihres Monatsbudgets verbraucht.</strong><p>Bei 10,00 € stoppen alle Ihre Codes bis 1. November, auch mitten in einer Stunde.</p></div><span></span></div>
+          <div class="banner err" role="alert"><svg class="i" aria-hidden="true"><use href="#i-err"/></svg><div><strong>Speichern hat nicht geklappt.</strong><p>Der Server war nicht erreichbar. Ihre Eingaben sind noch da; versuchen Sie es noch einmal.</p></div><span></span></div>
+          <div class="banner err" role="alert"><svg class="i" aria-hidden="true"><use href="#i-err"/></svg><div><strong>Zu viele Anträge aus Ihrem Netzwerk.</strong><p>In der letzten Stunde kamen schon 5 Anträge von dieser Adresse. Versuchen Sie es in einer Stunde noch einmal.</p></div><span></span></div>
+        </div>
+        <div class="board">
+          <h3>Confirm a destructive action</h3>
+          <div class="overlay">
+            <div class="modal" role="dialog" aria-modal="false" aria-labelledby="dlg-t">
+              <header><span></span><h4 id="dlg-t">Code löschen?</h4><button class="iconbtn" type="button" aria-label="Schließen"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg></button></header>
+              <div class="mb">
+                <p><span class="code"><b>OTTER-1937</b></span> läuft gerade. Kinder, die ihn verwenden, können den KI-Helfer sofort nicht mehr nutzen. Ihre Spiele bleiben erhalten.</p>
+                <div class="btnrow"><button class="btn secondary" type="button">Abbrechen</button><button class="btn danger" type="button"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg>Code löschen</button></div>
+              </div>
+            </div>
+          </div>
+          <ul class="notes">
+            <li>Scratch's own modal: blue overlay, purple header, centred title, as in the Locker dialog. Kids' app and office share it.</li>
+            <li>Focus starts on "Abbrechen". The danger button names the action, never just "OK".</li>
+            <li>Used for: deleting a code or an OpenRouter key, rejecting an application. Nothing else.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="board">
+          <h3>After sending the application</h3>
+          <div class="panel done">
+            <span class="disc"><svg class="i" aria-hidden="true"><use href="#i-mail"/></svg></span>
+            <h2>Bitte bestätigen Sie Ihre E-Mail-Adresse</h2>
+            <p>Wir haben einen Link an <b>s.leitner@ms-lindenweg.at</b> geschickt. Erst nach der Bestätigung geht Ihr Antrag an uns.</p>
+            <p class="hint">Keine E-Mail da? Schauen Sie im Spam-Ordner nach. <a href="#antrag">Link noch einmal senden</a> (höchstens 3-mal am Tag)</p>
+          </div>
+        </div>
+        <div class="board">
+          <h3>Not allowed / not found</h3>
+          <div class="panel state">
+            <span class="disc"><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg></span>
+            <strong>Diese Seite ist nur für Administratoren</strong>
+            <p>Sie sind als Sabine Leitner angemeldet. Ihre Codes finden Sie unter Zugangscodes.</p>
+            <a class="btn secondary sm" href="#codes">Zu den Zugangscodes</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= CONTROLS ================= -->
+    <section class="spec" id="controls">
+      <header>
+        <h2>Controls and their states</h2>
+        <p>Native elements styled with the tokens: no custom selects, no date-picker library. Every control has hover, focus, disabled and, where it takes input, an invalid state.</p>
+      </header>
+      <div class="grid2">
+        <div class="board">
+          <h3>Buttons</h3>
+          <div class="btnrow">
+            <button class="btn primary" type="button">Code erstellen</button>
+            <button class="btn secondary" type="button">Abbrechen</button>
+            <button class="btn danger" type="button">Löschen</button>
+            <button class="btn quiet" type="button">Zur Übersicht</button>
+          </div>
+          <div class="btnrow">
+            <button class="btn primary" type="button" aria-disabled="true"><svg class="i spin" aria-hidden="true"><use href="#i-loader"/></svg>Wird gespeichert …</button>
+            <button class="btn primary" type="button" disabled>Antrag senden</button>
+            <button class="btn secondary sm" type="button"><svg class="i" aria-hidden="true"><use href="#i-plus"/></svg>Klein</button>
+          </div>
+          <ul class="notes">
+            <li>One primary button per form or page header. While a request runs, the button keeps its width, shows a spinner and the verb in progress.</li>
+            <li>A disabled submit is rare: prefer letting people submit and then naming what's missing.</li>
+          </ul>
+        </div>
+        <div class="board">
+          <h3>Text fields</h3>
+          <div class="field"><label for="c1">Standard</label><input class="input" id="c1" placeholder="name@schule.at"></div>
+          <div class="field"><label for="c2">Fokus</label><input class="input is-focus" id="c2" value="Digitale Grundbildung"></div>
+          <div class="field"><label for="c3">Fehler</label><input class="input" id="c3" value="s.leitner@" aria-invalid="true" aria-describedby="c3e"><span class="ferr" id="c3e"><svg class="i" aria-hidden="true"><use href="#i-err"/></svg>Diese E-Mail-Adresse ist unvollständig. Beispiel: name@schule.at</span></div>
+          <div class="row two">
+            <div class="field"><label for="c4">Deaktiviert</label><input class="input" id="c4" value="5,00 €" disabled></div>
+            <div class="field"><label for="c5">Nur lesen</label><input class="input" id="c5" value="ab 1.11.2026" readonly></div>
+          </div>
+        </div>
+        <div class="board">
+          <h3>Choices</h3>
+          <div class="field"><label for="c6">Auswahl</label><select class="input" id="c6"><option>Alle Status</option><option>Neu</option><option>Angenommen</option></select></div>
+          <label class="check"><input type="checkbox" id="c7" checked><span>Checkbox, gewählt</span></label>
+          <label class="check is-invalid"><input type="checkbox" id="c8"><span>Checkbox mit Fehler</span></label>
+          <span class="ferr" style="margin-top:-0.5rem"><svg class="i" aria-hidden="true"><use href="#i-err"/></svg>Ohne Zustimmung können wir den Antrag nicht annehmen.</span>
+          <div class="radios"><label class="check"><input type="radio" name="c9" id="c9a" checked><span>Option eins</span></label><label class="check"><input type="radio" name="c9" id="c9b"><span>Option zwei</span></label></div>
+          <label class="switch"><input type="checkbox" id="c10"><span><b>Schalter, aus</b><span>Für Einstellungen, die sofort gelten oder ein Ja/Nein sind.</span></span></label>
+        </div>
+        <div class="board">
+          <h3>Writing rules for texts</h3>
+          <ul class="notes">
+            <li>"Sie" for teachers, short sentences, no exclamation marks, no "Ups".</li>
+            <li>Buttons name the action: "Code erstellen", "Antrag senden", "Code löschen". Never "OK" or "Absenden".</li>
+            <li>Errors: what is wrong, then what to do. With the value when it helps ("Von 08:00 bis 12:30 sind 4 h 30 min").</li>
+            <li>Every text in <code>lib/texts.ts</code>, as today; errors there too, keyed by field and reason.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+  // The application form: client-side checks that mirror the server's, to show the error states live.
+  (() => {
+    const form = document.getElementById('apply');
+    const summary = document.getElementById('ap-summary');
+    const list = document.getElementById('ap-sum-list');
+    const title = document.getElementById('ap-sum-title');
+    const plan = document.getElementById('ap-plan');
+    const count = document.getElementById('ap-plan-c');
+    const icon = '<svg class="i" aria-hidden="true"><use href="#i-err"/></svg>';
+
+    const checks = [
+      { id: 'ap-first', el: () => document.getElementById('ap-first'), msg: (el) => (el.value.trim() ? '' : 'Bitte geben Sie Ihren Vornamen an.') },
+      { id: 'ap-last', el: () => document.getElementById('ap-last'), msg: (el) => (el.value.trim() ? '' : 'Bitte geben Sie Ihren Nachnamen an.') },
+      { id: 'ap-mail', el: () => document.getElementById('ap-mail'), msg: (el) =>
+          !el.value.trim() ? 'Bitte geben Sie Ihre E-Mail-Adresse an.'
+          : /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(el.value.trim()) ? '' : 'Diese E-Mail-Adresse ist unvollständig. Beispiel: name@schule.at' },
+      { id: 'ap-school', el: () => document.getElementById('ap-school'), msg: (el) => (el.value.trim() ? '' : 'Bitte geben Sie den Namen Ihrer Schule an.') },
+      { id: 'ap-town', el: () => document.getElementById('ap-town'), msg: (el) => (el.value.trim() ? '' : 'Bitte geben Sie PLZ und Ort der Schule an.') },
+      { id: 'ap-skz', el: () => document.getElementById('ap-skz'), msg: (el) => (!el.value || /^\d{6}$/.test(el.value) ? '' : 'Die Schulkennzahl hat sechs Ziffern. Lassen Sie das Feld leer, wenn Sie sie nicht wissen.') },
+      { id: 'ap-subject', el: () => document.getElementById('ap-subject'), msg: (el) => (el.value.trim() ? '' : 'Bitte geben Sie den Gegenstand an, etwa Digitale Grundbildung.') },
+      { id: 'ap-grades', focus: () => document.querySelector('#ap-grades input'), el: () => document.getElementById('ap-grades'), msg: (el) => (el.querySelector('input:checked') ? '' : 'Wählen Sie mindestens eine Schulstufe.') },
+      { id: 'ap-plan', el: () => plan, msg: (el) => (el.value.trim().length >= 30 ? '' : 'Beschreiben Sie Ihr Vorhaben in mindestens einem Satz (30 Zeichen).') },
+      { id: 'ap-terms', label: () => document.getElementById('ap-terms-l'), el: () => document.getElementById('ap-terms'), msg: (el) => (el.checked ? '' : 'Ohne Zustimmung zu den Nutzungsbedingungen können wir den Antrag nicht annehmen.') },
+    ];
+
+    const setError = (c, text) => {
+      const el = c.el();
+      const host = c.label ? c.label() : el;
+      const errId = `${c.id}-e`;
+      let err = document.getElementById(errId);
+      if (!text) {
+        err?.remove();
+        host.classList.remove('is-invalid');
+        el.removeAttribute('aria-invalid');
+        const d = (el.getAttribute('aria-describedby') || '').split(' ').filter((x) => x && x !== errId);
+        d.length ? el.setAttribute('aria-describedby', d.join(' ')) : el.removeAttribute('aria-describedby');
+        return;
+      }
+      if (c.label) host.classList.add('is-invalid');
+      el.setAttribute('aria-invalid', 'true');
+      if (!err) {
+        err = document.createElement('span');
+        err.className = 'ferr';
+        err.id = errId;
+        const anchor = c.id === 'ap-grades' ? el : c.label ? c.label() : el;
+        anchor.insertAdjacentElement('afterend', err);
+        const d = (el.getAttribute('aria-describedby') || '').split(' ').filter(Boolean);
+        el.setAttribute('aria-describedby', [...d, errId].join(' '));
+      }
+      err.innerHTML = icon + text;
+    };
+
+    const validate = () => {
+      const failed = [];
+      for (const c of checks) {
+        const text = c.msg(c.el());
+        setError(c, text);
+        if (text) failed.push({ c, text });
+      }
+      return failed;
+    };
+
+    const showSummary = (failed) => {
+      if (!failed.length) { summary.hidden = true; return; }
+      summary.hidden = false;
+      title.textContent = failed.length === 1 ? 'Bitte prüfen Sie 1 Angabe.' : `Bitte prüfen Sie ${failed.length} Angaben.`;
+      list.innerHTML = '';
+      for (const { c, text } of failed) {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = `#${c.id}`;
+        a.textContent = text;
+        a.addEventListener('click', (e) => { e.preventDefault(); (c.focus ? c.focus() : c.el()).focus(); });
+        li.append(a);
+        list.append(li);
+      }
+    };
+
+    const updateCount = () => { count.textContent = `${plan.value.length} / 1000`; };
+    plan.addEventListener('input', updateCount);
+    updateCount();
+
+    // once a field has an error, it re-checks as the person types
+    form.addEventListener('input', (e) => {
+      const c = checks.find((x) => x.el() === e.target || x.el().contains(e.target));
+      if (c && document.getElementById(`${c.id}-e`)) setError(c, c.msg(c.el()));
+    });
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const failed = validate();
+      showSummary(failed);
+      if (failed.length) { summary.focus({ preventScroll: true }); summary.scrollIntoView({ block: 'nearest' }); return; }
+      const btn = document.getElementById('ap-send');
+      btn.setAttribute('aria-disabled', 'true');
+      btn.innerHTML = '<svg class="i spin" aria-hidden="true"><use href="#i-loader"/></svg>Wird gesendet …';
+      setTimeout(() => {
+        const mail = document.getElementById('ap-mail').value.trim();
+        const wrap = document.getElementById('apply-wrap');
+        wrap.innerHTML = '';
+        const done = document.createElement('div');
+        done.className = 'panel done';
+        done.setAttribute('role', 'status');
+        done.innerHTML = '<span class="disc"><svg class="i" aria-hidden="true"><use href="#i-mail"/></svg></span><h2>Bitte bestätigen Sie Ihre E-Mail-Adresse</h2><p>Wir haben einen Link an <b></b> geschickt. Erst nach der Bestätigung geht Ihr Antrag an uns.</p><p class="hint">Keine E-Mail da? Schauen Sie im Spam-Ordner nach.</p>';
+        done.querySelector('b').textContent = mail;
+        wrap.append(done);
+      }, 900);
+    });
+
+    // the page opens in the state after a first failed submit
+    showSummary(validate());
+  })();
+</script>

@@ -23,6 +23,8 @@ More files, not architecture notes:
 - [kids-protection.md](kids-protection.md) is **generated** by `npm run eval:guard`; never edit it by hand.
 - [platform-plan.md](platform-plan.md): the plan from event app to classroom offering (office, codes, budgets,
   key pool), each point decided, proposed or open.
+- [office-design.html](office-design.html): the design proposal for the office (tokens, grids, forms, feedback
+  states), in the kids' app's Scratch look. Open it in a browser.
 - [to-check.md](to-check.md) is Rainer's checklist of open checks before the event.
 - [night-test-2026-10-24.md](night-test-2026-10-24.md): the game-harness rounds before the event, what each
   found and what changed.

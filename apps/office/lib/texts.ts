@@ -11,10 +11,12 @@ export const texts = {
     tooMany: 'Zu viele Versuche. Bitte warten Sie kurz und versuchen Sie es dann noch einmal.',
     error: 'Die Anmeldung hat nicht geklappt. Bitte versuchen Sie es noch einmal.',
   },
+  shell: {
+    signOut: 'Abmelden',
+  },
   home: {
     greeting: (name: string) => `Hallo Welt, ${name}!`,
     signedInAs: (email: string) => `Angemeldet als ${email}`,
     admin: 'Administrator',
-    signOut: 'Abmelden',
   },
 } as const;

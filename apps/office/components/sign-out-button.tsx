@@ -1,23 +1,25 @@
 'use client';
 
+import { LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { authClient } from '../lib/auth-client.ts';
 import { texts } from '../lib/texts.ts';
+import { Button } from './ui/button.tsx';
 
 export function SignOutButton() {
   const router = useRouter();
+  const [pending, setPending] = useState(false);
   const signOut = async () => {
+    setPending(true);
     await authClient.signOut();
     router.replace('/anmelden');
     router.refresh();
   };
   return (
-    <button
-      type="button"
-      onClick={signOut}
-      className="rounded-md border border-slate-300 px-3 py-1.5 font-medium text-sm hover:bg-slate-100"
-    >
-      {texts.home.signOut}
-    </button>
+    <Button variant="on-bar" size="sm" pending={pending} onClick={signOut}>
+      {!pending && <LogOut aria-hidden />}
+      {texts.shell.signOut}
+    </Button>
   );
 }

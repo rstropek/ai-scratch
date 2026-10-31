@@ -32,7 +32,7 @@ test('the admin signs in, sees the hello page, and signs out', async ({ page }) 
   await page.goto('/anmelden');
   await expect(page).toHaveURL(/\/$/);
 
-  await page.getByRole('button', { name: texts.home.signOut }).click();
+  await page.getByRole('button', { name: texts.shell.signOut }).click();
   await expect(page).toHaveURL(/\/anmelden$/);
   await page.goto('/');
   await expect(page).toHaveURL(/\/anmelden$/);

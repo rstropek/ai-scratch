@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="de">
-      <body className="min-h-dvh bg-slate-50 text-slate-900 antialiased">{children}</body>
+      <body className="min-h-dvh">{children}</body>
     </html>
   );
 }

@@ -20,7 +20,7 @@ export default defineConfig({
         test: {
           name: 'component',
           environment: 'jsdom',
-          include: ['app/**/*.test.tsx'],
+          include: ['app/**/*.test.tsx', 'components/**/*.test.tsx'],
           setupFiles: ['test/setup-dom.ts'],
         },
       },

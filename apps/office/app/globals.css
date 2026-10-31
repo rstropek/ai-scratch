@@ -1,1 +1,92 @@
 @import "tailwindcss";
+
+/* The office's design tokens: the only place colours, type sizes, radii and the font are defined
+   (docs/office-design.html). Scratch 3's GUI palette, like the kids' app, at adult density.
+   Tailwind's own palette and type scale are switched off, so a slate-500 or text-3xl can't creep in. */
+@theme {
+  --color-*: initial;
+  --color-white: #ffffff;
+
+  /* Scratch's purple: the top bar, primary buttons, selection, focus */
+  --color-primary: #855cd6; /* looks-secondary */
+  --color-primary-hover: #714eb6; /* looks-secondary-dark; links (6.1:1 on white) */
+  --color-primary-light: #ede7f9; /* selected items, access codes, the "Neu" chip */
+  --color-primary-ink: #3b2a6b; /* text on primary-light */
+
+  /* grounds and text */
+  --color-ground: #e9f1fc; /* ui-secondary: the page */
+  --color-surface: #ffffff; /* panels, fields */
+  --color-subtle: #f5f8fd; /* table headers, quiet fills inside panels */
+  --color-accent: #d9e3f2; /* ui-tertiary: hover, meter tracks */
+  --color-foreground: #575e75; /* text-primary: 6.4:1 on white, 5.7:1 on ground */
+  --color-muted: #6b7186; /* hints: only on surface and subtle (≥ 4.5:1) */
+  --color-border: hsla(0, 0%, 0%, 0.15); /* ui-black-transparent: fields, secondary buttons */
+  --color-border-strong: hsla(0, 0%, 0%, 0.3); /* a field under the pointer */
+  --color-divider: hsla(225, 30%, 40%, 0.12); /* panel edges, table rules */
+  --color-ring: hsla(260, 60%, 60%, 0.35); /* looks-transparent: the focus halo */
+  --color-overlay: hsla(215, 100%, 65%, 0.9); /* ui-modal-overlay */
+
+  /* states: accent, light background, ink (ink on its light ≥ 4.5:1); always with a word or an icon */
+  --color-info: #4c97ff;
+  --color-info-light: #e6f0ff;
+  --color-info-ink: #1d5fbf;
+  --color-success: #0fbd8c;
+  --color-success-light: #e0f6ef;
+  --color-success-ink: #0b7a5c;
+  --color-warning: #ffab19;
+  --color-warning-light: #fff4d6;
+  --color-warning-ink: #7a4d00;
+  --color-error: #ff8c1a;
+  --color-error-light: #fff0df;
+  --color-error-ink: #b04600;
+  --color-error-edge: #e64d00; /* the border of an invalid field */
+  --color-danger: #c23d00; /* destructive buttons: white text 5.3:1 */
+  --color-danger-hover: #a33300;
+  --color-neutral: #9aa0b3;
+  --color-neutral-light: #eceef3;
+
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, Menlo, Consolas, monospace;
+
+  /* the type scale: 13 hint, 14 label and table, 15 body, 18 section, 24 page title */
+  --text-*: initial;
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.4;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.45;
+  --text-base: 0.9375rem;
+  --text-base--line-height: 1.5;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.3;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 1.25;
+
+  --radius-*: initial;
+  --radius-button: 0.25rem;
+  --radius-field: 5px;
+  --radius-panel: 0.5rem;
+}
+
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--color-border);
+  }
+  ::selection {
+    background: var(--color-ring);
+  }
+  input,
+  textarea {
+    caret-color: var(--color-primary);
+  }
+  body {
+    @apply bg-ground font-sans text-base text-foreground antialiased;
+  }
+}
+
+/* Scratch's focus: a 4px lilac halo. Use as focus-visible:focus-ring (or focus:focus-ring on fields). */
+@utility focus-ring {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--color-ring);
+}
