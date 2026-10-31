@@ -65,7 +65,7 @@ KV_ID=$(az keyvault show -g "$RG" -n "$KV" --query id -o tsv)
 assign "$ME" "Key Vault Secrets Officer" "$KV_ID" User
 
 log "Secrets from .env"
-for pair in ANTHROPIC_API_KEY:anthropic-api-key JEV_API_KEY:jev-api-key ACCESS_CODES:access-codes; do
+for pair in ANTHROPIC_API_KEY:anthropic-api-key JEV_API_KEY:jev-api-key ACCESS_CODES:access-codes RESEND_API_KEY:resend-api-key; do
   value=$(env_value "${pair%%:*}")
   if [[ -z "$value" ]]; then
     echo "    WARNING: ${pair%%:*} is empty in .env, secret ${pair#*:} not set"

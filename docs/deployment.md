@@ -34,6 +34,9 @@ truth for settings and roles.
   some requests still get the `*.azurewebsites.net` certificate.
 - **`.dev` is on the HSTS preload list:** browsers use only HTTPS, so the name is unusable until a
   certificate is bound.
+- **Email goes out through Resend from `mail.ai-scratch.dev`** (region eu-west-1, can't change). Its DKIM, SPF
+  and return-path records live under `mail.` at Cloudflare, plus `_dmarc.ai-scratch.dev` with `p=none`. The
+  app's key may only send, and only from that domain (`resend-api-key` in Key Vault).
 - The old `ai-scratch.azurewebsites.net` keeps working. Browser storage is per origin, so a kid who switches
   names types the access code again.
 
