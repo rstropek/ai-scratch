@@ -51,18 +51,32 @@ export function RegisterForm({ siteKey }: { siteKey: string }) {
           defaultValue={answerOf(state, 'email')}
           error={errors.email}
         />
-        <ChoiceGroup
-          legend={t.kind}
-          type="radio"
-          name="kind"
-          required
-          options={[
-            { value: 'teacher', label: t.kindLabels.teacher },
-            { value: 'parent', label: t.kindLabels.parent },
-          ]}
-          defaultValue={[answerOf(state, 'kind')]}
-          error={errors.kind}
-        />
+        {/* the free budget is for teachers only: its checkbox shows while "Lehrkraft" is chosen (CSS, no state) */}
+        <div className="group grid gap-4">
+          <ChoiceGroup
+            legend={t.kind}
+            type="radio"
+            name="kind"
+            required
+            options={[
+              { value: 'teacher', label: t.kindLabels.teacher },
+              { value: 'parent', label: t.kindLabels.parent },
+            ]}
+            defaultValue={[answerOf(state, 'kind')]}
+            error={errors.kind}
+          />
+          <Checkbox
+            name="freeBudget"
+            label={
+              <>
+                {t.freeBudget}
+                <span className="mt-1 block text-muted text-xs">{t.freeBudgetHint}</span>
+              </>
+            }
+            defaultChecked={checked('freeBudget')}
+            className="hidden rounded-field bg-primary-light p-3 group-has-[input[value=teacher]:checked]:grid"
+          />
+        </div>
       </FormGroup>
       <FormGroup title={t.consent}>
         <Checkbox name="adult" label={t.adult} defaultChecked={checked('adult')} error={errors.adult} />

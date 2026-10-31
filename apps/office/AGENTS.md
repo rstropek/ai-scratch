@@ -1,6 +1,6 @@
 # The teachers' office (apps/office)
 
-Next.js (App Router) at office.ai-scratch.dev: registration and teacher applications, the area for teachers and parents (access codes, own OpenRouter keys) and Rainer's admin. **So far (iteration 2):** login, registration of parents and teachers with an email link, teacher applications screened by Jev, the admin's account list with accept/reject, password reset (`docs/registration.md`). What comes next, and what is decided, proposed or open: `docs/platform-plan.md`. Database and migrations: `docs/database.md`.
+Next.js (App Router) at office.ai-scratch.dev: registration and teacher applications, the area for teachers and parents (access codes, own OpenRouter keys) and Rainer's admin. **So far (iteration 2):** login, registration of parents and teachers with an email link, teachers' applications for the free budget screened by Jev, the admin's account list with accept/reject and a manual free-budget switch, password reset (`docs/registration.md`). What comes next, and what is decided, proposed or open: `docs/platform-plan.md`. Database and migrations: `docs/database.md`.
 
 ## Commands
 

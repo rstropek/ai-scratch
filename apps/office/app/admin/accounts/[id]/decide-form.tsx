@@ -5,6 +5,7 @@ import { Banner } from '../../../../components/ui/banner.tsx';
 import { Button } from '../../../../components/ui/button.tsx';
 import { ConfirmDialog } from '../../../../components/ui/confirm-dialog.tsx';
 import { TextArea } from '../../../../components/ui/text-area.tsx';
+import { NOTE_MAX } from '../../../../lib/rules.ts';
 import { texts } from '../../../../lib/texts.ts';
 import { type DecideState, decide } from './actions.ts';
 
@@ -16,7 +17,7 @@ export function DecideForm({ userId, applicationId, name }: { userId: string; ap
   return (
     <form action={action} className="grid gap-4">
       {state.error && <Banner tone="error">{state.error}</Banner>}
-      <TextArea label={a.note} hint={a.noteHint} name="note" maxLength={1000} rows={2} />
+      <TextArea label={a.note} hint={a.noteHint} name="note" maxLength={NOTE_MAX} rows={2} />
       <div className="flex flex-wrap gap-2.5">
         <Button type="submit" name="decision" value="accepted" pending={pending}>
           {a.accept}

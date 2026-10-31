@@ -1,8 +1,7 @@
 // Registration of adults: the form sends a confirmation link (nothing stored yet), the link's page creates the
 // account. docs/registration.md has the reasons. A factory over its dependencies, so tests run it on PGlite.
 import { type Database, schema } from '@ai-scratch/db';
-import { APIError } from 'better-auth/api';
-import { and, count, eq, gte, lt } from 'drizzle-orm';
+import { and, count, eq, gte, lt, type SQL, sql } from 'drizzle-orm';
 import type { Auth } from './auth.ts';
 import type { Mailer } from './mail.ts';
 import { type AdultKind, openRegistration, sealRegistration } from './registration-token.ts';
@@ -39,6 +38,8 @@ export interface RegistrationInput {
   adult: boolean;
   terms: boolean;
   aiConsent: boolean;
+  /** "Gratis-Budget beantragen": only teachers can, so it is dropped for parents */
+  freeBudget: boolean;
   turnstileToken: string;
   ip: string | undefined;
 }
@@ -58,9 +59,13 @@ const isKind = (kind: string): kind is AdultKind => kind === 'parent' || kind ==
 const findUserByEmail = (db: Database, email: string) =>
   db.query.user.findFirst({ where: eq(schema.user.email, email), columns: { id: true } });
 
+/** any fixed number: the advisory lock that serialises the rate limit's count and insert */
+const RATE_LIMIT_LOCK = 4_242_001;
+
 /**
  * Counts this request against the hourly limits and records it, unless a limit is reached. Only hashes are
- * stored: no address before its link is used. Old rows go on every call.
+ * stored: no address before its link is used. Old rows go on every call. Under a transaction-scoped advisory lock,
+ * so requests at the same moment can't all pass on the same old count.
  */
 const takeSlot = async (
   { db, secret }: RegistrationDeps,
@@ -73,19 +78,21 @@ const takeSlot = async (
   const emailHash = keyedHash(key, `email:${email}`);
   const since = new Date(now.getTime() - HOUR_MS);
   const { registrationAttempt: attempt } = schema;
-  await db.delete(attempt).where(lt(attempt.createdAt, since));
-  const [byIp] = await db
-    .select({ n: count() })
-    .from(attempt)
-    .where(and(eq(attempt.ipHash, ipHash), gte(attempt.createdAt, since)));
-  if ((byIp?.n ?? 0) >= REGISTRATIONS_PER_IP_HOUR) return 'ip';
-  const [byEmail] = await db
-    .select({ n: count() })
-    .from(attempt)
-    .where(and(eq(attempt.emailHash, emailHash), gte(attempt.createdAt, since)));
-  if ((byEmail?.n ?? 0) >= REGISTRATIONS_PER_EMAIL_HOUR) return 'email';
-  await db.insert(attempt).values({ ipHash, emailHash, createdAt: now });
-  return undefined;
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(${RATE_LIMIT_LOCK})`);
+    await tx.delete(attempt).where(lt(attempt.createdAt, since));
+    const recent = async (hash: SQL) => {
+      const [row] = await tx
+        .select({ n: count() })
+        .from(attempt)
+        .where(and(hash, gte(attempt.createdAt, since)));
+      return row?.n ?? 0;
+    };
+    if ((await recent(eq(attempt.ipHash, ipHash))) >= REGISTRATIONS_PER_IP_HOUR) return 'ip';
+    if ((await recent(eq(attempt.emailHash, emailHash))) >= REGISTRATIONS_PER_EMAIL_HOUR) return 'email';
+    await tx.insert(attempt).values({ ipHash, emailHash, createdAt: now });
+    return undefined;
+  });
 };
 
 /**
@@ -114,7 +121,13 @@ export const startRegistration = async (deps: RegistrationDeps, input: Registrat
   } else {
     const token = sealRegistration(
       deps.secret,
-      { email, kind: input.kind, termsVersion: TERMS_VERSION, acceptedAt: now },
+      {
+        email,
+        kind: input.kind,
+        freeBudget: input.kind === 'teacher' && input.freeBudget,
+        termsVersion: TERMS_VERSION,
+        acceptedAt: now,
+      },
       now,
     );
     const url = `${deps.baseURL}/register/confirm?t=${token}`;
@@ -126,15 +139,15 @@ export const startRegistration = async (deps: RegistrationDeps, input: Registrat
 export type LinkState =
   | { state: 'invalid' | 'expired' }
   | { state: 'exists'; email: string }
-  | { state: 'ready'; email: string; kind: AdultKind };
+  | { state: 'ready'; email: string };
 
 /** What the confirmation page shows for a link. Opening it changes nothing (mail scanners open links too). */
 export const checkLink = async (deps: Pick<RegistrationDeps, 'db' | 'secret' | 'now'>, token: string) => {
   const opened = openRegistration(deps.secret, token, deps.now?.() ?? new Date());
   if (!opened.ok) return { state: opened.reason } satisfies LinkState;
-  const { email, kind } = opened.registration;
+  const { email } = opened.registration;
   if (await findUserByEmail(deps.db, email)) return { state: 'exists', email } satisfies LinkState;
-  return { state: 'ready', email, kind } satisfies LinkState;
+  return { state: 'ready', email } satisfies LinkState;
 };
 
 export type AccountField = 'firstName' | 'lastName' | 'password' | 'passwordRepeat';
@@ -147,7 +160,7 @@ export interface AccountInput {
 }
 
 export type CompleteResult =
-  | { ok: true; email: string; kind: AdultKind }
+  | { ok: true; email: string; freeBudget: boolean }
   | { ok: false; link: 'invalid' | 'expired' | 'exists' }
   | { ok: false; fieldErrors: FieldErrors<AccountField> };
 
@@ -160,7 +173,7 @@ export const completeRegistration = async (
   const now = deps.now?.() ?? new Date();
   const opened = openRegistration(deps.secret, token, now);
   if (!opened.ok) return { ok: false, link: opened.reason };
-  const { email, kind, termsVersion, acceptedAt } = opened.registration;
+  const { email, kind, freeBudget, termsVersion, acceptedAt } = opened.registration;
 
   const firstName = input.firstName.trim();
   const lastName = input.lastName.trim();
@@ -188,15 +201,16 @@ export const completeRegistration = async (
     });
     userId = user.id;
   } catch (error) {
-    // the link was used before (a second tab, a double submit)
-    if (error instanceof APIError && error.status === 'BAD_REQUEST' && (await findUserByEmail(deps.db, email)))
-      return { ok: false, link: 'exists' };
+    // the link was used before (a second tab, a double submit): better-auth's check, or, for two submits at the
+    // same moment, the database's unique email
+    if (await findUserByEmail(deps.db, email)) return { ok: false, link: 'exists' };
     throw error;
   }
   try {
     await deps.db.insert(schema.adultProfile).values({
       userId,
       kind,
+      freeBudgetRequested: freeBudget,
       termsVersion,
       termsAcceptedAt: acceptedAt,
       aiConsentAt: acceptedAt,
@@ -208,7 +222,7 @@ export const completeRegistration = async (
     await deps.db.delete(schema.user).where(eq(schema.user.id, userId));
     throw error;
   }
-  return { ok: true, email, kind };
+  return { ok: true, email, freeBudget };
 };
 
 /** Whether the account accepted an older version of the terms. Accounts without a profile (the seeded admin) never. */

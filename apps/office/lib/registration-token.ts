@@ -9,6 +9,8 @@ export type AdultKind = 'parent' | 'teacher';
 export interface Registration {
   email: string;
   kind: AdultKind;
+  /** a teacher ticked "Gratis-Budget beantragen" (always false for parents) */
+  freeBudget: boolean;
   termsVersion: string;
   /** when the terms were accepted, the 18+ confirmed and the AI consent given (one submit, one time) */
   acceptedAt: Date;
@@ -18,6 +20,7 @@ interface Payload {
   v: 1;
   email: string;
   kind: AdultKind;
+  freeBudget: boolean;
   adult: true;
   aiConsent: true;
   termsVersion: string;
@@ -33,6 +36,7 @@ export const sealRegistration = (secret: string, registration: Registration, now
     v: 1,
     email: registration.email,
     kind: registration.kind,
+    freeBudget: registration.freeBudget,
     adult: true,
     aiConsent: true,
     termsVersion: registration.termsVersion,
@@ -66,6 +70,7 @@ export const openRegistration = (secret: string, token: string, now = new Date()
     registration: {
       email: payload.email,
       kind: payload.kind,
+      freeBudget: payload.freeBudget === true,
       termsVersion: payload.termsVersion,
       acceptedAt: new Date(payload.acceptedAt),
     },

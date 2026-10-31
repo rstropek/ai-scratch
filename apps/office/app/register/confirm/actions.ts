@@ -26,7 +26,14 @@ export async function createAccount(token: string, _previous: ConfirmState, form
     return { values, banner: texts.confirm.error };
   }
   if (!result.ok) return 'link' in result ? { link: result.link } : { values, fieldErrors: result.fieldErrors };
-  // signs the new account in: nextCookies() in auth.ts sets the session cookie on this response
-  await getAuth().api.signInEmail({ body: { email: result.email, password }, headers: await headers() });
-  redirect(result.kind === 'teacher' ? '/apply' : '/');
+  try {
+    // signs the new account in: nextCookies() in auth.ts sets the session cookie on this response
+    await getAuth().api.signInEmail({ body: { email: result.email, password }, headers: await headers() });
+  } catch (error) {
+    // the account exists all the same: the login page takes the same email and password
+    console.error('register: signing the new account in failed', error);
+    redirect('/login');
+  }
+  // asked for the free budget: the application comes next
+  redirect(result.freeBudget ? '/apply' : '/');
 }

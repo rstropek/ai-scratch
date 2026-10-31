@@ -1,6 +1,8 @@
-// The office's own tables: who registered as what, teacher applications, registration rate limits.
+// The office's own tables: who registered as what, who may use the free budget, the teachers' applications for it,
+// registration rate limits.
 import { relations, sql } from 'drizzle-orm';
 import {
+  boolean,
   index,
   integer,
   jsonb,
@@ -14,7 +16,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { user } from './auth.ts';
 
-/** what someone registered (or later applied) as; only an accepted application makes a teacher */
+/** what someone registered as: teachers are teachers, nobody confirms that (the free budget is a separate flag) */
 export const adultKind = pgEnum('adult_kind', ['parent', 'teacher']);
 export const applicationStatus = pgEnum('application_status', ['pending', 'accepted', 'rejected']);
 
@@ -31,9 +33,16 @@ export const adultProfile = pgTable('adult_profile', {
   adultConfirmedAt: timestamp('adult_confirmed_at', { withTimezone: true }).notNull(),
   /** Jev checks of this account's applications so far (each costs money, so they are capped) */
   jevChecks: integer('jev_checks').default(0).notNull(),
+  /** ticked at registration (teachers only): the one way to apply for the free budget */
+  freeBudgetRequested: boolean('free_budget_requested').default(false).notNull(),
+  /** since when the account may create codes from the free budget (donated keys); null: not, or not any more */
+  freeBudgetAt: timestamp('free_budget_at', { withTimezone: true }),
+  /** the admin who switched it on: by accepting an application, or by hand (also for parents) */
+  freeBudgetBy: text('free_budget_by').references(() => user.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+/** a teacher's application for the free budget; accepting it switches the budget on */
 export const teacherApplication = pgTable(
   'teacher_application',
   {

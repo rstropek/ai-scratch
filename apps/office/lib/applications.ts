@@ -1,4 +1,5 @@
-// Teacher applications: submitting one (screened by Jev), the admin's decision, and the admin's account list.
+// The free budget (codes on donated keys): teachers apply for it once, at registration (screened by Jev); the admin
+// decides, or switches it on and off by hand for anyone. Also the admin's account list.
 // A factory-free module over its dependencies, so tests run it on PGlite.
 import { type Database, schema } from '@ai-scratch/db';
 import { and, asc, desc, eq, exists, ilike, inArray, or, sql } from 'drizzle-orm';
@@ -7,7 +8,7 @@ import type { ApplicationScreener, JevVerdict, RefusalReason } from './jev.ts';
 import type { Mailer } from './mail.ts';
 import type { FieldErrors } from './registration.ts';
 import type { AdultKind } from './registration-token.ts';
-import { MAX_JEV_CHECKS, SCHOOL_NAME_MAX, SCHOOL_URL_MAX, SUMMARY_MAX, SUMMARY_MIN } from './rules.ts';
+import { MAX_JEV_CHECKS, NOTE_MAX, SCHOOL_NAME_MAX, SCHOOL_URL_MAX, SUMMARY_MAX, SUMMARY_MIN } from './rules.ts';
 import { GRADES, type Grade, texts } from './texts.ts';
 
 const { adultProfile, teacherApplication, user } = schema;
@@ -81,28 +82,68 @@ export const gradeLabels = (grades: string[]) => grades.map((g) => (isGrade(g) ?
 export interface ApplicantState {
   /** undefined for accounts without a profile (the seeded admin) */
   kind?: AdultKind;
+  /** ticked "Gratis-Budget beantragen" at registration */
+  requested: boolean;
+  /** may create codes from the free budget */
+  freeBudget: boolean;
   latest?: { status: ApplicationStatus; createdAt: Date };
 }
 
-export const applicantState = async (db: Database, userId: string): Promise<ApplicantState> => {
-  const profile = await db.query.adultProfile.findFirst({
-    where: eq(adultProfile.userId, userId),
-    columns: { kind: true },
-  });
-  const latest = await db.query.teacherApplication.findFirst({
-    where: eq(teacherApplication.userId, userId),
-    columns: { status: true, createdAt: true },
-    orderBy: desc(teacherApplication.createdAt),
-  });
-  return { kind: profile?.kind, latest };
+type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
+
+const profileColumns = {
+  kind: adultProfile.kind,
+  freeBudgetRequested: adultProfile.freeBudgetRequested,
+  freeBudgetAt: adultProfile.freeBudgetAt,
 };
 
-/** whether the account may send an application now (none open, not already a teacher) */
-export const canApply = (state: ApplicantState) =>
-  state.kind !== undefined && state.latest?.status !== 'pending' && state.latest?.status !== 'accepted';
+const latestApplication = (db: Database | Transaction, userId: string) =>
+  db
+    .select({ status: teacherApplication.status, createdAt: teacherApplication.createdAt })
+    .from(teacherApplication)
+    .where(eq(teacherApplication.userId, userId))
+    .orderBy(desc(teacherApplication.createdAt))
+    .limit(1);
 
-/** an accepted application makes a teacher; everyone else is treated like a parent */
-export const isTeacher = (state: ApplicantState) => state.latest?.status === 'accepted';
+const toState = (
+  profile: { kind: AdultKind; freeBudgetRequested: boolean; freeBudgetAt: Date | null } | undefined,
+  latest: ApplicantState['latest'],
+): ApplicantState => ({
+  kind: profile?.kind,
+  requested: profile?.freeBudgetRequested ?? false,
+  freeBudget: Boolean(profile?.freeBudgetAt),
+  latest,
+});
+
+export const applicantState = async (db: Database, userId: string): Promise<ApplicantState> => {
+  const [[profile], [latest]] = await Promise.all([
+    db.select(profileColumns).from(adultProfile).where(eq(adultProfile.userId, userId)),
+    latestApplication(db, userId),
+  ]);
+  return toState(profile, latest);
+};
+
+/**
+ * Locks the account's profile row until the transaction ends, then reads the state. Sending an application and
+ * the admin's switch both take this lock, so they can't interleave (an open application while the budget is on).
+ * The application is read by a statement after the lock, so it sees what the other side committed.
+ */
+const lockedState = async (tx: Transaction, userId: string) => {
+  const [profile] = await tx
+    .select({ ...profileColumns, name: user.name, email: user.email })
+    .from(adultProfile)
+    .innerJoin(user, eq(user.id, adultProfile.userId))
+    .where(eq(adultProfile.userId, userId))
+    .for('update', { of: adultProfile });
+  const [latest] = await latestApplication(tx, userId);
+  return { ...toState(profile, latest), person: profile && { name: profile.name, email: profile.email } };
+};
+
+/**
+ * Whether the account may send its application now: asked for the free budget at registration, sent none yet
+ * (one per account: no new one after a rejection, Rainer 2026-10-31), and doesn't have the budget already.
+ */
+export const canApply = (state: ApplicantState) => state.requested && !state.latest && !state.freeBudget;
 
 export interface ApplicationDeps {
   db: Database;
@@ -137,11 +178,6 @@ const jevSummary = (jev: JevRecord) => {
   return a.jevPassed(jev.model ?? 'Jev');
 };
 
-const isUniqueViolation = (error: unknown): boolean => {
-  const e = error as { code?: unknown; cause?: unknown };
-  return e?.code === '23505' || (e?.cause !== undefined && isUniqueViolation(e.cause));
-};
-
 export const submitApplication = async (
   deps: ApplicationDeps,
   applicant: { id: string; name: string; email: string },
@@ -161,20 +197,13 @@ export const submitApplication = async (
     jev = rest;
   }
 
-  try {
-    await deps.db.transaction(async (tx) => {
-      const [row] = await tx
-        .insert(teacherApplication)
-        .values({ userId: applicant.id, ...application, jev })
-        .returning({ id: teacherApplication.id });
-      if (!row) throw new Error('teacher application not inserted');
-      await tx.update(adultProfile).set({ kind: 'teacher' }).where(eq(adultProfile.userId, applicant.id));
-    });
-  } catch (error) {
-    // a second tab sent one at the same time: one open application per account
-    if (isUniqueViolation(error)) return { ok: false, notAllowed: true };
-    throw error;
-  }
+  // checked again under the lock: Jev takes seconds, in which a second tab or the admin's switch may have acted
+  const stored = await deps.db.transaction(async (tx) => {
+    if (!canApply(await lockedState(tx, applicant.id))) return false;
+    await tx.insert(teacherApplication).values({ userId: applicant.id, ...application, jev });
+    return true;
+  });
+  if (!stored) return { ok: false, notAllowed: true };
 
   const mismatch = domainMismatch(applicant.email, application.schoolUrl);
   try {
@@ -199,9 +228,27 @@ export const submitApplication = async (
   return { ok: true };
 };
 
-export type DecideResult = { result: 'done'; mailed: boolean } | { result: 'stale' };
+/** mailed: undefined when no mail was due (switching off) */
+export type DecideResult = { result: 'done'; mailed?: boolean } | { result: 'stale' };
 
-/** Accepts or rejects an open application and tells the applicant by email. */
+type Mail = (name: string, baseURL: string) => { subject: string; text: string };
+
+/** a failed mail never undoes the change; the admin page says so */
+const mailAccount = async (
+  deps: Pick<ApplicationDeps, 'mailer' | 'baseURL'>,
+  person: { name: string; email: string },
+  mail: Mail,
+) => {
+  try {
+    await deps.mailer({ to: person.email, ...mail(person.name, deps.baseURL) });
+    return true;
+  } catch (error) {
+    console.error('applications: mail to the account failed', error);
+    return false;
+  }
+};
+
+/** Accepts (switching the free budget on) or rejects an open application, and tells the applicant by email. */
 export const decideApplication = async (
   deps: Pick<ApplicationDeps, 'db' | 'mailer' | 'baseURL'>,
   adminId: string,
@@ -209,33 +256,73 @@ export const decideApplication = async (
   decision: 'accepted' | 'rejected',
   note: string,
 ): Promise<DecideResult> => {
-  const [decided] = await deps.db
-    .update(teacherApplication)
-    .set({ status: decision, decidedAt: new Date(), decidedBy: adminId, note: note.trim() || null })
-    .where(and(eq(teacherApplication.id, applicationId), eq(teacherApplication.status, 'pending')))
-    .returning({ userId: teacherApplication.userId });
-  if (!decided) return { result: 'stale' };
-  const applicant = await deps.db.query.user.findFirst({
-    where: eq(user.id, decided.userId),
-    columns: { name: true, email: true },
+  const now = new Date();
+  const decided = await deps.db.transaction(async (tx) => {
+    const [row] = await tx
+      .update(teacherApplication)
+      .set({ status: decision, decidedAt: now, decidedBy: adminId, note: note.trim().slice(0, NOTE_MAX) || null })
+      .from(user)
+      .where(
+        and(
+          eq(teacherApplication.id, applicationId),
+          eq(teacherApplication.status, 'pending'),
+          eq(user.id, teacherApplication.userId),
+        ),
+      )
+      .returning({ userId: teacherApplication.userId, name: user.name, email: user.email });
+    if (row && decision === 'accepted')
+      await tx
+        .update(adultProfile)
+        .set({ freeBudgetAt: now, freeBudgetBy: adminId })
+        .where(eq(adultProfile.userId, row.userId));
+    return row;
   });
-  if (!applicant) return { result: 'done', mailed: false };
-  const mail = decision === 'accepted' ? texts.mail.accepted : texts.mail.rejected;
-  try {
-    await deps.mailer({ to: applicant.email, ...mail(applicant.name, deps.baseURL) });
-    return { result: 'done', mailed: true };
-  } catch (error) {
-    console.error('applications: mail to the applicant failed', error);
-    return { result: 'done', mailed: false };
-  }
+  if (!decided) return { result: 'stale' };
+  const mail = decision === 'accepted' ? texts.mail.freeBudgetOn : texts.mail.rejected;
+  return { result: 'done', mailed: await mailAccount(deps, decided, mail) };
 };
 
-export const ACCOUNT_FILTERS = ['pending', 'teachers', 'parents', 'all'] as const;
+/**
+ * The admin switches the free budget on (with a mail) or off (silently: misuse, terms § 13) by hand, for any
+ * account, parents too. Not while an application is open: that is decided with the application.
+ */
+export const switchFreeBudget = async (
+  deps: Pick<ApplicationDeps, 'db' | 'mailer' | 'baseURL'>,
+  adminId: string,
+  userId: string,
+  on: boolean,
+): Promise<DecideResult> => {
+  const person = await deps.db.transaction(async (tx) => {
+    const state = await lockedState(tx, userId);
+    if (!state.person || state.freeBudget === on || state.latest?.status === 'pending') return undefined;
+    await tx
+      .update(adultProfile)
+      .set(on ? { freeBudgetAt: new Date(), freeBudgetBy: adminId } : { freeBudgetAt: null, freeBudgetBy: null })
+      .where(eq(adultProfile.userId, userId));
+    return state.person;
+  });
+  if (!person) return { result: 'stale' };
+  return on ? { result: 'done', mailed: await mailAccount(deps, person, texts.mail.freeBudgetOn) } : { result: 'done' };
+};
+
+export const ACCOUNT_FILTERS = ['pending', 'freeBudget', 'teachers', 'parents', 'all'] as const;
 export type AccountFilter = (typeof ACCOUNT_FILTERS)[number];
 export const parseFilter = (value: unknown): AccountFilter => ACCOUNT_FILTERS.find((f) => f === value) ?? 'pending';
 
-/** parent: never applied; missing: registered as a teacher without an application yet */
-export type AccountStatus = 'parent' | 'missing' | ApplicationStatus;
+/**
+ * Where an account's free budget stands. none: never asked (or taken away again); missing: asked at registration,
+ * application not sent yet; pending, rejected: its application; granted: switched on.
+ */
+export type BudgetStatus = 'none' | 'missing' | 'pending' | 'rejected' | 'granted';
+
+const budgetStatus = (p: { requested: boolean; freeBudget: boolean; latest?: ApplicationStatus }): BudgetStatus =>
+  p.freeBudget
+    ? 'granted'
+    : p.latest === 'pending' || p.latest === 'rejected'
+      ? p.latest
+      : p.requested && !p.latest
+        ? 'missing'
+        : 'none';
 
 export interface AccountRow {
   userId: string;
@@ -243,14 +330,17 @@ export interface AccountRow {
   email: string;
   registeredAt: Date;
   kind: AdultKind;
-  status: AccountStatus;
+  freeBudget: boolean;
+  status: BudgetStatus;
   schoolName?: string;
   /** when the latest application came in */
   appliedAt?: Date;
 }
 
+/** teachers and parents: by what they registered as */
 const matches = (filter: AccountFilter, row: AccountRow) => {
   if (filter === 'pending') return row.status === 'pending';
+  if (filter === 'freeBudget') return row.freeBudget;
   if (filter === 'teachers') return row.kind === 'teacher';
   if (filter === 'parents') return row.kind === 'parent';
   return true;
@@ -271,6 +361,8 @@ export const listAccounts = async (
     .select({
       userId: adultProfile.userId,
       kind: adultProfile.kind,
+      requested: adultProfile.freeBudgetRequested,
+      freeBudgetAt: adultProfile.freeBudgetAt,
       registeredAt: adultProfile.createdAt,
       name: user.name,
       email: user.email,
@@ -311,11 +403,13 @@ export const listAccounts = async (
         .orderBy(asc(teacherApplication.createdAt))
     : [];
   const latest = new Map(applications.map((a) => [a.userId, a])); // ascending: the last one wins
-  const all: AccountRow[] = profiles.map((p) => {
+  const all: AccountRow[] = profiles.map(({ requested, freeBudgetAt, ...p }) => {
     const application = latest.get(p.userId);
+    const freeBudget = freeBudgetAt !== null;
     return {
       ...p,
-      status: application?.status ?? (p.kind === 'teacher' ? 'missing' : 'parent'),
+      freeBudget,
+      status: budgetStatus({ requested, freeBudget, latest: application?.status }),
       schoolName: application?.schoolName,
       appliedAt: application?.createdAt,
     };
@@ -330,10 +424,14 @@ export const listAccounts = async (
 };
 
 export const getAccount = async (db: Database, userId: string) => {
+  const granter = alias(user, 'granter');
   const profile = await db
     .select({
       userId: adultProfile.userId,
       kind: adultProfile.kind,
+      freeBudgetRequested: adultProfile.freeBudgetRequested,
+      freeBudgetAt: adultProfile.freeBudgetAt,
+      freeBudgetBy: granter.name,
       termsVersion: adultProfile.termsVersion,
       termsAcceptedAt: adultProfile.termsAcceptedAt,
       aiConsentAt: adultProfile.aiConsentAt,
@@ -344,6 +442,7 @@ export const getAccount = async (db: Database, userId: string) => {
     })
     .from(adultProfile)
     .innerJoin(user, eq(user.id, adultProfile.userId))
+    .leftJoin(granter, eq(granter.id, adultProfile.freeBudgetBy))
     .where(eq(adultProfile.userId, userId));
   const account = profile[0];
   if (!account) return undefined;
@@ -368,6 +467,11 @@ export const getAccount = async (db: Database, userId: string) => {
     .orderBy(desc(teacherApplication.createdAt));
   return {
     ...account,
+    status: budgetStatus({
+      requested: account.freeBudgetRequested,
+      freeBudget: account.freeBudgetAt !== null,
+      latest: applications[0]?.status,
+    }),
     applications: applications.map((a) => ({
       ...a,
       jev: a.jev as JevRecord | null,

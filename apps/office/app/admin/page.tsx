@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { AccountStatusChip } from '../../components/account-status-chip.tsx';
 import { NotAdmin } from '../../components/admin-gate.tsx';
 import { AppShell } from '../../components/app-shell.tsx';
+import { BudgetStatusChip } from '../../components/budget-chips.tsx';
 import { Button, buttonClass } from '../../components/ui/button.tsx';
 import { FilterTabs } from '../../components/ui/filter-tabs.tsx';
 import { PageHeader } from '../../components/ui/page-header.tsx';
@@ -74,7 +74,8 @@ export default async function AdminPage({ searchParams }: PageProps<'/admin'>) {
               columns={[
                 { label: filter === 'pending' ? t.columns.applied : t.columns.registered },
                 { label: t.columns.person },
-                { label: t.columns.status },
+                { label: t.columns.kind },
+                { label: t.columns.freeBudget },
                 { label: t.columns.school },
                 { label: t.columns.action, hidden: true },
               ]}
@@ -87,8 +88,9 @@ export default async function AdminPage({ searchParams }: PageProps<'/admin'>) {
                       <span className="whitespace-nowrap">{texts.format.date(at)}</span>
                     </Cell>
                     <Cell sub={row.email}>{row.name}</Cell>
+                    <Cell>{t.kind[row.kind]}</Cell>
                     <Cell>
-                      <AccountStatusChip status={row.status} />
+                      <BudgetStatusChip status={row.status} />
                     </Cell>
                     <Cell>{row.schoolName ?? '–'}</Cell>
                     <Cell action>

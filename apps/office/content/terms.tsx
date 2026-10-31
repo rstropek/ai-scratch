@@ -52,9 +52,9 @@ export function TermsDocument() {
           Daten. <strong>Wir verdienen mit AI-Scratch kein Geld.</strong>
         </li>
         <li>
-          Die KI-Kosten der Zugangscodes von Lehrkräften tragen gespendete Guthaben bei KI-Anbietern, von Rainer Stropek
-          und von Unterstützerinnen und Unterstützern. Dieses Gratis-Budget ist begrenzt; einen Anspruch darauf gibt es
-          nicht.
+          Die KI-Kosten von Zugangscodes aus dem Gratis-Budget tragen gespendete Guthaben bei KI-Anbietern, von Rainer
+          Stropek und von Unterstützerinnen und Unterstützern. Dieses Gratis-Budget ist begrenzt; einen Anspruch darauf
+          gibt es nicht (<TextLink href="#registrierung">Abschnitt 4</TextLink>).
         </li>
         <li>
           Rainer Stropek ist Microsoft Most Valuable Professional (MVP). Als MVP erhält er von Microsoft kostenlose
@@ -91,11 +91,12 @@ export function TermsDocument() {
           sich auf Geräten, die auch andere benutzen, nach der Arbeit ab.
         </li>
         <li>
-          <strong>Nur für Lehrkräfte:</strong> Für das Gratis-Budget bewerben Sie sich mit Angaben zu Ihrer Schule und
-          dazu, wofür Sie AI-Scratch nutzen möchten. Eine KI prüft diese Angaben automatisch auf offensichtlich
-          ungültige oder missbräuchliche Bewerbungen; wir können sie auch selbst prüfen. Einen Anspruch auf Annahme gibt
-          es nicht. Wird Ihre Bewerbung nicht angenommen, können Sie AI-Scratch wie Eltern mit einem eigenen
-          OpenRouter-Schlüssel nutzen.
+          <strong>Gratis-Budget:</strong> Lehrkräfte können das Gratis-Budget bei der Registrierung beantragen, mit
+          Angaben zu ihrer Schule und dazu, wofür sie AI-Scratch nutzen möchten. Eine KI prüft diese Angaben automatisch
+          auf offensichtlich ungültige oder missbräuchliche Anträge; über jeden Antrag entscheiden wir selbst. Einen
+          Anspruch auf das Gratis-Budget gibt es nicht. Wir können es auch anderen Erwachsenen freischalten und eine
+          Freischaltung jederzeit beenden. Ohne Gratis-Budget nutzen Sie AI-Scratch mit einem eigenen
+          OpenRouter-Schlüssel.
         </li>
       </ul>
 
@@ -116,10 +117,10 @@ export function TermsDocument() {
           Code ausschalten.
         </li>
         <li>
-          <strong>Nur für Lehrkräfte:</strong> Codes aus dem Gratis-Budget haben Grenzen pro Monat: für die Zahl der
-          Codes, für die Kosten pro Lehrkraft und für die Kosten insgesamt. Wir legen diese Grenzen fest und können sie
-          jederzeit ändern. Ist ein Budget aufgebraucht, hört der KI-Helfer auf zu antworten, auch mitten in einer
-          Unterrichtsstunde. Scratch selbst funktioniert weiter.
+          Codes aus dem Gratis-Budget haben Grenzen pro Monat: für die Zahl der Codes, für die Kosten pro Konto und für
+          die Kosten insgesamt. Wir legen diese Grenzen fest und können sie jederzeit ändern. Ist ein Budget
+          aufgebraucht, hört der KI-Helfer auf zu antworten, auch mitten in einer Unterrichtsstunde. Scratch selbst
+          funktioniert weiter.
         </li>
       </ul>
 
@@ -204,8 +205,8 @@ export function TermsDocument() {
           Die personenbezogenen Daten der registrierten Erwachsenen speichern und verarbeiten wir auf Servern in der EU
         </strong>
         : etwa Ihre E-Mail-Adresse, die Angaben zu Ihrer Schule, Ihre verschlüsselten OpenRouter-Schlüssel und Ihre
-        Zustimmung zu diesen Bedingungen. Ausgenommen ist nur die KI-Prüfung von Registrierungen und Bewerbungen
-        (nächster Absatz).
+        Zustimmung zu diesen Bedingungen. Ausgenommen ist nur die KI-Prüfung von Registrierungen und Anträgen (nächster
+        Absatz).
       </p>
       <p>
         <strong>KI-Dienste können außerhalb der EU arbeiten, insbesondere in den USA</strong>, wo ein geringeres
@@ -217,7 +218,7 @@ export function TermsDocument() {
           Skripte), damit der KI-Helfer antworten kann;
         </li>
         <li>die Prüfung dieser Eingaben zum Schutz der Kinder und gegen Missbrauch der KI-Funktionen;</li>
-        <li>die Prüfung von Registrierungen und Bewerbungen gegen Missbrauch.</li>
+        <li>die Prüfung von Registrierungen und Anträgen auf das Gratis-Budget gegen Missbrauch.</li>
       </ul>
       <p>
         Die KI-Anbieter sind derzeit Anthropic (direkt oder über OpenRouter, auch über Cloud-Plattformen wie Amazon Web

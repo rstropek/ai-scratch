@@ -1,7 +1,8 @@
 # Platform plan: from event app to classroom offering
 
 Status: **iteration 2 of the office implemented** (registration of parents and teachers, email confirmation,
-teacher applications screened by Jev, the admin's account list and decisions, password reset); access codes and
+teachers' applications for the free budget screened by Jev, the admin's account list, decisions and free-budget
+switch, password reset); access codes and
 keys come next. The outcome of the architecture discussion of 2026-10-31. Each point is
 marked **decided** (Rainer agreed), **proposed** (Claude's suggestion, not confirmed yet) or **open**.
 
@@ -116,17 +117,20 @@ Postgres                Azure Database for PostgreSQL Flexible Server, Burstable
     - needs **publisher verification**, or many school tenants block consent.
   - Device authorization and MCP for teachers (`oauthDeviceAuthorization`, `@better-auth/mcp`).
 
-## Registration and teacher applications
+## Registration and the free budget
 
 Decided by Rainer on 2026-10-31; it replaces the earlier teacher-only application form.
 
-**Two kinds of adults:**
+**Two kinds of adults, and one flag:**
 
-- **Parents** (and other adults) enter budget-limited OpenRouter keys (at most $25 left when a code is
-  created, see [own OpenRouter keys](#own-openrouter-keys-teachers-and-parents)). They can create codes once they have a
-  valid key.
-- **Teachers** can do the same, and can also use the free budget (donated keys).
-- **A teacher whose application isn't accepted is treated like a parent.**
+- **Parents** (and other adults) and **teachers** register as what they are; nobody confirms a teacher's status.
+- **Everyone** enters budget-limited OpenRouter keys (at most $25 left when a code is created, see
+  [own OpenRouter keys](#own-openrouter-keys-teachers-and-parents)) and creates codes once they have a valid key.
+- **The free budget** (donated keys) is a separate flag per account, the one thing you confirm (decided,
+  Rainer 2026-10-31):
+  - teachers ask for it with a checkbox at registration, **only there**, and send one application;
+  - parents can't ask for it (for now);
+  - you switch it on for anyone by hand, parents too (they get a mail), and off again (no mail).
 
 **The steps:**
 
@@ -140,11 +144,11 @@ Decided by Rainer on 2026-10-31; it replaces the earlier teacher-only applicatio
      ([where data is processed](#where-data-is-processed)).
 2. **Confirmation email:** a link with the email address and an expiry time, symmetrically encrypted. Nothing
    is stored in the database before the link is used. **Decided (Rainer, 2026-10-31): valid for 30 minutes.**
-3. **The link:** for a parent, the registration is complete.
-4. **Teachers only:**
+3. **The link:** the registration is complete.
+4. **Teachers who asked for the free budget:**
    - They fill in the school's name, the school's URL and a summary of why they want access.
    - Jev checks the answers and refuses obviously invalid ones.
-   - Once the application gets through, you get an email.
+   - Once the application gets through, you get an email; accepting it switches the free budget on.
 
 **Protection of the registration page:**
 
@@ -177,14 +181,16 @@ Decided by Rainer on 2026-10-31; it replaces the earlier teacher-only applicatio
 - **Labels for the choice:** "Lehrkraft" and "Eltern oder andere Erwachsene (z. B. CoderDojo, Jugendgruppe)".
 - **One terms document with a section per role**, so there's one version to track (`TERMS_VERSION` in
   `apps/office/lib/terms.ts`).
-- **Later applications:** a parent can apply later from their account ("Als Lehrkraft bewerben"). Someone
-  rejected may apply again, and you see the earlier rejection.
-- **Emails to the teacher** on acceptance and rejection, through Resend from `mail.ai-scratch.dev`.
-  **Decided (Rainer, 2026-10-31):** the rejection says the teacher status can't be confirmed at the moment, but
-  AI-Scratch works with their own OpenRouter keys.
-- **The admin's list** (`/admin`): every registered adult, filtered by open applications, teachers (registered
-  or applied as one), parents, all; searchable by name, email and school. Each account's page shows its consent,
-  every application with Jev's verdict, and Annehmen/Ablehnen (rejecting behind a confirmation).
+- **No later applications** (Rainer, 2026-10-31): only the checkbox at registration leads to one, and there is
+  one per account; after a rejection you can still switch the budget on by hand.
+- **Emails** on acceptance and rejection, and when you switch the budget on, through Resend from
+  `mail.ai-scratch.dev`. **Decided (Rainer, 2026-10-31):** the rejection says the free budget can't be switched
+  on at the moment, but AI-Scratch works with their own OpenRouter keys. Switching it off sends nothing.
+- **The admin's list** (`/admin`): every registered adult, filtered by open applications, free budget,
+  teachers, parents (by what they registered as), all; searchable by name, email and school. Each account's page
+  shows its consent, the free budget with its switch (Freischalten, Entziehen behind a confirmation; while an
+  application is open, the application decides), every application with Jev's verdict, and Annehmen/Ablehnen
+  (rejecting behind a confirmation).
 - **The key points of the terms** on the registration page come from the terms page (`content/terms.tsx`), one
   list for both roles, not one per role.
 - **Still open: legal texts that change with parent accounts:**
@@ -193,7 +199,7 @@ Decided by Rainer on 2026-10-31; it replaces the earlier teacher-only applicatio
 
 ## Kids' ways into the chat
 
-1. **A teacher's code backed by the donated keys** (the normal case).
+1. **A code from the free budget** (donated keys; teachers' normal case).
 2. **A code backed by an adult's own OpenRouter key** (a teacher's or a parent's).
 3. **A parent's OpenRouter key typed straight into the kids' app** (as today): for non-teachers who let their
    kids try it occasionally or once. **Proposed:** this goes away once parent accounts exist. Parents then
@@ -226,8 +232,8 @@ Every way needs an adult: kids can't get access on their own. The per-school cod
   | Variable | Value |
   |---|---|
   | `BUDGET_TOTAL_EUR_MONTH` | 100 |
-  | `BUDGET_TEACHER_EUR_MONTH` | 10 |
-  | `CODES_PER_TEACHER_MONTH` | 5 |
+  | `BUDGET_ACCOUNT_EUR_MONTH` | 10 |
+  | `FREE_CODES_PER_ACCOUNT_MONTH` | 5 |
   | `CODE_BUDGET_EUR` | 5 |
   | `CODE_MAX_HOURS` | 4 |
 
@@ -241,20 +247,21 @@ Every way needs an adult: kids can't get access on their own. The per-school cod
   |---|---|---|---|
   | Code inside its time window | ✓ | ✓ | – |
   | Code spend < `CODE_BUDGET_EUR` | ✓ | ✓ | – |
-  | Teacher's spend this month < `BUDGET_TEACHER_EUR_MONTH` | ✓ | – | – |
+  | The account's free budget still switched on (switching it off stops its running codes) | ✓ | – | – |
+  | The account's free-budget spend this month < `BUDGET_ACCOUNT_EUR_MONTH` | ✓ | – | – |
   | Overall spend this month < `BUDGET_TOTAL_EUR_MONTH` | ✓ | – | – |
   | A key in the pool has budget left | ✓ | – | – |
   | Key limit at OpenRouter | – | ✓ (OpenRouter enforces it) | ✓ (as today) |
 
 - **Proposed:**
   - After each call, the actual cost goes atomically onto the code and the monthly counters.
-  - Creating a code with donated keys needs: the teacher under their monthly budget and code count, and the
-    overall budget not used up.
+  - Creating a code with donated keys needs: the free budget switched on for the account, the account under its
+    monthly budget and code count, and the overall budget not used up.
 - **Proposed:**
   - Months are calendar months, Vienna time; a code's spend counts toward the month it was created in.
   - Providers bill in dollars, converted at a fixed `USD_PER_EUR`.
   - Emails to you at 80 % of the overall budget and when a key runs out.
-- **Consequence of overbooking:** when the overall or a teacher's budget runs out, every running code under
+- **Consequence of overbooking:** when the overall or an account's budget runs out, every running code under
   it stops, even mid-lesson. Kids get a German message. The overshoot is at most the calls already in flight.
 
 ## Anthropic key pool

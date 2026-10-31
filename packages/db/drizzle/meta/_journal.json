@@ -15,6 +15,13 @@
       "when": 1793468358228,
       "tag": "0001_registration",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793471763668,
+      "tag": "0002_free_budget",
+      "breakpoints": true
     }
   ]
 }

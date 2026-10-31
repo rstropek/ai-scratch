@@ -50,7 +50,7 @@ export const signIn = async (page: Page, email: string, password: string) => {
 
 export const PASSWORD = 'e2e correct horse battery';
 
-/** registers through the form and the confirmation link; ends signed in, on the start page or /apply */
+/** registers through the form and the confirmation link; ends signed in, on the start page or (free budget) /apply */
 export const registerAccount = async (
   page: Page,
   {
@@ -58,12 +58,14 @@ export const registerAccount = async (
     kind,
     firstName,
     lastName,
-  }: { email: string; kind: 'parent' | 'teacher'; firstName: string; lastName: string },
+    freeBudget = false,
+  }: { email: string; kind: 'parent' | 'teacher'; firstName: string; lastName: string; freeBudget?: boolean },
 ) => {
   const r = texts.register;
   await page.goto('/register');
   await page.getByLabel(r.email).fill(email);
   await page.getByLabel(r.kindLabels[kind]).check();
+  if (freeBudget) await page.getByLabel(r.freeBudget).check();
   await page.getByLabel(r.adult).check();
   await page.getByRole('checkbox', { name: new RegExp(r.termsAfter.trim()) }).check();
   await page.getByRole('checkbox', { name: new RegExp(r.aiConsentLink) }).check();

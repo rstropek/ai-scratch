@@ -4,7 +4,13 @@ import { LINK_VALID_MINUTES } from './rules.ts';
 
 const secret = 'x'.repeat(32);
 const now = new Date('2026-11-02T08:00:00Z');
-const registration = { email: 'a@schule.at', kind: 'teacher' as const, termsVersion: 'v1', acceptedAt: now };
+const registration = {
+  email: 'a@schule.at',
+  kind: 'teacher' as const,
+  freeBudget: true,
+  termsVersion: 'v1',
+  acceptedAt: now,
+};
 
 describe('the confirmation token', () => {
   it('opens to what was sealed while it is valid', () => {

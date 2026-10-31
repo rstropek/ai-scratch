@@ -16,7 +16,7 @@ principles, never a prose version of the code.
 | [ki-block.md](ki-block.md) | the "frage KI" block in kids' own programs, `/api/ask` or its guard |
 | [locker.md](locker.md) | saving and loading games in the CoderDojo Locker: the Datei menu entries, the dialog, `/api/locker` |
 | [database.md](database.md) | `packages/db`, the schema, migrations, Postgres roles or the connection |
-| [registration.md](registration.md) | the office's registration, confirmation link, teacher applications, Jev screening or the admin's account list |
+| [registration.md](registration.md) | the office's registration, confirmation link, the free budget (applications, Jev screening, the admin's switch) or the admin's account list |
 | [legal-texts.md](legal-texts.md) | the terms of use or any public legal page of the office, or a behaviour they describe |
 | [testing.md](testing.md) | tests, or when debugging a real session from the logs |
 

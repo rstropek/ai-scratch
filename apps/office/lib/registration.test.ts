@@ -58,6 +58,7 @@ const input = (overrides: Partial<RegistrationInput> = {}): RegistrationInput =>
   adult: true,
   terms: true,
   aiConsent: true,
+  freeBudget: false,
   turnstileToken: 'ok',
   ip: `10.0.0.${ipCounter}`,
   ...overrides,
@@ -131,6 +132,13 @@ describe('the registration form', () => {
     expect(await startRegistration(deps, input({ email }))).toEqual({ ok: false, limited: 'email' });
     expect(deps.mailer.sent).toHaveLength(3);
   });
+
+  it('keeps the limit for requests at the same moment', async () => {
+    const email = 'parallel@schule.at';
+    const results = await Promise.all(Array.from({ length: 8 }, () => startRegistration(deps, input({ email }))));
+    expect(results.filter((r) => r.ok)).toHaveLength(3);
+    expect(deps.mailer.sent).toHaveLength(3);
+  });
 });
 
 describe('the confirmation link', () => {
@@ -141,8 +149,8 @@ describe('the confirmation link', () => {
 
   it('only opens a page: it creates nothing', async () => {
     const token = await register({ email: 'scanner@schule.at', kind: 'teacher' });
-    expect(await checkLink(deps, token)).toEqual({ state: 'ready', email: 'scanner@schule.at', kind: 'teacher' });
-    expect(await checkLink(deps, token)).toEqual({ state: 'ready', email: 'scanner@schule.at', kind: 'teacher' });
+    expect(await checkLink(deps, token)).toEqual({ state: 'ready', email: 'scanner@schule.at' });
+    expect(await checkLink(deps, token)).toEqual({ state: 'ready', email: 'scanner@schule.at' });
   });
 
   it('creates the account with its profile, and the password signs in', async () => {
@@ -151,7 +159,7 @@ describe('the confirmation link', () => {
     expect(await completeRegistration(deps, token, account)).toEqual({
       ok: true,
       email: 'parent@schule.at',
-      kind: 'parent',
+      freeBudget: false,
     });
     const user = await deps.db.query.user.findFirst({ where: eq(schema.user.email, 'parent@schule.at') });
     expect(user).toMatchObject({ name: 'Sabine Leitner', emailVerified: true, role: 'user' });
@@ -165,12 +173,33 @@ describe('the confirmation link', () => {
       aiConsentAt: acceptedAt,
       adultConfirmedAt: acceptedAt,
       jevChecks: 0,
+      freeBudgetRequested: false,
+      freeBudgetAt: null,
     });
     const signIn = await auth.api.signInEmail({
       body: { email: 'parent@schule.at', password: PASSWORD },
       asResponse: true,
     });
     expect(signIn.status).toBe(200);
+  });
+
+  it("carries a teacher's request for the free budget into the profile", async () => {
+    const token = await register({ email: 'budget@schule.at', kind: 'teacher', freeBudget: true });
+    expect(await completeRegistration(deps, token, account)).toEqual({
+      ok: true,
+      email: 'budget@schule.at',
+      freeBudget: true,
+    });
+    const user = await deps.db.query.user.findFirst({ where: eq(schema.user.email, 'budget@schule.at') });
+    const profile = await deps.db.query.adultProfile.findFirst({
+      where: eq(schema.adultProfile.userId, user?.id ?? ''),
+    });
+    expect(profile).toMatchObject({ kind: 'teacher', freeBudgetRequested: true, freeBudgetAt: null });
+  });
+
+  it('drops the request for parents: only teachers can ask for the free budget', async () => {
+    const token = await register({ kind: 'parent', freeBudget: true });
+    expect(await completeRegistration(deps, token, account)).toMatchObject({ ok: true, freeBudget: false });
   });
 
   it('works once: a second use finds the account', async () => {

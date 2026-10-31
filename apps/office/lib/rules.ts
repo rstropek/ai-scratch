@@ -18,6 +18,8 @@ export const SCHOOL_URL_MAX = 300;
 export const SUMMARY_MIN = 20;
 export const SUMMARY_MAX = 1000;
 export const NAME_MAX = 100;
+/** the admin's internal note on a decision */
+export const NOTE_MAX = 1000;
 
 /** Jev checks per account: each costs money; after that, applications reach Rainer unchecked */
 export const MAX_JEV_CHECKS = 5;

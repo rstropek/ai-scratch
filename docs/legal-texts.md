@@ -10,6 +10,8 @@ changing a legal text, or a behaviour a legal text describes.
   registration page shows `terms.keyPoints`.
 - `TERMS_VERSION` in `apps/office/lib/terms.ts` is the single source. **Any change to the text needs a new
   version and a new date**: accounts store the version they accepted, and a new one asks for consent again.
+  Exception until launch: with no real accounts yet, Rainer may decide a change isn't a new version (2026-10-31:
+  the free budget as its own flag).
 - **Consent in the code:** registration and `/consent` ask with the same fields
   (`components/consent-fields.tsx`: the key points, the terms checkbox, and the separate, explicit consent of
   section 8, linked to `#datenverarbeitung`; its wording is `texts.register.aiConsent*`). `requireSession` sends

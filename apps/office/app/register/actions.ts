@@ -12,7 +12,7 @@ export type RegisterState = FormState<RegistrationField> & { sent?: string };
 
 export async function register(previous: RegisterState, form: FormData): Promise<RegisterState> {
   const attempt = (previous.attempt ?? 0) + 1;
-  const values = echo(form, 'email', 'kind', 'adult', 'terms', 'aiConsent');
+  const values = echo(form, 'email', 'kind', 'freeBudget', 'adult', 'terms', 'aiConsent');
   const ip = clientIp(await headers());
   try {
     const result = await startRegistration(registrationDeps(), {
@@ -21,6 +21,7 @@ export async function register(previous: RegisterState, form: FormData): Promise
       adult: form.get('adult') === 'on',
       terms: form.get('terms') === 'on',
       aiConsent: form.get('aiConsent') === 'on',
+      freeBudget: form.get('freeBudget') === 'on',
       turnstileToken: String(form.get(TURNSTILE_FIELD) ?? ''),
       ip,
     });

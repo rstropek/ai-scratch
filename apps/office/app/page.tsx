@@ -13,27 +13,27 @@ import { texts } from '../lib/texts.ts';
 
 const t = texts.home;
 
-/** Where the account stands as a teacher, with the next step. */
-function ApplicationPanel({ state }: { state: ApplicantState }) {
-  const a = t.application;
+/** Where the free budget stands, with the next step; nothing for accounts that never asked for it. */
+function FreeBudgetPanel({ state }: { state: ApplicantState }) {
+  const f = t.freeBudget;
   const status = state.latest?.status;
-  const { title, text } =
-    status === 'pending'
-      ? { title: a.pending.title, text: a.pending.text(state.latest?.createdAt ?? new Date()) }
-      : status === 'accepted'
-        ? a.accepted
-        : status === 'rejected'
-          ? a.rejected
-          : state.kind === 'teacher'
-            ? a.missing
-            : a.none;
+  const panel = state.freeBudget
+    ? f.granted
+    : status === 'pending'
+      ? { title: f.pending.title, text: f.pending.text(state.latest?.createdAt ?? new Date()) }
+      : status === 'rejected'
+        ? f.rejected
+        : canApply(state)
+          ? f.missing
+          : undefined;
+  if (!panel) return null;
   return (
     <Panel className="grid justify-items-start gap-3">
-      <h2 className="font-bold text-lg">{title}</h2>
-      <p className="max-w-prose">{text}</p>
+      <h2 className="font-bold text-lg">{panel.title}</h2>
+      <p className="max-w-prose">{panel.text}</p>
       {canApply(state) && (
-        <Link href="/apply" className={buttonClass(state.kind === 'teacher' && !status ? 'primary' : 'secondary')}>
-          {status === 'rejected' ? a.applyAgain : a.apply}
+        <Link href="/apply" className={buttonClass('primary')}>
+          {f.apply}
         </Link>
       )}
     </Panel>
@@ -45,7 +45,6 @@ export default async function Home({ searchParams }: PageProps<'/'>) {
   const { sent } = await searchParams;
   const admin = isAdmin(user);
   const state = await applicantState(getDb(), user.id);
-  const teacher = state.latest?.status === 'accepted';
   return (
     <AppShell userName={user.name} admin={admin}>
       <PageHeader
@@ -54,9 +53,7 @@ export default async function Home({ searchParams }: PageProps<'/'>) {
           <span className="flex flex-wrap items-center gap-2">
             {t.signedInAs(user.email)}
             {admin && <Chip tone="primary">{t.admin}</Chip>}
-            {state.kind && (
-              <Chip tone={teacher ? 'success' : 'neutral'}>{teacher ? t.kind.teacher : t.kind.parent}</Chip>
-            )}
+            {state.kind && <Chip tone="neutral">{t.kind[state.kind]}</Chip>}
           </span>
         }
         actions={
@@ -68,7 +65,7 @@ export default async function Home({ searchParams }: PageProps<'/'>) {
         }
       />
       {sent === '1' && state.latest?.status === 'pending' && <Banner tone="success">{t.sent}</Banner>}
-      {state.kind && <ApplicationPanel state={state} />}
+      <FreeBudgetPanel state={state} />
     </AppShell>
   );
 }

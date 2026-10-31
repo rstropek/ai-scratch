@@ -71,7 +71,7 @@ export const texts = {
     steps: [
       'Sie geben Ihre E-Mail-Adresse an und stimmen den Nutzungsbedingungen zu.',
       'Sie bestätigen Ihre E-Mail-Adresse über den Link, den wir Ihnen schicken, und legen Ihr Passwort fest.',
-      'Lehrkräfte beantragen danach den Status als Lehrkraft. Wir prüfen den Antrag und antworten per E-Mail.',
+      'Lehrkräfte, die das Gratis-Budget beantragen, beschreiben danach kurz ihre Schule. Wir prüfen den Antrag und antworten per E-Mail.',
     ],
     privacy: 'Wir speichern Ihre Angaben auf Servern in der EU.',
     about: 'Über Sie',
@@ -79,6 +79,9 @@ export const texts = {
     emailHint: 'Lehrkräfte am besten mit ihrer dienstlichen Adresse. Dorthin schicken wir den Bestätigungslink.',
     kind: 'Ich registriere mich als',
     kindLabels,
+    freeBudget: 'Ich beantrage das Gratis-Budget.',
+    freeBudgetHint:
+      'Dann tragen gespendete Mittel die KI-Kosten Ihrer Codes. Nach der Bestätigung beschreiben Sie kurz Ihre Schule, und wir prüfen den Antrag. Beantragen geht nur hier bei der Registrierung.',
     consent: 'Zustimmung',
     adult: 'Ich bin mindestens 18 Jahre alt.',
     termsBefore: 'Ich habe die ',
@@ -89,7 +92,7 @@ export const texts = {
       'Ich stimme ausdrücklich zu, dass KI-Dienste außerhalb der EU, insbesondere in den USA, Daten verarbeiten, wie in ',
     aiConsentLink: 'Abschnitt 8 der Nutzungsbedingungen',
     aiConsentAfter:
-      ' beschrieben: was Kinder schreiben und ihre Scratch-Projekte, die Prüfung zum Schutz der Kinder und gegen Missbrauch, und die Prüfung von Registrierungen und Bewerbungen.',
+      ' beschrieben: was Kinder schreiben und ihre Scratch-Projekte, die Prüfung zum Schutz der Kinder und gegen Missbrauch, und die Prüfung von Registrierungen und Anträgen.',
     newTab: '(öffnet in einem neuen Tab)',
     turnstileHint: 'Sicherheitsprüfung von Cloudflare Turnstile, ohne Tracking-Cookies.',
     submit: 'Bestätigungslink senden',
@@ -146,15 +149,15 @@ export const texts = {
     error: 'Speichern hat nicht geklappt. Bitte versuchen Sie es noch einmal.',
   },
   apply: {
-    title: 'Als Lehrkraft bewerben',
+    title: 'Gratis-Budget beantragen',
     intro:
-      'Lehrkräfte nutzen AI-Scratch kostenlos: Ihre Codes laufen über ein Budget, das wir aus gespendeten Mitteln bezahlen. Darum prüfen wir jeden Antrag.',
+      'Mit dem Gratis-Budget nutzen Sie AI-Scratch kostenlos: Die KI-Kosten Ihrer Codes tragen gespendete Mittel. Darum prüfen wir jeden Antrag.',
     steps: [
       'Sie beschreiben kurz Ihre Schule und Ihr Vorhaben.',
       'Eine KI prüft den Antrag auf offensichtlich ungültige Angaben und sagt Ihnen sofort, was fehlt.',
       'Wir prüfen den Antrag und antworten per E-Mail.',
     ],
-    meanwhile: 'Bis dahin nutzen Sie AI-Scratch wie Eltern, mit eigenen OpenRouter-Schlüsseln.',
+    meanwhile: 'Bis dahin nutzen Sie AI-Scratch mit eigenen OpenRouter-Schlüsseln.',
     school: 'Ihre Schule',
     schoolName: 'Name der Schule',
     schoolUrl: 'Website der Schule',
@@ -185,30 +188,25 @@ export const texts = {
     admin: 'Administrator',
     adminLink: 'Zu den Konten',
     kind: { parent: 'Erwachsene*r', teacher: 'Lehrkraft' },
-    application: {
-      none: {
-        title: 'Sie sind Lehrkraft?',
-        text: 'Lehrkräfte nutzen AI-Scratch kostenlos. Bewerben Sie sich, damit wir Ihren Status bestätigen können.',
-      },
+    freeBudget: {
       missing: {
         title: 'Ihr Antrag fehlt noch',
-        text: 'Sie haben sich als Lehrkraft registriert. Damit wir Ihren Status bestätigen können, beschreiben Sie bitte kurz Ihre Schule und Ihr Vorhaben.',
+        text: 'Sie haben bei der Registrierung das Gratis-Budget beantragt. Damit wir den Antrag prüfen können, beschreiben Sie bitte noch kurz Ihre Schule und Ihr Vorhaben.',
       },
       pending: {
         title: 'Ihr Antrag wird geprüft',
         text: (date: Date) =>
-          `Wir haben Ihren Antrag am ${formatDate(date)} bekommen und antworten per E-Mail. Bis dahin nutzen Sie AI-Scratch wie Eltern.`,
+          `Wir haben Ihren Antrag auf das Gratis-Budget am ${formatDate(date)} bekommen und antworten per E-Mail. Bis dahin nutzen Sie AI-Scratch mit eigenen OpenRouter-Schlüsseln.`,
       },
-      accepted: {
-        title: 'Sie sind als Lehrkraft bestätigt',
-        text: 'Sie können Zugangscodes aus dem kostenlosen Budget für Ihre Klassen erstellen.',
+      granted: {
+        title: 'Gratis-Budget freigeschaltet',
+        text: 'Sie können Zugangscodes erstellen, deren KI-Kosten gespendete Mittel tragen.',
       },
       rejected: {
-        title: 'Ihr Status als Lehrkraft ist nicht bestätigt',
-        text: 'Wir können Ihren Status als Lehrkraft derzeit nicht bestätigen. Sie können AI-Scratch aber mit eigenen OpenRouter-Schlüsseln nutzen. Sie dürfen sich jederzeit noch einmal bewerben.',
+        title: 'Gratis-Budget nicht freigeschaltet',
+        text: 'Wir können Ihnen das Gratis-Budget derzeit nicht freischalten. Sie können AI-Scratch aber mit eigenen OpenRouter-Schlüsseln nutzen.',
       },
-      apply: 'Als Lehrkraft bewerben',
-      applyAgain: 'Noch einmal bewerben',
+      apply: 'Antrag ausfüllen',
     },
     sent: 'Ihr Antrag ist bei uns. Wir antworten per E-Mail.',
   },
@@ -242,6 +240,7 @@ export const texts = {
     description: 'Alle registrierten Erwachsenen. Nur Konten mit bestätigter E-Mail-Adresse erscheinen hier.',
     filters: {
       pending: 'Offene Anträge',
+      freeBudget: 'Gratis-Budget',
       teachers: 'Lehrkräfte',
       parents: 'Eltern',
       all: 'Alle',
@@ -254,6 +253,8 @@ export const texts = {
       registered: 'Registriert',
       applied: 'Antrag vom',
       person: 'Person',
+      kind: 'Rolle',
+      freeBudget: 'Gratis-Budget',
       status: 'Status',
       school: 'Schule',
       action: 'Aktion',
@@ -269,11 +270,17 @@ export const texts = {
       filter === 'pending'
         ? `${count} ${count === 1 ? 'offener Antrag' : 'offene Anträge'}, älteste zuerst`
         : `${count} ${count === 1 ? 'Konto' : 'Konten'}, neueste zuerst`,
-    status: {
-      parent: 'Eltern',
+    kind: { parent: 'Eltern', teacher: 'Lehrkraft' },
+    /** where the free budget stands; none shows as a dash */
+    budgetStatus: {
       missing: 'Antrag fehlt',
       pending: 'Antrag offen',
-      accepted: 'Lehrkraft bestätigt',
+      rejected: 'Abgelehnt',
+      granted: 'Freigeschaltet',
+    },
+    applicationStatus: {
+      pending: 'Offen',
+      accepted: 'Angenommen',
       rejected: 'Abgelehnt',
     },
     forbiddenTitle: 'Diese Seite ist nur für Administratoren',
@@ -290,6 +297,21 @@ export const texts = {
       aiConsent: 'KI-Verarbeitung außerhalb der EU',
       aiConsentValue: (at: Date) => `zugestimmt am ${formatDateTime(at)}`,
       jevChecks: 'KI-Prüfungen von Anträgen',
+      freeBudget: 'Gratis-Budget',
+      freeBudgetValue: (at: Date | null, by: string | null, requested: boolean) =>
+        at
+          ? `Freigeschaltet am ${formatDateTime(at)}${by ? ` von ${by}` : ''}.`
+          : requested
+            ? 'Bei der Registrierung beantragt, nicht freigeschaltet.'
+            : 'Nicht freigeschaltet.',
+      switchOn: 'Gratis-Budget freischalten',
+      switchOnHint: (name: string) =>
+        `${name} bekommt eine E-Mail und kann danach Codes aus dem Gratis-Budget erstellen. Das geht auch für Eltern.`,
+      switchOff: 'Gratis-Budget entziehen',
+      switchOffTitle: 'Gratis-Budget entziehen?',
+      switchOffText: (name: string) =>
+        `${name} kann danach keine Codes aus dem Gratis-Budget mehr erstellen und bekommt keine E-Mail. Laufende Codes aus dem Gratis-Budget hören auf zu funktionieren.`,
+      switchPending: 'Über das Gratis-Budget entscheiden Sie mit dem offenen Antrag unten.',
       applications: 'Anträge',
       noApplications: 'Noch kein Antrag.',
       application: (date: Date) => `Antrag vom ${formatDateTime(date)}`,
@@ -312,11 +334,13 @@ export const texts = {
       reject: 'Ablehnen',
       rejectTitle: 'Antrag ablehnen?',
       rejectText: (name: string) =>
-        `${name} bekommt eine E-Mail: Der Status als Lehrkraft kann derzeit nicht bestätigt werden, AI-Scratch geht aber mit eigenen OpenRouter-Schlüsseln. Eine neue Bewerbung bleibt möglich.`,
+        `${name} bekommt eine E-Mail: Das Gratis-Budget kann derzeit nicht freigeschaltet werden, AI-Scratch geht aber mit eigenen OpenRouter-Schlüsseln. Einen neuen Antrag kann ${name} nicht stellen; Sie können das Gratis-Budget aber später selbst freischalten.`,
       cancel: 'Abbrechen',
-      acceptedBanner: 'Antrag angenommen. Die Lehrkraft hat eine E-Mail bekommen.',
+      acceptedBanner: 'Antrag angenommen, Gratis-Budget freigeschaltet. Die Person hat eine E-Mail bekommen.',
       rejectedBanner: 'Antrag abgelehnt. Die Person hat eine E-Mail bekommen.',
-      staleBanner: 'Dieser Antrag ist schon entschieden.',
+      onBanner: 'Gratis-Budget freigeschaltet. Die Person hat eine E-Mail bekommen.',
+      offBanner: 'Gratis-Budget entzogen.',
+      staleBanner: 'Das ist schon entschieden: Die Seite zeigt den aktuellen Stand.',
       mailFailedBanner: 'Entschieden, aber die E-Mail an die Person ging nicht hinaus. Bitte schreiben Sie ihr selbst.',
       decideFailed: 'Speichern hat nicht geklappt. Bitte versuchen Sie es noch einmal.',
     },
@@ -383,7 +407,7 @@ export const texts = {
     }) => ({
       subject: `Neuer Antrag: ${p.name}, ${p.schoolName}`,
       text: [
-        `${p.name} (${p.email}) bewirbt sich als Lehrkraft.`,
+        `${p.name} (${p.email}) beantragt das Gratis-Budget.`,
         '',
         `Schule: ${p.schoolName}`,
         `Website: ${p.schoolUrl}`,
@@ -397,27 +421,27 @@ export const texts = {
         `Prüfen: ${p.url}`,
       ].join('\n'),
     }),
-    accepted: (name: string, baseURL: string) => ({
-      subject: 'Ihr Antrag bei AI-Scratch ist angenommen',
+    freeBudgetOn: (name: string, baseURL: string) => ({
+      subject: 'Ihr Gratis-Budget bei AI-Scratch ist freigeschaltet',
       text: [
         `Guten Tag ${name},`,
         '',
-        'wir haben Ihren Status als Lehrkraft bestätigt. Sie können jetzt Zugangscodes aus dem kostenlosen Budget für Ihre Klassen erstellen.',
+        'wir haben für Ihr Konto das Gratis-Budget freigeschaltet. Sie können jetzt Zugangscodes erstellen, deren KI-Kosten gespendete Mittel tragen.',
         '',
         `Anmelden: ${baseURL}/login`,
         '',
-        'Viel Freude mit AI-Scratch im Unterricht!',
+        'Viel Freude mit AI-Scratch!',
         'AI-Scratch',
       ].join('\n'),
     }),
     rejected: (name: string, baseURL: string) => ({
-      subject: 'Ihr Antrag bei AI-Scratch',
+      subject: 'Ihr Antrag auf das Gratis-Budget bei AI-Scratch',
       text: [
         `Guten Tag ${name},`,
         '',
-        'danke für Ihren Antrag. Wir können Ihren Status als Lehrkraft derzeit leider nicht bestätigen.',
+        'danke für Ihren Antrag. Wir können Ihnen das Gratis-Budget derzeit leider nicht freischalten.',
         '',
-        'Sie können AI-Scratch aber weiter nutzen, mit eigenen OpenRouter-Schlüsseln, wie Eltern und andere Erwachsene. Sie dürfen sich auch jederzeit noch einmal bewerben.',
+        'Sie können AI-Scratch aber weiter nutzen, mit eigenen OpenRouter-Schlüsseln.',
         '',
         `Anmelden: ${baseURL}/login`,
         '',

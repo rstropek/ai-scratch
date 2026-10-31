@@ -1,14 +1,16 @@
-# Registration and teacher applications
+# Registration and the free budget
 
-How adults get an office account and how teachers get confirmed. The decisions behind it:
+How adults get an office account, and how an account gets the free budget (codes on donated keys). The decisions
+behind it:
 [platform-plan.md](platform-plan.md#registration-and-teacher-applications). Code: `apps/office/lib/registration.ts`,
 `lib/applications.ts`, `lib/jev.ts`; the tables in `packages/db/src/schema/office.ts`.
 
 ## The flow
 
-`/register` (email, role, 18+, terms, AI consent, Turnstile) → email with a link → `/register/confirm?t=…` (name,
-password) → account, signed in → parents: done; teachers: `/apply` (school, website, Schulstufen, summary) → Jev →
-open application, mail to the admin → `/admin` → accept or reject, mail to the applicant.
+`/register` (email, role, teachers: "Gratis-Budget beantragen", 18+, terms, AI consent, Turnstile) → email with a
+link → `/register/confirm?t=…` (name, password) → account, signed in → done; teachers who asked: `/apply` (school,
+website, Schulstufen, summary) → Jev → open application, mail to the admin → `/admin` → accept (budget on) or
+reject, mail to the applicant. The admin can also switch the budget on (mail) or off (no mail) for any account.
 
 ## Principles and traps
 
@@ -36,9 +38,21 @@ open application, mail to the admin → `/admin` → accept or reject, mail to t
   admin sees why. Refusals store nothing and name the reason in the form. Threshold 0.8: a wrongly refused
   teacher costs more than one more application to read. `JEV_DISABLED=1` (local, e2e) skips it explicitly;
   without it `JEV_API_KEY` is required.
-- **One open application per account** (a partial unique index); an accepted one ends applying, a rejected one
-  allows a new one. "Teacher" for anything later means an `accepted` application (`isTeacher`); the profile's
-  `kind` only says what someone registered or applied as.
+- **Teachers are teachers; the free budget is a separate flag.** `adult_profile.kind` is what someone registered
+  as, nobody confirms it. `free_budget_at` (null: off) is what the admin grants: by accepting an application or
+  by hand (`switchFreeBudget`, parents too); code creation later checks only it.
+- **Applying only once, and only after asking at registration** (Rainer, 2026-10-31): `free_budget_requested`
+  comes from the link, dropped for parents. `canApply` = requested, no application yet, budget off. A rejected
+  teacher can't apply again; the admin can still switch the budget on. Jev refusals store nothing, so they don't
+  use up the one application.
+- **Applying and the admin's switch lock the profile row** (`lockedState`, `SELECT … FOR UPDATE`) and check
+  again under it: Jev takes seconds, in which a second tab or the switch may act. The application is read by a
+  statement after the lock (READ COMMITTED: a new snapshot), not in the same one. Simpler case on purpose
+  (Rainer, 2026-10-31): taking the budget away records nothing and doesn't block a teacher who asked but never
+  applied from applying.
+- **No manual switch while an application is open** (`switchFreeBudget` refuses: the open application decides),
+  so "pending" always means the budget is off. The register form shows the checkbox with CSS
+  (`group-has-[…:checked]`) while "Lehrkraft" is chosen; the server ignores it for parents anyway.
 - **Mails are plain text.** In development and e2e, `MAIL_OUTBOX_DIR` writes them as JSON files instead of
   sending (`lib/mail.ts`); e2e tests read the links from there. A failed mail to the admin or applicant never
   undoes the application or the decision; the admin page says when the applicant's mail didn't go out.
