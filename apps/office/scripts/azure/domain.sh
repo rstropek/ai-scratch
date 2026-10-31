@@ -33,9 +33,9 @@ done
 az webapp config hostname list -g "$RG" --webapp-name "$APP" --query "[?name=='$HOST'].name" -o tsv | grep -q .
 
 log "Managed certificate"
-certificate() {
-  az resource list -g "$RG" --resource-type Microsoft.Web/certificates \
-    --query "[?properties.subjectName=='$HOST'].properties.thumbprint | [0]" -o tsv
+certificate() { # the managed certificate is named after the host; `az resource list` leaves out properties
+  az resource show -g "$RG" --resource-type Microsoft.Web/certificates -n "$HOST" \
+    --query properties.thumbprint -o tsv 2>/dev/null || true
 }
 # fails with a JSON error but still issues the certificate (docs/deployment.md)
 [[ -n "$(certificate)" ]] || az webapp config ssl create -g "$RG" -n "$APP" --hostname "$HOST" -o none 2>/dev/null || true
