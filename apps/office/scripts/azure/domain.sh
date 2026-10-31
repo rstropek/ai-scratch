@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Points office.ai-scratch.dev at the office's production slot: CNAME + asuid TXT at Cloudflare (DNS only, no
+# Points office.ai-scratch.dev at the office's web app: CNAME + asuid TXT at Cloudflare (DNS only, no
 # proxy), the host name on the web app, a free managed certificate bound with SNI. Safe to re-run.
 # Usage: apps/office/scripts/azure/domain.sh   (after provision.sh; needs `az login` and the `cf` CLI logged in)
 set -euo pipefail

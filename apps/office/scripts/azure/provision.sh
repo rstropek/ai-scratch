@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Creates (or updates) the office's Azure resources: the Postgres server (shared with the kids' app later), one
-# database per slot with an Entra role for the slot's managed identity, the web app + staging slot on the existing
-# P0v3 plan, its Key Vault secret and app settings. Safe to re-run. The image is set by the deploy workflow.
+# Creates (or updates) the office's Azure resources: the Postgres server (shared with the kids' app later), the
+# database with an Entra role for the web app's managed identity, the web app on the existing P0v3 plan (no staging
+# slot: CI deploys straight to production), its Key Vault secret and app settings. Safe to re-run. The image is set
+# by the deploy workflow.
 # Usage: apps/office/scripts/azure/provision.sh   (needs `az login` with Owner on the subscription, and Node)
 set -euo pipefail
 
@@ -12,7 +13,9 @@ DB_LOCATION="northeurope"
 DB_SERVER="ai-scratch-db"
 DB_HOST="$DB_SERVER.postgres.database.azure.com"
 APP="ai-scratch-office"
-SLOT="staging"
+DATABASE="aiscratch"
+ROLE="$APP" # the database role of the web app's managed identity
+URL="https://office.ai-scratch.dev"
 PLAN_ID="/subscriptions/$(az account show -s "$SUBSCRIPTION" --query id -o tsv)/resourceGroups/ts-web-playground/providers/Microsoft.Web/serverfarms/ts-web-playground"
 KV="kv-digiferien"
 ACR="acrars2025"
@@ -72,59 +75,44 @@ if ! az webapp show -g "$RG" -n "$APP" -o none 2>/dev/null; then
   az webapp create -g "$RG" -p "$PLAN_ID" -n "$APP" --container-image-name "$PLACEHOLDER_IMAGE" \
     --assign-identity '[system]' -o none
 fi
-if ! az webapp show -g "$RG" -n "$APP" --slot "$SLOT" -o none 2>/dev/null; then
-  log "Slot $SLOT"
-  az webapp deployment slot create -g "$RG" -n "$APP" --slot "$SLOT" --configuration-source "$APP" -o none
-fi
 
 ACR_ID=$(az acr show -n "$ACR" --query id -o tsv)
-SETTINGS=(
-  WEBSITES_PORT=3100
-  WEBSITES_ENABLE_APP_SERVICE_STORAGE=false
-  "PGHOST=$DB_HOST"
+log "Configure $APP (database $DATABASE, role $ROLE)"
+PRINCIPAL=$(az webapp identity assign -g "$RG" -n "$APP" --query principalId -o tsv)
+assign "$PRINCIPAL" "Key Vault Secrets User" "$KV_ID"
+assign "$PRINCIPAL" "AcrPull" "$ACR_ID"
+az webapp update -g "$RG" -n "$APP" --https-only true --client-affinity-enabled false -o none
+az webapp config set -g "$RG" -n "$APP" --always-on true --min-tls-version 1.2 --ftps-state Disabled \
+  --http20-enabled true --generic-configurations '{"acrUseManagedIdentityCreds": true}' -o none
+az webapp config appsettings set -g "$RG" -n "$APP" -o none --settings \
+  WEBSITES_PORT=3100 \
+  WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \
+  "PGHOST=$DB_HOST" \
+  "PGDATABASE=$DATABASE" \
+  "PGUSER=$ROLE" \
+  "BETTER_AUTH_URL=$URL" \
   "BETTER_AUTH_SECRET=@Microsoft.KeyVault(VaultName=$KV;SecretName=office-auth-secret)"
-)
-for slot in production "$SLOT"; do
-  target=(-g "$RG" -n "$APP")
-  if [[ "$slot" == production ]]; then
-    database=aiscratch role="$APP" url="https://office.ai-scratch.dev"
-  else
-    target+=(--slot "$slot")
-    database="aiscratch_$slot" role="$APP-$slot" url="https://$APP-$slot.azurewebsites.net"
-  fi
-  log "Configure $slot (database $database, role $role)"
-  principal=$(az webapp identity assign "${target[@]}" --query principalId -o tsv)
-  assign "$principal" "Key Vault Secrets User" "$KV_ID"
-  assign "$principal" "AcrPull" "$ACR_ID"
-  az webapp update "${target[@]}" --https-only true --client-affinity-enabled false -o none
-  az webapp config set "${target[@]}" --always-on true --min-tls-version 1.2 --ftps-state Disabled \
-    --http20-enabled true --generic-configurations '{"acrUseManagedIdentityCreds": true}' -o none
-  az webapp config appsettings set "${target[@]}" --settings "${SETTINGS[@]}" -o none
-  # sticky: they stay with the slot when a swap moves the code
-  az webapp config appsettings set "${target[@]}" -o none \
-    --slot-settings "PGDATABASE=$database" "PGUSER=$role" "BETTER_AUTH_URL=$url"
 
-  az postgres flexible-server db create -g "$RG" -s "$DB_SERVER" -n "$database" -o none
-  # the slot's identity logs in as $role and owns its database (and so the tables its migrations create);
-  # you become a member of the role, so the seed script and your queries can work in the database too
-  sql postgres <<SQL
+az postgres flexible-server db create -g "$RG" -s "$DB_SERVER" -n "$DATABASE" -o none
+# the web app's identity logs in as $ROLE and owns the database (and so the tables its migrations create);
+# you become a member of the role, so the seed script and your queries can work in the database too
+sql postgres <<SQL
 DO \$\$ BEGIN
-  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '$role') THEN
-    PERFORM pgaadauth_create_principal_with_oid('$role', '$principal', 'service', false, false);
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '$ROLE') THEN
+    PERFORM pgaadauth_create_principal_with_oid('$ROLE', '$PRINCIPAL', 'service', false, false);
   END IF;
 END \$\$;
-GRANT "$role" TO "$ME_UPN";
-ALTER DATABASE "$database" OWNER TO "$role";
-REVOKE CONNECT ON DATABASE "$database" FROM PUBLIC;
+GRANT "$ROLE" TO "$ME_UPN";
+ALTER DATABASE "$DATABASE" OWNER TO "$ROLE";
+REVOKE CONNECT ON DATABASE "$DATABASE" FROM PUBLIC;
 SQL
-  # Azure's new databases give schema public to azure_pg_admin, not to the database's owner
-  sql "$database" <<SQL
-ALTER SCHEMA public OWNER TO "$role";
+# Azure's new databases give schema public to azure_pg_admin, not to the database's owner
+sql "$DATABASE" <<SQL
+ALTER SCHEMA public OWNER TO "$ROLE";
 SQL
-done
 
 log "GitHub deploys (the Entra app of apps/app/scripts/azure/github-identity.sh)"
 GH_SP=$(az ad sp list --display-name gh-ai-scratch-deploy --query "[0].id" -o tsv)
 assign "$GH_SP" "Website Contributor" "$(az webapp show -g "$RG" -n "$APP" --query id -o tsv)"
 
-log "Done: https://$APP.azurewebsites.net and https://$APP-$SLOT.azurewebsites.net"
+log "Done: https://$APP.azurewebsites.net (domain: domain.sh)"

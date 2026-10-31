@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Creates (or updates) the Azure resources for the event: web app + staging slot on the existing P0v3 plan,
+# Creates (or updates) the Azure resources for the event: web app (no staging slot) on the existing P0v3 plan,
 # Key Vault with the server secrets, storage account with the research logs of the event (no longer written;
 # the stored ones stay). Safe to re-run; re-running also
-# re-uploads the secrets from .env (e.g. after swapping in the event key or the real access codes).
-# The image is set by the deploy workflow (.github/workflows/deploy.yml). Both slots pull from ACR with their
-# managed identity: a swap restarts staging with production's settings, so production needs the flag too.
+# re-uploads the secrets from .env (e.g. after changing a key or the access codes).
+# The image is set by the deploy workflow (.github/workflows/deploy.yml); the app pulls it from ACR with its
+# managed identity.
 # Usage: scripts/azure/provision.sh   (needs `az login` with Owner on the subscription)
 set -euo pipefail
 
@@ -12,7 +12,6 @@ SUBSCRIPTION="Microsoft Azure Sponsorship"
 RG="2026-digitalferien"
 LOCATION="westeurope"
 APP="ai-scratch"
-SLOT="staging"
 PLAN_ID="/subscriptions/$(az account show -s "$SUBSCRIPTION" --query id -o tsv)/resourceGroups/ts-web-playground/providers/Microsoft.Web/serverfarms/ts-web-playground"
 KV="kv-digiferien"
 STORAGE="stdigiferien"
@@ -80,10 +79,6 @@ if ! az webapp show -g "$RG" -n "$APP" -o none 2>/dev/null; then
   az webapp create -g "$RG" -p "$PLAN_ID" -n "$APP" --container-image-name "$PLACEHOLDER_IMAGE" \
     --assign-identity '[system]' -o none
 fi
-if ! az webapp show -g "$RG" -n "$APP" --slot "$SLOT" -o none 2>/dev/null; then
-  log "Slot $SLOT"
-  az webapp deployment slot create -g "$RG" -n "$APP" --slot "$SLOT" --configuration-source "$APP" -o none
-fi
 
 ACR_ID=$(az acr show -n "$ACR" --query id -o tsv)
 SETTINGS=(
@@ -94,17 +89,13 @@ SETTINGS=(
   "JEV_API_KEY=@Microsoft.KeyVault(VaultName=$KV;SecretName=jev-api-key)"
   "ACCESS_CODES=@Microsoft.KeyVault(VaultName=$KV;SecretName=access-codes)"
 )
-for slot in "" "$SLOT"; do
-  target=(-g "$RG" -n "$APP")
-  [[ -n "$slot" ]] && target+=(--slot "$slot")
-  log "Configure ${slot:-production}"
-  principal=$(az webapp identity assign "${target[@]}" --query principalId -o tsv)
-  assign "$principal" "Key Vault Secrets User" "$KV_ID"
-  assign "$principal" "AcrPull" "$ACR_ID"
-  az webapp update "${target[@]}" --https-only true --client-affinity-enabled true -o none
-  az webapp config set "${target[@]}" --always-on true --min-tls-version 1.2 --ftps-state Disabled \
-    --http20-enabled true --generic-configurations '{"acrUseManagedIdentityCreds": true}' -o none
-  az webapp config appsettings set "${target[@]}" --settings "${SETTINGS[@]}" -o none
-done
+log "Configure $APP"
+PRINCIPAL=$(az webapp identity assign -g "$RG" -n "$APP" --query principalId -o tsv)
+assign "$PRINCIPAL" "Key Vault Secrets User" "$KV_ID"
+assign "$PRINCIPAL" "AcrPull" "$ACR_ID"
+az webapp update -g "$RG" -n "$APP" --https-only true --client-affinity-enabled true -o none
+az webapp config set -g "$RG" -n "$APP" --always-on true --min-tls-version 1.2 --ftps-state Disabled \
+  --http20-enabled true --generic-configurations '{"acrUseManagedIdentityCreds": true}' -o none
+az webapp config appsettings set -g "$RG" -n "$APP" --settings "${SETTINGS[@]}" -o none
 
-log "Done: https://$APP.azurewebsites.net and https://$APP-$SLOT.azurewebsites.net"
+log "Done: https://$APP.azurewebsites.net"

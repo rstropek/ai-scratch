@@ -1,8 +1,8 @@
 # Every push and pull request: all tests that need no real API keys (check, unit/component tests, the office build,
 # both apps' e2e tests, the game checks against the reference games). Then, on main, for each app whose files (or a
-# shared root file) changed: build its image, push it to ACR and run it in its staging slot. Production only
-# changes through the "Swap to production" workflow (swap.yml).
-name: CI and staging deploy
+# shared root file) changed: build its image, push it to ACR and run it in production (no staging slots). A deploy
+# restarts the app: the kids' app cuts the chat turns in progress, so don't push it while kids are using it.
+name: CI and deploy
 
 on:
   push:
@@ -143,20 +143,20 @@ jobs:
           build-args: APP_VERSION=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      - name: Run the image in the staging slot
+      - name: Run the image in production
         run: >
-          az webapp config set -g "$RG" -n "$APP" --slot staging -o none
+          az webapp config set -g "$RG" -n "$APP" -o none
           --linux-fx-version "DOCKER|$IMAGE"
           --generic-configurations '{"acrUseManagedIdentityCreds": true}'
-      - name: Wait until staging runs this commit
+      - name: Wait until production runs this commit
         run: |
           for i in $(seq 60); do
-            version=$(curl -sf --max-time 10 https://ai-scratch-staging.azurewebsites.net/healthz | jq -r .version || true)
+            version=$(curl -sf --max-time 10 https://ai-scratch.dev/healthz | jq -r .version || true)
             echo "attempt $i: ${version:-no answer}"
             [[ "$version" == "$GITHUB_SHA" ]] && exit 0
             sleep 10
           done
-          echo "::error::staging did not start ${GITHUB_SHA} within 10 minutes"
+          echo "::error::the kids' app did not start ${GITHUB_SHA} within 10 minutes"
           exit 1
 
   deploy-office:
@@ -190,18 +190,18 @@ jobs:
           build-args: APP_VERSION=${{ github.sha }}
           cache-from: type=gha,scope=office
           cache-to: type=gha,mode=max,scope=office
-      - name: Run the image in the staging slot
+      - name: Run the image in production
         run: >
-          az webapp config set -g "$RG" -n "$APP" --slot staging -o none
+          az webapp config set -g "$RG" -n "$APP" -o none
           --linux-fx-version "DOCKER|$IMAGE"
           --generic-configurations '{"acrUseManagedIdentityCreds": true}'
-      - name: Wait until staging runs this commit
+      - name: Wait until production runs this commit
         run: |
           for i in $(seq 60); do
-            version=$(curl -sf --max-time 10 https://ai-scratch-office-staging.azurewebsites.net/healthz | jq -r .version || true)
+            version=$(curl -sf --max-time 10 https://office.ai-scratch.dev/healthz | jq -r .version || true)
             echo "attempt $i: ${version:-no answer}"
             [[ "$version" == "$GITHUB_SHA" ]] && exit 0
             sleep 10
           done
-          echo "::error::office staging did not start ${GITHUB_SHA} within 10 minutes"
+          echo "::error::the office did not start ${GITHUB_SHA} within 10 minutes"
           exit 1

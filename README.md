@@ -142,26 +142,26 @@ At the root: `npm run check` (Biome over the whole repo + each workspace's type 
 
 ## Deployment (Azure)
 
-Every push to `main` is tested; one that changes the kids' app is deployed to the **staging** slot. **Production** changes only through the
-manual *Swap to production* workflow; running it again rolls back. **No swaps during the event:** a swap
-restarts production and interrupts kids mid-answer. The reasons behind the setup and the traps we hit:
+Every push to `main` is tested and deployed straight to **production** for each app it changes; there are no staging slots.
+A deploy restarts the app and interrupts kids mid-answer, so **don't push changes to the kids' app while kids are
+using it**. The reasons behind the setup and the traps we hit:
 [docs/deployment.md](docs/deployment.md).
 
 | What | Where |
 |---|---|
-| Web app | `ai-scratch` in RG `2026-digitalferien`, on the existing P0v3 plan `ts-web-playground`: **https://ai-scratch.dev** (also `www.`, and the old https://ai-scratch.azurewebsites.net), staging https://ai-scratch-staging.azurewebsites.net; `GET /healthz` shows the running commit, `/slides/` the slide deck |
+| Web app | `ai-scratch` in RG `2026-digitalferien`, on the existing P0v3 plan `ts-web-playground`: **https://ai-scratch.dev** (also `www.`, and the old https://ai-scratch.azurewebsites.net); `GET /healthz` shows the running commit, `/slides/` the slide deck |
 | Domain | `ai-scratch.dev`, DNS at Cloudflare (`cf` CLI, `npm install --global cf`): CNAMEs to `ai-scratch.azurewebsites.net` plus `asuid` TXT records, DNS only; free App Service managed certificates |
 | Secrets | Key Vault `kv-digiferien`, read by the app's managed identity |
 | Research logs | storage account `stdigiferien`, container `logs`: one JSON blob per AI call and per guard check of the event, no longer written. No retention rule; Rainer deletes them by hand |
 | Image | `acrars2025.azurecr.io/ai-scratch:<commit>` |
-| Office | `ai-scratch-office` on the same plan: **https://office.ai-scratch.dev**, staging https://ai-scratch-office-staging.azurewebsites.net; image `acrars2025.azurecr.io/ai-scratch-office:<commit>` |
-| Database | Postgres Flexible Server `ai-scratch-db` (northeurope, Burstable B1ms), databases `aiscratch` and `aiscratch_staging`, Entra login only ([docs/database.md](docs/database.md)) |
-| Workflows | [deploy.yml](.github/workflows/deploy.yml) (every push and PR: all tests; push to `main` → staging of each app it changes), [swap.yml](.github/workflows/swap.yml) (manual, per app → production); GitHub logs in with OIDC |
+| Office | `ai-scratch-office` on the same plan: **https://office.ai-scratch.dev**; image `acrars2025.azurecr.io/ai-scratch-office:<commit>` |
+| Database | Postgres Flexible Server `ai-scratch-db` (northeurope, Burstable B1ms), database `aiscratch`, Entra login only ([docs/database.md](docs/database.md)) |
+| Workflows | [deploy.yml](.github/workflows/deploy.yml) (every push and PR: all tests; push to `main` → production of each app it changes); GitHub logs in with OIDC |
 
 Operations (`az login` with Owner on the subscription; both scripts are safe to re-run):
 
-- **Changed keys or access codes in `.env`:** run `apps/app/scripts/azure/provision.sh`, then restart both slots
-  (`az webapp restart -g 2026-digitalferien -n ai-scratch`, and again with `--slot staging`).
+- **Changed keys or access codes in `.env`:** run `apps/app/scripts/azure/provision.sh`, then restart the app
+  (`az webapp restart -g 2026-digitalferien -n ai-scratch`).
 - **GitHub login** (once): `apps/app/scripts/azure/github-identity.sh`.
 - **Office and database:** `apps/office/scripts/azure/provision.sh`, then `apps/office/scripts/azure/domain.sh`.
 - **Download the logs:** `az storage blob download-batch --auth-mode login --account-name stdigiferien -s logs -d <dir>`.

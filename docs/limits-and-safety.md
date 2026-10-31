@@ -86,7 +86,7 @@ changing questions or thresholds (it calls the real Jev, so it is not part of `n
 - A kid types the code into the chat panel or gets it via `?code=` in the link. The link's code is removed from
   the address bar right away, so kids don't pass it on, and the browser remembers it (localStorage).
 - A 401 on any `/api` call sends the chat back to the gate.
-- New codes: edit `.env`, re-run `scripts/azure/provision.sh`, restart both slots
+- New codes: edit `.env`, re-run `scripts/azure/provision.sh`, restart the app
   ([deployment.md](deployment.md)).
 
 ## Parents' own OpenRouter key

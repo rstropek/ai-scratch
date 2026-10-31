@@ -6,7 +6,7 @@ import type pg from 'pg';
 const MIGRATION_LOCK = 47_112_026;
 
 /**
- * Applies drizzle-kit's migrations from `migrationsFolder`. Several instances (scale-out, a slot swap, the e2e
+ * Applies drizzle-kit's migrations from `migrationsFolder`. Several instances (scale-out, a deploy, the e2e
  * setup next to the server) may start at once: an advisory lock lets one migrate while the others wait.
  */
 export const migrateDb = async (pool: pg.Pool, migrationsFolder: string): Promise<void> => {

@@ -6,8 +6,9 @@ truth for settings and roles.
 
 ## Shape and why
 
-- **One container web app with a staging slot**, on Rainer's existing P0v3 plan, image from his existing ACR
-  (his choice: no extra cost; the plan and the registry live in other resource groups). The app, Key Vault and
+- **One container web app per app, no staging slots** (Rainer, 2026-10-31: the swap step isn't worth it), on
+  Rainer's existing P0v3 plan, image from his existing ACR (his choice: no extra cost; the plan and the registry
+  live in other resource groups). The app, Key Vault and
   storage are in their own group `2026-digitalferien`.
 - **Built for a one-day event:** the kids' app favors working reliably over elaborate operations. No Redis, no
   monitoring stack. Live counters come from `/api/stats`; the research log of the
@@ -17,20 +18,19 @@ truth for settings and roles.
 - **Secrets** live in a dedicated Key Vault, read by app settings that reference it, with the app's managed
   identity. **Never use the vault `kvtswebplayground`** on the same subscription: an external student account
   can read its secrets.
-- **No keys anywhere:** the storage account has shared-key access disabled, both slots pull from ACR with their
+- **No keys anywhere:** the storage account has shared-key access disabled, the apps pull from ACR with their
   managed identity, and GitHub logs in with OIDC.
 
 ## Domain
 
 - **`ai-scratch.dev` (and `www.`) point at production only**, through CNAMEs at Cloudflare (the apex one is
-  flattened) plus `asuid`/`asuid.www` TXT records with the app's `customDomainVerificationId`. Staging keeps
-  its `azurewebsites.net` name; the workflows check `/healthz` there.
+  flattened) plus `asuid`/`asuid.www` TXT records with the app's `customDomainVerificationId`.
 - **DNS only, no Cloudflare proxy:** the free App Service managed certificates are issued and renewed only
   while the name resolves straight to the app, and the chat's SSE stream doesn't need another proxy (and its
   100 s timeout) in between.
 - **Managed certificate traps:** `az webapp config ssl create` fails with a JSON error but still issues the
-  certificate. `ssl list` doesn't show it; `az resource list --resource-type Microsoft.Web/certificates`
-  does (in `2026-digitalferien`). Bind it with `ssl bind --ssl-type SNI`. For a minute or two after that,
+  certificate. `ssl list` doesn't show it; `az resource show --resource-type Microsoft.Web/certificates -n <host>`
+  does, with its thumbprint (in `2026-digitalferien`; `az resource list` leaves out the properties). Bind it with `ssl bind --ssl-type SNI`. For a minute or two after that,
   some requests still get the `*.azurewebsites.net` certificate.
 - **`.dev` is on the HSTS preload list:** browsers use only HTTPS, so the name is unusable until a
   certificate is bound.
@@ -45,22 +45,20 @@ truth for settings and roles.
 - Every push to `main`: all CI tests ([deploy.yml](../.github/workflows/deploy.yml), `docs/testing.md`). Then
   per app, only when the push changes it (kids' app: `apps/app/**`; office: `apps/office/**` or `packages/db/**`;
   both: a shared root file such as the lock file, `.npmrc`, `tsconfig.base.json`): build the image (tagged with
-  the commit), run it in the app's **staging** slot, wait until staging's `/healthz` reports that commit.
-  Docs-only pushes touch neither.
-- **Production changes only by the manual swap** ([swap.yml](../.github/workflows/swap.yml), choose the app),
-  which checks afterwards that production reports the staging commit. Running it again swaps back (rollback).
-- **No deploy to production and no swap during the event:** a swap restarts production and cuts the turns in
+  the commit), run it in **production**, wait until production's `/healthz` reports that commit. Docs-only
+  pushes touch neither. A change to `deploy.yml` itself deploys both.
+- **Rollback:** point the app at an older image, `az webapp config set -g 2026-digitalferien -n <app>
+  --linux-fx-version "DOCKER|acrars2025.azurecr.io/<app>:<commit>"` (ACR keeps every commit's image), or revert
+  the commit and push.
+- **No push to the kids' app while kids are using it:** a deploy restarts the app and cuts the turns in
   progress. The chats themselves survive (they live in the browser), but kids would see errors mid-answer.
-  Pushing to `main` is harmless then; it only touches staging.
 
 ## Traps we hit
 
-- **A swap restarts the staging slot with production's settings** before switching. Any setting the new code
-  needs must therefore exist on production too. Concretely, both slots need `acrUseManagedIdentityCreds`, or
-  the swap fails with "the 'staging' slot did not respond to http ping" (the container log shows
-  `ImagePullUnauthorizedFailure`).
+- **The app pulls from ACR only with `acrUseManagedIdentityCreds`** set; without it the container doesn't start
+  (the container log shows `ImagePullUnauthorizedFailure`). `provision.sh` and every deploy set it.
 - **Key Vault references resolve only when the app starts.** After `provision.sh` uploads new secrets
-  (keys, access codes), restart both slots. An unresolved reference arrives as the literal
+  (keys, access codes), restart the app. An unresolved reference arrives as the literal
   `@Microsoft.KeyVault(…)` string; [config.ts](../apps/app/src/server/config.ts) refuses to start with a clear message
   instead of using it as a key.
 - **GitHub's OIDC subject** for this repo uses the immutable format with owner and repo ids
@@ -72,7 +70,7 @@ truth for settings and roles.
 
 ## Office and database
 
-- **The office is a second web app** (`ai-scratch-office`, staging slot) on the same plan, its own image
+- **The office is a second web app** (`ai-scratch-office`, no staging slot) on the same plan, its own image
   (`apps/office/Dockerfile`: Next.js's standalone output), set up by
   [provision.sh](../apps/office/scripts/azure/provision.sh); the domain by
   [domain.sh](../apps/office/scripts/azure/domain.sh). No ARR affinity: sessions live in the database.
@@ -80,8 +78,7 @@ truth for settings and roles.
   Postgres servers in `westeurope` or `germanywestcentral` ("Subscriptions are restricted from provisioning in
   this region"). Still in the EU; a few milliseconds per query. Check a region with
   `az postgres flexible-server list-skus -l <region>` (the `reason` field).
-- **Slot settings are sticky** (`PGDATABASE`, `PGUSER`, `BETTER_AUTH_URL`): staging keeps its database
-  `aiscratch_staging` and its role across swaps. Roles, ownership and migrations: [database.md](database.md).
+- Database `aiscratch`, role and migrations: [database.md](database.md).
 - **GitHub's deploy identity** needs Website Contributor on each web app; provision.sh grants it for the office.
 - **The first admin account** comes from `npm run seed:admin -w apps/office` on Rainer's machine with
   `PGHOST`, `PGDATABASE` and `PGUSER` (his UPN) set and `DATABASE_URL=` empty (the office's `.env` would win):
