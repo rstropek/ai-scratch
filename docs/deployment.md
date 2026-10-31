@@ -37,6 +37,11 @@ truth for settings and roles.
 - **Email goes out through Resend from `mail.ai-scratch.dev`** (region eu-west-1, can't change). Its DKIM, SPF
   and return-path records live under `mail.` at Cloudflare, plus `_dmarc.ai-scratch.dev` with `p=none`. The
   app's key may only send, and only from that domain (`resend-api-key` in Key Vault).
+- **Turnstile protects the office's application form:** one widget in the same Cloudflare account, managed mode,
+  only `office.ai-scratch.dev`, managed with the `cf` CLI (`cf turnstile widgets …`). The site key is public
+  (`0x4AAAAAAFt9P51346HQ8eXj`); the secret is `turnstile-secret-key` in Key Vault, renewed with
+  `cf turnstile widgets rotate-secret`. Local dev, tests and CI use Cloudflare's dummy keys (site key
+  `1x00000000000000000000AA`, secret `1x0000000000000000000000000000000AA`, always pass), never the real ones.
 - The old `ai-scratch.azurewebsites.net` keeps working. Browser storage is per origin, so a kid who switches
   names types the access code again.
 

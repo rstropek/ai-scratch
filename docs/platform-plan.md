@@ -18,7 +18,7 @@ ai-scratch.dev          apps/app: today's kids' app, same tech: Vite SPA + Scrat
                           + code check and cost tracking against Postgres, Anthropic key pool,
                             "frage KI" switch per code
 office.ai-scratch.dev   apps/office: Next.js (App Router)               → App Service container
-                          /antrag (teacher application), /lehrer (teacher area), /admin (Rainer)
+                          registration and teacher application, area for teachers and parents, /admin (Rainer)
                           better-auth, emails via Resend
 packages/db             data access, limits from env, code generator: shared by both apps
 Postgres                Azure Database for PostgreSQL Flexible Server, Burstable B1ms, northeurope
@@ -97,8 +97,9 @@ Postgres                Azure Database for PostgreSQL Flexible Server, Burstable
   `npm run seed:admin -w apps/office`); sessions end after 8 hours without use (shared school PCs), "Abmelden"
   always visible; passwords at least 12 characters.
 - **Proposed:**
-  - Accepting an application creates the account, and the teacher sets their password through a link in the
-    acceptance email.
+  - Accounts are created on the confirmation page, where people set their password
+    ([registration](#registration-and-teacher-applications)). This replaces the earlier proposal that accepting
+    an application creates the account.
   - Password reset by email.
 - **Later (discussed, not scheduled):**
   - Email one-time code (better-auth `emailOTP`; it has no "remember me", which is fine).
@@ -111,28 +112,83 @@ Postgres                Azure Database for PostgreSQL Flexible Server, Burstable
     - needs **publisher verification**, or many school tenants block consent.
   - Device authorization and MCP for teachers (`oauthDeviceAuthorization`, `@better-auth/mcp`).
 
-## Teacher applications
+## Registration and teacher applications
 
-- **Decided:** teachers you don't know apply through a form. They describe:
-  - what they plan to do with it;
-  - their teaching (school, students' ages, classes);
-  - acceptance of the terms of use.
+Decided by Rainer on 2026-10-31; it replaces the earlier teacher-only application form.
 
-  You get an email and accept or reject the application.
-- **Proposed:**
-  - Store which version of each legal text was accepted and when.
-  - Confirm the email address before you're notified.
-  - A honeypot field + rate limit instead of Cloudflare Turnstile (keeps data in the EU; you review every
-    application anyway).
-  - Emails to the teacher on acceptance and rejection.
-  - Resend from `mail.ai-scratch.dev`.
+**Two kinds of adults:**
+
+- **Parents** (and other adults) enter budget-limited OpenRouter keys (at most €25, see
+  [own OpenRouter keys](#own-openrouter-keys-teachers-and-parents)). They can create codes once they have a
+  valid key.
+- **Teachers** can do the same, and can also use the free budget (donated keys).
+- **A teacher whose application isn't accepted is treated like a parent.**
+
+**The steps:**
+
+1. **Registration page:**
+   - The email address.
+   - Teacher or parent.
+   - Confirming they are at least 18.
+   - Accepting the terms of use (text still to be written). The full terms sit behind a link; their key points
+     are shown on the page itself.
+   - Agreeing that AI processing can happen outside the EU
+     ([where data is processed](#where-data-is-processed)).
+2. **Confirmation email:** a link with the email address and an expiry time, symmetrically encrypted. Nothing
+   is stored in the database before the link is used. Rainer named 5 minutes as the expiry.
+3. **The link:** for a parent, the registration is complete.
+4. **Teachers only:**
+   - They fill in the school's name, the school's URL and a summary of why they want access.
+   - Jev checks the answers and refuses obviously invalid ones.
+   - Once the application gets through, you get an email.
+
+**Protection of the registration page:**
+
+- **Cloudflare Turnstile** (managed mode), not Google reCAPTCHA: no tracking cookies, no ad use of the data,
+  free, one server-side check. Mention it in the privacy policy.
+- No honeypot. Rate limits as a second layer: **5 registrations per hour per IP** and **3 per hour per email
+  address** (no mail bombing via the form). Counted in Postgres (several instances), from the client IP App
+  Service forwards.
+
+**Proposed:**
+
+- **The link is valid for 30–60 minutes instead of 5.** School mail servers often hold back a first email
+  from an unknown sender for 5–15 minutes, so many links would arrive expired.
+- **The link only opens a page.** The account is created when the person sets a password there and submits
+  it, because mail scanners (Outlook Safe Links, Defender) open links on their own. Sign-up stays disabled in
+  better-auth (`disableSignUp`); the server creates the account.
+- **The encrypted link holds everything from step 1:**
+  - the email address, the role, the 18+ confirmation and the consent;
+  - the version of the terms and when they were accepted;
+  - the expiry time.
+
+  It uses AES-256-GCM, which also detects tampering. The account stores the terms' version and time when it is
+  created.
+- **No hint that an address already has an account.** The page answers the same either way; the email then
+  says "Sie haben schon ein Konto" with a link to reset the password.
+- **The teacher form also asks for the grades they teach** (Schulstufen), ticked from a list: Volksschule,
+  Mittelschule/AHS-Unterstufe, Oberstufe.
+- **Jev answers are capped per account** (each check costs money). When Jev refuses an answer, the form says
+  why, so a real teacher can fix it.
+- **Your email hints when the email domain doesn't match the school's URL.** It's a hint, not a gate.
+- **Labels for the choice:** "Lehrkraft" and "Eltern oder andere Erwachsene (z. B. CoderDojo, Jugendgruppe)".
+- **One terms document with a section per role**, so there's one version to track. The page shows the key
+  points for the role chosen.
+- **Later applications:** a parent can apply later from their account ("Als Lehrkraft bewerben"). Someone
+  rejected may apply again, and you see the earlier rejection.
+- **Emails to the teacher** on acceptance and rejection, through Resend from `mail.ai-scratch.dev`.
+- **Legal texts that change with parent accounts:**
+  - The privacy statement: we store adults' email addresses and encrypted keys, not only teachers' details.
+  - The safety table: "Codes only from teachers" becomes "Codes only from adults with an account".
 
 ## Kids' ways into the chat
 
 1. **A teacher's code backed by the donated keys** (the normal case).
-2. **A teacher's code backed by the teacher's own OpenRouter key.**
-3. **A parent's own OpenRouter key** (stays as it is today): for non-teachers who let their kids try it
-   occasionally or once.
+2. **A code backed by an adult's own OpenRouter key** (a teacher's or a parent's).
+3. **A parent's OpenRouter key typed straight into the kids' app** (as today): for non-teachers who let their
+   kids try it occasionally or once. **Proposed:** this goes away once parent accounts exist. Parents then
+   have a single way in with a single set of terms, the key never reaches a kid's device, and the kid only
+   sees a code that runs out.
 
 Every way needs an adult: kids can't get access on their own. The per-school codes of the event go away.
 **Open:** whether `admin_` test codes stay (via env).
@@ -167,10 +223,11 @@ Every way needs an adult: kids can't get access on their own. The per-school cod
 
   Changing them needs a restart, so do it outside school hours.
 - **Decided:** **only actual spend counts**, nothing is reserved, and the overall budget may be overbooked.
-- **Decided:** codes backed by a teacher's own OpenRouter key have only the per-code limits.
+- **Decided:** codes backed by an own OpenRouter key have only the per-code limits (`CODE_BUDGET_EUR`,
+  `CODE_MAX_HOURS`). That holds for parents' codes too (Rainer, 2026-10-31: change it if someone complains).
 - **Proposed:** checks before every model call:
 
-  | Check | Donated keys | Teacher's OpenRouter key | Parent's key |
+  | Check | Donated keys | Own OpenRouter key (teacher or parent) | Parent's key typed into the kids' app (today) |
   |---|---|---|---|
   | Code inside its time window | ✓ | ✓ | – |
   | Code spend < `CODE_BUDGET_EUR` | ✓ | ✓ | – |
@@ -194,6 +251,8 @@ Every way needs an adult: kids can't get access on their own. The per-school cod
 
 - **Decided:** several Anthropic keys (Rainer's credits, friends' donations). When one key's budget is used up,
   the system switches to the next.
+- **Decided (Rainer, 2026-10-31):** every donated key has a cap per calendar month (Vienna time), configurable
+  per key (`capEurMonth`).
 - **Proposed:**
   - One Key Vault secret holds JSON: `[{id, key, workspaceId, donor, capEurMonth, priority}]`. No admin page
     and no encryption code for keys. The database stores usage per key `id` only.
@@ -207,13 +266,23 @@ Every way needs an adult: kids can't get access on their own. The per-school cod
 - **Open:** whether Anthropic accepts signed thinking blocks from another organisation's key when a session
   switches mid-turn. If not, the server drops old thinking blocks on a switch.
 
-## Teachers' own OpenRouter keys
+## Own OpenRouter keys (teachers and parents)
 
-- **Decided:** teachers can enter budget-limited OpenRouter keys and create codes from them.
+- **Decided:** teachers and parents can enter budget-limited OpenRouter keys and create codes from them.
+- **Decided (Rainer, 2026-10-31):** we never hold an OpenRouter key that can spend more than **€25**, whoever
+  entered it (teacher or parent). If a key leaks, at most that much is lost. Checked when the key is entered and
+  **every time a code is created from it**.
 - **Proposed:**
-  - Checked like parents' keys today (`GET /key`; keys without a limit are refused).
-  - Stored encrypted (AES-GCM, master key in Key Vault, readable by both apps). Unlike parents' keys, they
-    are stored, so the terms must say so.
+  - The cap applies to what the key can still spend, OpenRouter's `limit_remaining` (in dollars, converted
+    with `USD_PER_EUR`), not to its `limit`. A key with no reset can then be topped up, by raising its limit by
+    at most €25 above what it has already spent, without ever being worth more than €25.
+  - Keys whose limit resets (daily, weekly, monthly) are refused: a leaked key would lose €25 again after every
+    reset.
+  - The kids' app checks the cap too, with its existing `GET /key` check (every 5 minutes). A key raised
+    above the cap after the code was created stops its codes, and its owner gets an email.
+  - Checked like keys typed into the kids' app today (`GET /key`; keys without a limit are refused).
+  - Stored encrypted (AES-GCM, master key in Key Vault, readable by both apps). Unlike keys typed into the
+    kids' app, they are stored, so the terms must say so.
   - Deleting a key stops its codes.
 
 ## "frage KI" block
@@ -245,12 +314,23 @@ Every way needs an adult: kids can't get access on their own. The per-school cod
 
 ## Where data is processed
 
+- **Decided (Rainer, 2026-10-31):** the terms state clearly that AI processing can happen outside the EU,
+  including AI used for safety:
+  - checking registrations and applications against fraud (Jev);
+  - preventing misuse of the AI features, kids' protection included.
+
+  Everyone who registers is an adult and consents to this **explicitly**, so Jev may check applications.
+- **Proposed:**
+  - The consent is its own checkbox, not part of "I accept the terms". It's stored with the terms' version and
+    time.
+  - Withdrawing consent means deleting the account.
 - **Proposed wording:**
 
-  > Personenbezogene Daten (die Angaben der Lehrkräfte) speichern und verarbeiten wir auf Servern in der EU.
-  > Was Kinder in den Chat oder in den „frage KI“-Block schreiben, wird zur KI-Verarbeitung und
-  > Sicherheitsprüfung auch außerhalb der EU verarbeitet (Anthropic, OpenRouter, TypeSafe). Darum dürfen
-  > Kinder keine persönlichen Daten eingeben.
+  > Personenbezogene Daten (die Angaben der registrierten Erwachsenen) speichern wir auf Servern in der EU.
+  > KI-Verarbeitung, auch zur Sicherheit (Prüfung von Registrierungen gegen Missbrauch, Schutz vor Missbrauch
+  > der KI-Funktionen, Jugendschutz), kann außerhalb der EU stattfinden (Anthropic, OpenRouter, TypeSafe). Das
+  > gilt auch für das, was Kinder in den Chat oder in den „frage KI“-Block schreiben. Darum dürfen Kinder keine
+  > persönlichen Daten eingeben.
 
 - **True today in the EU:** app, Key Vault, storage and the future Postgres server in `westeurope`, App Service logs
   with IP addresses, the CoderDojo Locker (hosted in Europe), slide fonts (self-hosted).
@@ -284,8 +364,8 @@ Every way needs an adult: kids can't get access on their own. The per-school cod
    No other logic. On top: deployment at office.ai-scratch.dev (own web app, CI deploys to production) and
    Rainer's account from a seed script. **Open:** running the Azure scripts and the seed against production.
    Then: content pages.
-2. Database, applications, admin, teacher login, codes with the key pool and budgets.
-3. Teachers' own OpenRouter keys.
+2. Database, registration and applications, admin, login, codes with the key pool and budgets.
+3. Own OpenRouter keys (teachers and parents).
 4. Exercises with starter projects.
 
 ## Still open

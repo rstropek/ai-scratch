@@ -1,6 +1,6 @@
 # The teachers' office (apps/office)
 
-Next.js (App Router) at office.ai-scratch.dev: teacher applications, the teacher area (access codes, own OpenRouter keys) and Rainer's admin. **Iteration 1 so far:** email + password login (better-auth, admin plugin), one protected page. What comes next, and what is decided, proposed or open: `docs/platform-plan.md`. Database and migrations: `docs/database.md`.
+Next.js (App Router) at office.ai-scratch.dev: registration and teacher applications, the area for teachers and parents (access codes, own OpenRouter keys) and Rainer's admin. **Iteration 1 so far:** email + password login (better-auth, admin plugin), one protected page. What comes next, and what is decided, proposed or open: `docs/platform-plan.md`. Database and migrations: `docs/database.md`.
 
 ## Commands
 
