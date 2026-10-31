@@ -1,7 +1,7 @@
 # Deployment
 
 The reasons behind the Azure setup and the traps we hit. What exists and the everyday commands are in the
-[README](../README.md#deployment-azure); the scripts in [scripts/azure](../scripts/azure) are the source of
+[README](../README.md#deployment-azure); the scripts in [scripts/azure](../apps/app/scripts/azure) are the source of
 truth for settings and roles.
 
 ## Shape and why
@@ -42,7 +42,8 @@ truth for settings and roles.
 
 ## Release flow
 
-- Every push to `main`: check + unit tests, build the image (tagged with the commit), run it in **staging**,
+- Every push to `main` that touches the kids' app (`apps/app/**` or the shared root files: lock file, `biome.json`,
+  `tsconfig.base.json`): check + unit tests, build the image (tagged with the commit), run it in **staging**,
   wait until staging's `/healthz` reports that commit ([deploy.yml](../.github/workflows/deploy.yml)). e2e
   tests don't run in CI; run them locally before pushing UI changes.
 - **Production changes only by the manual swap** ([swap.yml](../.github/workflows/swap.yml)), which checks
@@ -59,10 +60,10 @@ truth for settings and roles.
   `ImagePullUnauthorizedFailure`).
 - **Key Vault references resolve only when the app starts.** After `provision.sh` uploads new secrets
   (keys, access codes), restart both slots. An unresolved reference arrives as the literal
-  `@Microsoft.KeyVault(…)` string; [config.ts](../src/server/config.ts) refuses to start with a clear message
+  `@Microsoft.KeyVault(…)` string; [config.ts](../apps/app/src/server/config.ts) refuses to start with a clear message
   instead of using it as a key.
 - **GitHub's OIDC subject** for this repo uses the immutable format with owner and repo ids
-  (`repo:rstropek@<id>/ai-scratch@<id>:ref:refs/heads/main`). [github-identity.sh](../scripts/azure/github-identity.sh)
+  (`repo:rstropek@<id>/ai-scratch@<id>:ref:refs/heads/main`). [github-identity.sh](../apps/app/scripts/azure/github-identity.sh)
   asks GitHub for the prefix instead of guessing. Adding a GitHub `environment:` to a job changes the subject
   and breaks the login; adjust the federated credential first.
 - **Role assignments take minutes to propagate.** Data-plane commands right after an assignment fail or, worse,
@@ -71,6 +72,9 @@ truth for settings and roles.
 ## Image
 
 - Node runs the server's TypeScript directly, so the image has no server build step.
+- **Built from the repo root** (`docker build -f apps/app/Dockerfile .`): the workspace's lock file lives there.
+  `npm ci -w apps/app` installs only the kids' app's packages; npm still wants every workspace's `package.json`,
+  so the office's comes along.
 - **Browser-only packages are devDependencies** (Scratch, React, UI libraries): Vite bundles them into `dist/`,
   and the runtime image installs only what the server imports. A new server import must be a dependency, or
   the container fails at start while everything works locally.

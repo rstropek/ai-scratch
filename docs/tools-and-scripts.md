@@ -7,16 +7,16 @@ format or the system prompt.
 
 - Three families: **project** (read, add, remove and clear scripts, green flag, `test_run`), **ui** ("show, don't do": select a
   sprite, switch tabs, point at blocks and GUI elements) and **asset** (library sprites/backdrops/costumes,
-  SVG drawings). Index: [tools/index.ts](../src/shared/tools/index.ts).
+  SVG drawings). Index: [tools/index.ts](../apps/app/src/shared/tools/index.ts).
 - Not a tool: the "frage KI" block ([ki-block.md](ki-block.md)) is a block kids use in their own programs.
   The model builds it like any block (`ki_ask`, added to the catalog by hand), and the prompt has a short
   section on chatbots.
 - Definitions and prompt text live in `src/shared/tools`; the server sends them to the model. The tools have
   no `execute` on the server: executors are `ToolHandlers` that run in the browser on the live VM, strictly
-  one at a time ([tool-runner.ts](../src/client/scratch/tool-runner.ts)).
+  one at a time ([tool-runner.ts](../apps/app/src/client/scratch/tool-runner.ts)).
 - System prompt + all tool instructions form one static block, so it is cached across all kids
   ([conversation.md](conversation.md)). Anything per-kid or per-turn must not go into it. `INSTRUCTIONS_FILE`
-  replaces the whole block, so the game harness ([eval/games](../eval/games/README.md)) can compare prompt
+  replaces the whole block, so the game harness ([eval/games](../apps/app/eval/games/README.md)) can compare prompt
   variants. Check a prompt or tool wording change there before shipping it.
 
 ## Why the nested-JSON script format
@@ -24,7 +24,7 @@ format or the system prompt.
 - Measured in the prototype (ki-scratch report §10, ~900 runs): raw sb3 80% correct, our nested JSON 96%,
   with fewer tool errors and about 40% of the output tokens. Models know the opcodes but break sb3's
   bookkeeping (ids, next/parent links, shadows, primitive codes); the compiler
-  ([script-dsl.ts](../src/shared/scratch/script-dsl.ts)) does all of that.
+  ([script-dsl.ts](../apps/app/src/shared/scratch/script-dsl.ts)) does all of that.
 - **Real Scratch opcodes**, no invented names: models know them from training.
 - **The same format for reading and writing** (`get_project` decompiles), so the model edits what it sees.
 - **Validate before the VM is touched**, against the block catalog, with errors that say what to do
@@ -72,7 +72,7 @@ format or the system prompt.
 - **The kid picks library items by picture** (Rainer's decision, 2026-10-25, instead of a question tool):
   a kid can't tell "Shark" from "Shark 2" by name. The chat shows what `search_library` found as pictures
   from the Scratch CDN, always, not only in the tool view, each item once per answer
-  ([LibraryPictures.tsx](../src/client/chat/LibraryPictures.tsx)). They are not clickable; the kid answers in
+  ([LibraryPictures.tsx](../apps/app/src/client/chat/LibraryPictures.tsx)). They are not clickable; the kid answers in
   text. Searches the model makes only for itself show too; Rainer chose to drop only duplicates (round 7). The tool result keeps names only (pictures would cost the model tokens); the client looks the
   pictures up in the same library files. The prompt says: if several fit, add none yet and ask which one.
 
@@ -86,7 +86,7 @@ format or the system prompt.
 ## Teaching mode
 
 The kid designs the game; the assistant asks guiding questions and builds only small, clearly defined parts
-(usually one script). This lives entirely in the system prompt ([prompt.ts](../src/shared/prompt.ts)),
+(usually one script). This lives entirely in the system prompt ([prompt.ts](../apps/app/src/shared/prompt.ts)),
 which is Rainer's own experiment: discuss changes to its pedagogy with him. A stricter "AI supports" mode
 (the assistant only guides and points, the kid builds) may follow; keep the prompt and the tool selection
 easy to switch (for example, the ui tools without `add_scripts`).

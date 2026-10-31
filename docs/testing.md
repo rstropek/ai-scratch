@@ -7,18 +7,18 @@ How the tests are built and what they can't catch. Commands are in the [README](
 Prefer the lowest layer that can show the bug: unit > component > e2e.
 
 - **Unit** (Vitest, Node): `src/shared`, `src/server`, client logic. Project tools run against a **headless
-  scratch-vm** ([headless-vm.ts](../test/support/headless-vm.ts)): no renderer, audio or network, but scripts
+  scratch-vm** ([headless-vm.ts](../apps/app/test/support/headless-vm.ts)): no renderer, audio or network, but scripts
   run. Tests check *behaviour* (the sprite moved, the variable counts) rather than comparing block JSON, so
   they survive harmless changes to the compiler.
 - **Server tests** call the Hono app in process (`app.request()`), with a fake `fetch` injected through the app
-  deps that answers with Anthropic SSE built by [anthropic-sse.ts](../test/support/anthropic-sse.ts). No
+  deps that answers with Anthropic SSE built by [anthropic-sse.ts](../apps/app/test/support/anthropic-sse.ts). No
   network, no cost. `createApp` is free of side effects for this reason; keep it so.
 - **Component** (Vitest, jsdom): the chat UI pieces.
 - **e2e** (Playwright, Chromium): the **production build** served by the real server, with the real Scratch
   editor. `/api/chat` is mocked per test with streams the **AI SDK itself encodes**
-  ([mock-chat.ts](../e2e/helpers/mock-chat.ts)), so the wire format can't drift from the SDK. The server gets
+  ([mock-chat.ts](../apps/app/e2e/helpers/mock-chat.ts)), so the wire format can't drift from the SDK. The server gets
   dummy keys, so a test without a mock can never call (and pay for) the model. **Any page error fails the
-  test** ([app.ts](../e2e/helpers/app.ts)). `/api/ask` (the "frage KI" block) is mocked with `page.route`.
+  test** ([app.ts](../apps/app/e2e/helpers/app.ts)). `/api/ask` (the "frage KI" block) is mocked with `page.route`.
 
 ## What the tests can't show
 
@@ -40,7 +40,7 @@ Prefer the lowest layer that can show the bug: unit > component > e2e.
 
 ## Game tests (the real model)
 
-Can the assistant build a real game with a kid? The **game harness** ([eval/games](../eval/games/README.md))
+Can the assistant build a real game with a kid? The **game harness** ([eval/games](../apps/app/eval/games/README.md))
 answers that with the production build, the real model and the real editor in headless Chromium. After
 every answer that changed the project, a bot plays the game and runs checks (Memory, Fangspiel, and the
 CoderDojo classics Fang mich, Space Shooter and Minesweeper). Core checks test the basic idea; extras test

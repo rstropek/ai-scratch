@@ -55,7 +55,7 @@ Browser                                         Server (Hono, Azure)            
 
 ## The slide deck
 
-The slides Rainer records into the video tutorial live in [slides/](slides/README.md): a standalone
+The slides Rainer records into the video tutorial live in [apps/app/slides/](apps/app/slides/README.md): a standalone
 [Slidev](https://sli.dev) app in a sticker-album look, with its own packages, sharing only the Scratch
 colours with the app. The app serves the built deck at **`/slides/`** without an access code
 (https://ai-scratch.dev/slides/, presenter view at `/slides/presenter/`).
@@ -84,13 +84,17 @@ Handy for trying the assistant by hand; each one exercises a different tool fami
 
 ## Run it locally
 
-Requires Node.js 24 or later.
+Requires Node.js 24 or later. The repo is an npm workspace: `npm install` runs once at the root; the kids' app
+lives in `apps/app`, the teachers' office (Next.js, only a placeholder so far) in `apps/office`.
 
 ```bash
 npm install
-cp .env.example .env   # then fill in the Anthropic and TypeSafe keys and the access codes
-npm run dev            # http://localhost:5173/?code=<one of your access codes>
+cp apps/app/.env.example apps/app/.env   # then fill in the Anthropic and TypeSafe keys and the access codes
+npm run dev                              # the kids' app: http://localhost:5173/?code=<one of your access codes>
+npm run dev:office                       # the office: http://localhost:3100
 ```
+
+The kids' app reads `apps/app/.env`:
 
 | Variable | Meaning |
 |---|---|
@@ -110,6 +114,10 @@ npm run dev            # http://localhost:5173/?code=<one of your access codes>
 
 ### Commands
 
+At the root: `npm run check` (Biome over the whole repo + each workspace's type check), `npm test` and
+`npm run build` (all workspaces). The kids' app's commands run in `apps/app` (or from the root with
+`-w apps/app`, for example `npm run e2e -w apps/app`):
+
 | Command | What it does |
 |---|---|
 | `npm run dev` | Vite on http://localhost:5173 (hot reload) + API server on :3000 |
@@ -118,10 +126,11 @@ npm run dev            # http://localhost:5173/?code=<one of your access codes>
 | `npm test` | unit and component tests (Vitest, headless scratch-vm, no network) |
 | `npm run e2e` | Playwright against the production build, model mocked |
 | `npm run test:live` | the OpenRouter path with the real key in `.env` (`OPENROUTER_API_KEY`): gate, two chat turns, "Zusammenfassen", "frage KI"; about 2 cents |
-| `npm run eval:games` | a simulated kid builds a game (Memory, Fangspiel, Fang mich, Space Shooter, Minesweeper) with the real app and model, a bot plays and checks each version ([eval/games](eval/games/README.md)); costs real money |
+| `npm run eval:games` | a simulated kid builds a game (Memory, Fangspiel, Fang mich, Space Shooter, Minesweeper) with the real app and model, a bot plays and checks each version ([eval/games](apps/app/eval/games/README.md)); costs real money |
 | `npm run eval:guard` | runs the labelled kid messages against the real Jev guard, writes [docs/kids-protection.md](docs/kids-protection.md) |
-| `npm run check` | Biome + TypeScript |
-| `npm run lint:fix` | Biome with fixes |
+| `npm run typecheck` | TypeScript |
+
+`npm run lint:fix` (root) applies Biome's fixes.
 
 ## Deployment (Azure)
 
@@ -141,26 +150,30 @@ restarts production and interrupts kids mid-answer. The reasons behind the setup
 
 Operations (`az login` with Owner on the subscription; both scripts are safe to re-run):
 
-- **Changed keys or access codes in `.env`:** run `scripts/azure/provision.sh`, then restart both slots
+- **Changed keys or access codes in `.env`:** run `apps/app/scripts/azure/provision.sh`, then restart both slots
   (`az webapp restart -g 2026-digitalferien -n ai-scratch`, and again with `--slot staging`).
-- **GitHub login** (once): `scripts/azure/github-identity.sh`.
+- **GitHub login** (once): `apps/app/scripts/azure/github-identity.sh`.
 - **Download the logs:** `az storage blob download-batch --auth-mode login --account-name stdigiferien -s logs -d <dir>`.
 
 ## Project layout
 
 ```
-index.html, editor.html   host page, editor iframe page
-src/shared/               runs in the browser and in Node: script format, block catalog, tools, prompt
-src/editor/               inside the iframe: mounts Scratch, UI pointer, "frage KI" block, Locker menu entries, exposes window.ki
-src/client/               React host: chat panel, access gate, tool runner, Locker dialog
-src/server/               Hono: /api/chat, /api/ask, /api/locker, access code, guards, call log (opt-in), stats
-test/support/             headless scratch-vm, fake Anthropic streams, fixtures
-e2e/                      Playwright specs
-eval/guard/               labelled kid messages + runner for the kids-protection guard
-eval/games/               game harness: simulated kid + real app + a bot that plays the result
-slides/                   the Slidev deck for the video tutorial (own packages), served at /slides/
-docs/                     architecture notes per topic, kids-protection report, pre-event checklist
-scripts/                  postinstall workaround, Scratch bundle preparation, Azure setup (scripts/azure)
+apps/app/                   the kids' app (ai-scratch.dev):
+  index.html, editor.html     host page, editor iframe page
+  src/shared/                 runs in the browser and in Node: script format, block catalog, tools, prompt
+  src/editor/                 inside the iframe: mounts Scratch, UI pointer, "frage KI" block, Locker menu entries, exposes window.ki
+  src/client/                 React host: chat panel, access gate, tool runner, Locker dialog
+  src/server/                 Hono: /api/chat, /api/ask, /api/locker, access code, guards, call log (opt-in), stats
+  test/support/               headless scratch-vm, fake Anthropic streams, fixtures
+  e2e/                        Playwright specs
+  eval/guard/                 labelled kid messages + runner for the kids-protection guard
+  eval/games/                 game harness: simulated kid + real app + a bot that plays the result
+  slides/                     the Slidev deck for the video tutorial (own packages), served at /slides/
+  scripts/                    postinstall workaround, Scratch bundle preparation, Azure setup (scripts/azure)
+  Dockerfile                  its image; built from the repo root
+apps/office/                the teachers' office (office.ai-scratch.dev, Next.js): placeholder, not deployed yet
+docs/                       architecture notes per topic, kids-protection report, platform plan
+tsconfig.base.json          strict compiler options shared by both apps
 ```
 
 ## More

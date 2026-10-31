@@ -23,8 +23,8 @@ More files, not architecture notes:
 - [night-test-2026-10-24.md](night-test-2026-10-24.md): the game-harness rounds before the event, what each
   found and what changed.
 
-The slide deck for the video has its own notes: [slides/README.md](../slides/README.md) (how it is built) and
-[slides/DESIGN.md](../slides/DESIGN.md) (its design system); how the app serves it is in
+The slide deck for the video has its own notes: [slides/README.md](../apps/app/slides/README.md) (how it is built) and
+[slides/DESIGN.md](../apps/app/slides/DESIGN.md) (its design system); how the app serves it is in
 [deployment.md](deployment.md#image).
 
 Keep these notes current: when a change alters a decision or a trap described here, update the doc in the

@@ -3,14 +3,17 @@ node_modules/
 dist/
 logs/
 # the event's teacher data (school codes, Locker cards): local only, never commit
-/live/
+/apps/app/live/
 test-results/
 playwright-report/
+# office (Next.js): build output and generated type declarations (npm run typecheck regenerates them)
+.next/
+next-env.d.ts
 
 # impeccable skill engine: the wrapper downloads a version-pinned, checksum-verified copy on first use
 .claude/skills/impeccable/scripts/bin/
 
 # game harness: runs and the generated reference games (node eval/games/reference.ts)
-eval/games/runs/
-eval/games/sessions/
-eval/games/reference/
+apps/app/eval/games/runs/
+apps/app/eval/games/sessions/
+apps/app/eval/games/reference/

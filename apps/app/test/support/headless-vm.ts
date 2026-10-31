@@ -3,6 +3,7 @@
 // scripts instead of comparing JSON.
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
 import { registerKiExtension } from '../../src/editor/ki-extension.ts';
 import type { Ask } from '../../src/shared/ki-block.ts';
 import type { Target, Variable, VirtualMachine } from '../../src/shared/scratch/vm-types.ts';
@@ -93,7 +94,8 @@ export const findVariable = (vm: VirtualMachine, name: string): Variable | undef
 };
 
 // --- assets (library + drawn costumes) ----------------------------------------------------------
-const LIBRARY_DIR = new URL('../../node_modules/@scratch/scratch-gui/dist/libraries/', import.meta.url);
+// the package's main file sits in dist/, wherever npm installed it (the workspace root hoists it)
+const LIBRARY_DIR = new URL('libraries/', pathToFileURL(require.resolve('@scratch/scratch-gui')));
 
 /** Storage with only the built-in default assets: enough for drawn SVG costumes and offlineLibrary. */
 export const withStorage = <T extends VirtualMachine>(vm: T): T => {

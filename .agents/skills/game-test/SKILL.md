@@ -5,13 +5,15 @@ description: Test whether the AI assistant of this app can build a real Scratch 
 
 # Game test
 
+All paths and commands below are relative to the kids' app, `apps/app`: run them there.
+
 `eval/games/session.ts` keeps the real app open in headless Chromium: the production build, the real model,
 and the real Scratch editor. You play the kid, one command per action. Every command answers in compact
 text, so you don't need screenshots or clicks to know what happened. Details: `eval/games/README.md`.
 
 ## Setup (once per test)
 
-Needs a filled `.env` (the Anthropic key and workspace id, and the Jev key: every kid message goes through
+Needs a filled `apps/app/.env` (the Anthropic key and workspace id, and the Jev key: every kid message goes through
 the kids-protection guard; access codes are not needed) and Playwright's Chromium (`npx playwright install
 chromium`).
 

@@ -45,14 +45,14 @@ or `src/server/locker.ts`.
 
 ## How it works
 
-- **Menu:** [locker-menu.ts](../src/editor/locker-menu.ts) runs in the iframe. Scratch renders the menu
+- **Menu:** [locker-menu.ts](../apps/app/src/editor/locker-menu.ts) runs in the iframe. Scratch renders the menu
   only while it's open, so a `MutationObserver` clones Scratch's "Auf deinem Computer speichern" item each
   time. It finds that item by its label in the language picked in Scratch (message
   `gui.menuBar.downloadToComputer` from the GUI's redux `locales`; languages without a translation, English
   among them, show the default "Save to your computer"). Our labels stay German, like the dialog. The clones keep `data-menu-item`, so Scratch's menu hook moves through them with the arrow keys and
   clicks them on Enter. A click sends an Escape keydown (Scratch 15's file menu isn't in redux; Escape is how
   its hook closes it) and calls `window.ki.openLocker`, which the host sets.
-- **Server:** [locker.ts](../src/server/locker.ts) passes the calls on, because the Locker's CORS allows
+- **Server:** [locker.ts](../apps/app/src/server/locker.ts) passes the calls on, because the Locker's CORS allows
   only its own site. The kid's code travels as the `X-Locker-Code` header, never in a URL, so it stays out
   of request logs; the research log never sees it. Save runs the Locker's three steps on the server: a
   ticket, the PUT to the storage URL it hands out (Azure Blob in production), then create or replace; on
@@ -75,8 +75,8 @@ or `src/server/locker.ts`.
 
 ## Tests
 
-- [locker.test.ts](../src/server/locker.test.ts) fakes the Locker's API in memory (tickets, blob PUT,
-  replace, errors); [LockerDialog.test.tsx](../src/client/locker/LockerDialog.test.tsx) covers every state;
-  [e2e/locker.spec.ts](../e2e/locker.spec.ts) runs the menu, a save and a load in the real editor.
+- [locker.test.ts](../apps/app/src/server/locker.test.ts) fakes the Locker's API in memory (tickets, blob PUT,
+  replace, errors); [LockerDialog.test.tsx](../apps/app/src/client/locker/LockerDialog.test.tsx) covers every state;
+  [e2e/locker.spec.ts](../apps/app/e2e/locker.spec.ts) runs the menu, a save and a load in the real editor.
 - **Live check:** save, replace, load and a wrong code ran against production on 2026-10-25 with a test
   code, through the real routes (`createApp` with `.env`). Repeat that after a Locker upgrade.

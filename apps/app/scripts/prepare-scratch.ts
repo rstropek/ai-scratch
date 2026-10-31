@@ -4,11 +4,13 @@
 // 2. writes .br and .gz next to every compressible file in dist/client, dist/scratch and dist/slides, so the server
 //    sends the 17 MB editor bundle as ~4-6 MB without compressing on every request.
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import zlib from 'node:zlib';
 
-const SOURCE = 'node_modules/@scratch/scratch-gui/dist';
+// the package's main file sits in dist/, wherever npm installed it (the workspace root hoists it)
+const SOURCE = path.dirname(createRequire(import.meta.url).resolve('@scratch/scratch-gui'));
 const DIST = 'dist';
 const SKIP = [/\.map$/, /^scratch-gui\.js/, /^types\//];
 const COMPRESSIBLE = /\.(js|mjs|css|html|json|svg|txt|wasm)$/;

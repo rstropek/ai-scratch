@@ -4,7 +4,7 @@ Two ways to use it:
 
 - **Interactive** (`session.ts`, for an agent): you play the kid and send one command per action; each
   answer comes back as compact text (answer, tool calls, checks, screenshot paths). The workflow is the
-  `game-test` skill ([.agents/skills/game-test/SKILL.md](../../.agents/skills/game-test/SKILL.md)).
+  `game-test` skill ([.agents/skills/game-test/SKILL.md](../../../../.agents/skills/game-test/SKILL.md)).
 - **Batch** (`run.ts`, below): a simulated kid plays, for comparing variants over many runs.
 
 Can the assistant build a real game with a kid? A simulated kid builds a game with the **real app** (the

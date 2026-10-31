@@ -2,6 +2,7 @@
 // and writes docs/kids-protection.md, the record of what was tested. Costs fractions of a cent.
 //   npm run eval:guard
 import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import {
   BLOCK_SCREENING,
   CHAT_SCREENING,
@@ -15,7 +16,8 @@ import {
 import { MAX_ANSWER_CHARS, MAX_STEPS_PER_TURN } from '../../src/server/output-guard.ts';
 import { BLOCK_CASES, CASES, type Expected, type GuardCase } from './cases.ts';
 
-const REPORT = 'docs/kids-protection.md';
+/** in the repo's docs/, next to the other architecture notes */
+const REPORT = fileURLToPath(new URL('../../../../docs/kids-protection.md', import.meta.url));
 const CONCURRENCY = 4;
 
 const apiKey = process.env.JEV_API_KEY;

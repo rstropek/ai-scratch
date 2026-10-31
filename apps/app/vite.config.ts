@@ -1,3 +1,5 @@
+import { createRequire } from 'node:module';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
@@ -23,9 +25,9 @@ export default defineConfig({
   ],
   resolve: { alias: { '@': fileURLToPath(new URL('./src/client', import.meta.url)) } },
   // The unmodified Scratch standalone build expects its chunks/static files at the web root
-  // (webpack publicPath "/"). In dev Vite serves them from node_modules; the production build
-  // copies and precompresses them separately (scripts/prepare-scratch.ts).
-  publicDir: 'node_modules/@scratch/scratch-gui/dist',
+  // (webpack publicPath "/"). In dev Vite serves them from the package's dist/ (hoisted to the workspace
+  // root); the production build copies and precompresses them separately (scripts/prepare-scratch.ts).
+  publicDir: path.dirname(createRequire(import.meta.url).resolve('@scratch/scratch-gui')),
   server: {
     port: 5173,
     strictPort: true,

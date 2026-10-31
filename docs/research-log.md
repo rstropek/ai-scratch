@@ -5,7 +5,7 @@ During the event every Anthropic call and every guard screening was stored for r
 set it. The stored logs stay in Azure; never delete them as part of a code change. Error output may still
 contain messages or parts of them (e.g. an AI SDK error with its request body in the console): that is fine,
 by Rainer's decision; only the normal path must not store content. Read before touching
-[wire-log.ts](../src/server/wire-log.ts), [stats.ts](../src/server/stats.ts) or [cost.ts](../src/server/cost.ts).
+[wire-log.ts](../apps/app/src/server/wire-log.ts), [stats.ts](../apps/app/src/server/stats.ts) or [cost.ts](../apps/app/src/server/cost.ts).
 
 ## The call log (local, opt-in)
 
@@ -54,5 +54,5 @@ by Rainer's decision; only the normal path must not store content. Read before t
   categories and outages, output caps, refusals for hearts and memory, summaries, answers of the "frage KI" block (`asks`).
 - In memory, **per instance**, since its last start: a restart or a swap resets them, and with several
   instances each shows its own share. Nothing else records production use anymore.
-- [cost.ts](../src/server/cost.ts) has the Claude Haiku 5.5 prices hard-coded. Update them when `MODEL` changes,
+- [cost.ts](../apps/app/src/server/cost.ts) has the Claude Haiku 5.5 prices hard-coded. Update them when `MODEL` changes,
   or every cost in the log and the stats is wrong.

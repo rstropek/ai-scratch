@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!**/*.md", "!src/shared/scratch/block-catalog.json", "!.claude"]
+    "includes": ["**", "!**/*.md", "!apps/app/src/shared/scratch/block-catalog.json", "!.claude"]
   },
   "formatter": {
     "indentStyle": "space",

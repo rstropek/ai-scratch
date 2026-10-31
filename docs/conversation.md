@@ -1,13 +1,13 @@
 # Conversation: model input, caching, memory
 
 What the model sees each turn, why, and how that stays cheap. Read before touching
-[model-input.ts](../src/server/model-input.ts), the cache settings in [chat.ts](../src/server/chat.ts),
+[model-input.ts](../apps/app/src/server/model-input.ts), the cache settings in [chat.ts](../apps/app/src/server/chat.ts),
 `/api/compact` or the Gedächtnis gauge.
 
 ## The model input is rebuilt every turn
 
 The browser keeps the full conversation, but the server never replays it raw. The rules and their reasons
-are in the header of [model-input.ts](../src/server/model-input.ts): earlier turns as text plus a tool note (in the kid's next message, never in the model's own: there it
+are in the header of [model-input.ts](../apps/app/src/server/model-input.ts): earlier turns as text plus a tool note (in the kid's next message, never in the model's own: there it
 copied the note as text instead of calling the tool),
 the current turn verbatim, the project snapshot frozen into the kid's message, guarded turns left out (also
 from summaries). What the header doesn't say:
@@ -45,13 +45,13 @@ run's ([research-log.md](research-log.md)): `cache_read_input_tokens` should cov
 
 - The gauge shows the **input tokens of a turn's first model call**: the context the model reads before it
   does anything. It comes back as message metadata (`context`), so the client and the server read the same
-  number from the conversation ([energy.ts](../src/shared/energy.ts)).
+  number from the conversation ([energy.ts](../apps/app/src/shared/energy.ts)).
 - At **80k** a new message is refused (409) until the kid frees memory by hand. Measured: ~10k at the start,
   0.1–0.5k per turn, so few kids reach it; Rainer kept 80k because games can get long. Rainer explains the
   two buttons in the video.
 - **The project alone never locks a kid out:** the limit applies only when there is conversation to free.
 - **"Neu anfangen"** clears the chat in the browser; the project stays. **"Zusammenfassen"** calls
-  [compact.ts](../src/server/compact.ts), and the client replaces the whole conversation with the summary.
+  [compact.ts](../apps/app/src/server/compact.ts), and the client replaces the whole conversation with the summary.
 - Until the next turn measures again, the gauge shows an estimate (session start + summary length).
 
 ## Summaries

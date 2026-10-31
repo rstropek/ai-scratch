@@ -20,7 +20,7 @@ codes, hearts, the guard or the output limits.
 
 ## Client shows, server enforces
 
-- The rules live once in [energy.ts](../src/shared/energy.ts) and are used on both sides. The client applies
+- The rules live once in [energy.ts](../apps/app/src/shared/energy.ts) and are used on both sides. The client applies
   them so a kid almost never meets a refusal; the server enforces the same rules because the client could be
   bypassed.
 - Only a **new kid message** costs a heart and is screened. The follow-up requests that carry tool results
@@ -36,7 +36,7 @@ codes, hearts, the guard or the output limits.
 
 ## Output limits
 
-[output-guard.ts](../src/server/output-guard.ts). `max_tokens` (16k) only bounds the cost of one runaway
+[output-guard.ts](../apps/app/src/server/output-guard.ts). `max_tokens` (16k) only bounds the cost of one runaway
 call. It can't be lower: thinking and tool inputs (scripts, SVG drawings) need room. Haiku does hit it now
 and then (15k thinking tokens on Minesweeper neighbour counting). A tool call cut by `max_tokens` would
 leave its input streaming forever and the chat stuck on „läuft“; `closeCutToolCalls` closes it as a tool
@@ -58,7 +58,7 @@ What a kid could provoke is bounded by two other limits:
 
 ## Kids-protection guard
 
-[guard.ts](../src/server/guard.ts); what was tested and the current thresholds: the generated
+[guard.ts](../apps/app/src/server/guard.ts); what was tested and the current thresholds: the generated
 [kids-protection.md](kids-protection.md). Never edit that file by hand; run `npm run eval:guard` after
 changing questions or thresholds (it calls the real Jev, so it is not part of `npm test`).
 
@@ -94,13 +94,13 @@ changing questions or thresholds (it calls the real Jev, so it is not part of `n
 For users outside the schools: a parent creates an OpenRouter key with a small spending limit, so the app can
 never spend more than that. The gate makes the kid choose actively ("Zugangscode" or "eigener Schlüssel");
 the key path is for the parents: key, a summary of the terms, the full terms
-([TermsDialog.tsx](../src/client/chat/TermsDialog.tsx)) and a consent box.
+([TermsDialog.tsx](../apps/app/src/client/chat/TermsDialog.tsx)) and a consent box.
 
 - **One header:** the key travels in `X-Access-Code` like a code and is told apart by its `sk-or-` prefix
-  ([shared/access.ts](../src/shared/access.ts)). Keys are case-sensitive: never normalize them. A key in a
+  ([shared/access.ts](../apps/app/src/shared/access.ts)). Keys are case-sensitive: never normalize them. A key in a
   `?code=` link is dropped; parents enter it themselves.
 - **The server checks it with OpenRouter** (`GET /key` for the key's limit, `GET /credits` for the account's
-  balance, [access.ts](../src/server/access.ts)): unknown → 401, **no limit → refused** (403, Rainer's
+  balance, [access.ts](../apps/app/src/server/access.ts)): unknown → 401, **no limit → refused** (403, Rainer's
   decision: the terms promise a budget-limited key), under 5 cents left on the key or the account → 402,
   OpenRouter unreachable → 503. A key that passed is not asked about again for 5 minutes, a refused one for
   15 s. A failed `/credits` doesn't refuse anyone: the model's 402 is the backstop.
@@ -108,7 +108,7 @@ the key path is for the parents: key, a summary of the terms, the full terms
   check). Every other `/api` route needs only a key OpenRouter knows: the Locker still saves a game when the
   money is used up or OpenRouter is down. `/api/stats` is for school codes only (anyone can make a key).
 - **Model calls** go through OpenRouter's Anthropic-compatible Messages API with the same SDK and options
-  ([model.ts](../src/server/model.ts)): base URL, the key as Bearer token, model `anthropic/claude-haiku-5.5`,
+  ([model.ts](../apps/app/src/server/model.ts)): base URL, the key as Bearer token, model `anthropic/claude-haiku-5.5`,
   no workspace header. Prompt caching and signed thinking work (tested 2026-10-27 with a full game; OpenRouter
   routed to "Claude Platform on AWS"). OpenRouter charges Anthropic's list prices.
 - **A spent budget mid-session** (OpenRouter 402, or 403 with an `error.metadata.limit_source`; a moderation
@@ -116,11 +116,11 @@ the key path is for the parents: key, a summary of the terms, the full terms
   key is then refused for a minute before any heart, screening or model call, because `GET /key` may still
   pass it (a balance too small for a turn). A revoked key (401) sends the kid back to the gate.
 - **Two sets of texts:** the server's refusals are for the kid ("du"); the gate reads only their `reason` and
-  shows its own texts for the parents ("Sie", [App.tsx](../src/client/App.tsx)).
+  shows its own texts for the parents ("Sie", [App.tsx](../apps/app/src/client/App.tsx)).
 - **Hearts stay** for key users (Rainer's decision); the remaining budget is shown nowhere.
 - **The key is never stored or logged on the server:** log records and hearts see `openrouter` instead of the
   key; the call log stores request bodies, never headers. The browser remembers it (localStorage) with the
-  version of the accepted terms; new terms (`TERMS_VERSION` in [client/access.ts](../src/client/access.ts))
+  version of the accepted terms; new terms (`TERMS_VERSION` in [client/access.ts](../apps/app/src/client/access.ts))
   ask the parents again. „Schlüssel vergessen“ in the chat's top bar forgets both.
 - The Jev guard still runs on Rainer's TypeSafe key for key users. Their model calls are not counted in
   `/api/stats` (Rainer's decision): the stats watch the Anthropic budget.

@@ -70,6 +70,10 @@ Not ported:
 
 Commands and folder overview: [README.md](README.md).
 
+- **npm workspace with two apps side by side.** Run `npm install` at the root only; npm hoists the packages to the root `node_modules`, so code finds a package's files through Node's resolver (`createRequire(...).resolve`), never through a `node_modules/...` path.
+  - `apps/app`: the kids' app (ai-scratch.dev). **Code paths in this file and in `docs/` (`src/...`, `e2e/`, `eval/`, `scripts/`, `slides/`) are relative to `apps/app`**; its commands run there, its `.env` is `apps/app/.env`.
+  - `apps/office`: the teachers' office (office.ai-scratch.dev), Next.js App Router; a placeholder so far, not deployed. The plan: `docs/platform-plan.md`.
+  - Shared at the root: `biome.json`, `tsconfig.base.json`, `docs/`; `npm run check` lints everything and type-checks each app.
 - **Where code runs decides where it lives:**
   - `src/shared`: browser and Node;
   - `src/editor`: inside the Scratch iframe (also the "frage KI" block extension);
@@ -120,7 +124,7 @@ Commands and folder overview: [README.md](README.md).
 
 ## Working agreements
 
-- Secrets live in `.env` (git-ignored, server-side only). Never print or commit keys.
+- Secrets live in each app's `.env` (git-ignored, server-side only). Never print or commit keys.
 - Leave Scratch unmodified wherever possible.
 - Tests: unit > component > e2e.
 - Don't commit or push unless Rainer asks.

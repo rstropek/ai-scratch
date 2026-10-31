@@ -21,7 +21,7 @@ test('effort and a replacement prompt are optional; a wrong effort stops the ser
   expect(loadConfig(base)).toMatchObject({ effort: 'high', instructions: undefined });
   expect(loadConfig({ ...base, EFFORT: 'medium', INSTRUCTIONS_FILE: 'package.json' })).toMatchObject({
     effort: 'medium',
-    instructions: expect.stringContaining('digiferien'),
+    instructions: expect.stringContaining('@ai-scratch/app'),
   });
   expect(() => loadConfig({ ...base, EFFORT: 'mittel' })).toThrow('EFFORT must be one of');
 });

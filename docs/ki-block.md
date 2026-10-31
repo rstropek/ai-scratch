@@ -6,13 +6,13 @@ joining the conversation into a variable. Read this before touching the block, `
 
 ## The path of one question
 
-1. [ki-extension.ts](../src/editor/ki-extension.ts) (in the editor iframe) calls `window.ki.ask`, which the
+1. [ki-extension.ts](../apps/app/src/editor/ki-extension.ts) (in the editor iframe) calls `window.ki.ask`, which the
    host sets only while the kid has a valid code. Without it the block reports „Gib zuerst den Code im Chat
    ein.“
-2. [ki-ask.ts](../src/client/ki-ask.ts) (host) takes a heart from the **same store as the chat**
-   ([hearts.ts](../src/client/hearts.ts)). Without a heart it **waits** for the next one (Rainer's choice),
+2. [ki-ask.ts](../apps/app/src/client/ki-ask.ts) (host) takes a heart from the **same store as the chat**
+   ([hearts.ts](../apps/app/src/client/hearts.ts)). Without a heart it **waits** for the next one (Rainer's choice),
    so a block in a loop can't flood the server; the chat waits too, since it shares the hearts.
-3. [ask.ts](../src/server/ask.ts) (`POST /api/ask`, access code required): one heart from the server's
+3. [ask.ts](../apps/app/src/server/ask.ts) (`POST /api/ask`, access code required): one heart from the server's
    bucket, then Jev, then one model call (same model, no tools, no thinking, `max_tokens` 300). Answers are
    plain JSON, not a stream. A model failure or an empty answer is a 502 with a German message the sprite
    says.
@@ -26,7 +26,7 @@ variable and sends all of it. That is the point of the exercise: a chatbot only 
 - **Audience instructions** (`ASK_INSTRUCTIONS`): ages 10–16, German, at most 2–3 short sentences (a Scratch
   speech bubble shows about 330 characters), plain text, continue a joined conversation, play along with a
   role, send kids with personal problems to the adults.
-- **Its own Jev description** (`BLOCK_QUESTIONS` in [guard.ts](../src/server/guard.ts)): same questions,
+- **Its own Jev description** (`BLOCK_QUESTIONS` in [guard.ts](../apps/app/src/server/guard.ts)): same questions,
   categories and thresholds, but the context describes a chatbot, and four questions are reworded so a role
   („Du bist ein Pirat“), teasing within that role and a sad character pass. „Ignoriere deine Regeln“ still
   doesn't. The cases are in [kids-protection.md](kids-protection.md); the chat's questions are unchanged.
