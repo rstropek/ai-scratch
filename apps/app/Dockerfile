@@ -3,9 +3,10 @@
 # docker build -f apps/app/Dockerfile --build-arg APP_VERSION=$(git rev-parse HEAD) -t ai-scratch .
 FROM node:24-slim AS build
 WORKDIR /repo
-# npm ci checks every workspace against the lock file, so the office's package.json comes along; -w installs only the app's packages
+# npm ci checks every workspace against the lock file, so the other package.json files come along; -w installs only the app's packages
 COPY package.json package-lock.json .npmrc ./
 COPY apps/office/package.json ./apps/office/
+COPY packages/db/package.json ./packages/db/
 COPY apps/app/package.json ./apps/app/
 COPY apps/app/scripts ./apps/app/scripts
 RUN npm ci -w apps/app --no-audit --no-fund
@@ -21,6 +22,7 @@ FROM node:24-slim AS deps
 WORKDIR /repo
 COPY package.json package-lock.json .npmrc ./
 COPY apps/office/package.json ./apps/office/
+COPY packages/db/package.json ./packages/db/
 COPY apps/app/package.json ./apps/app/
 RUN npm ci -w apps/app --omit=dev --ignore-scripts --no-audit --no-fund
 

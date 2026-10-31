@@ -1,6 +1,6 @@
 # Platform plan: from event app to classroom offering
 
-Status: **planning, nothing implemented.** The outcome of the architecture discussion of 2026-10-31. Each point is
+Status: **iteration 1 of the office implemented** (login, one protected page; Azure setup pending). The outcome of the architecture discussion of 2026-10-31. Each point is
 marked **decided** (Rainer agreed), **proposed** (Claude's suggestion, not confirmed yet) or **open**.
 
 ## Why
@@ -15,13 +15,13 @@ paid for with donated API credits. AGENTS.md and the topic docs get updated once
 ```
 ai-scratch.dev          apps/app: today's kids' app, same tech: Vite SPA + Scratch iframe + Hono
                           /api/chat, /api/ask, /api/compact, /api/locker
-                          + code check and cost tracking against Cosmos DB, Anthropic key pool,
+                          + code check and cost tracking against Postgres, Anthropic key pool,
                             "frage KI" switch per code
 office.ai-scratch.dev   apps/office: Next.js (App Router)               → App Service container
                           /antrag (teacher application), /lehrer (teacher area), /admin (Rainer)
                           better-auth, emails via Resend
 packages/db             data access, limits from env, code generator: shared by both apps
-Cosmos DB               NoSQL, serverless, westeurope
+Postgres                Azure Database for PostgreSQL Flexible Server, Burstable B1ms, northeurope
 ```
 
 - **Decided:** two apps side by side: the kids' app and the office (teachers and admin). Next.js for the office;
@@ -34,15 +34,15 @@ Cosmos DB               NoSQL, serverless, westeurope
 - **Decided:** the kids' app at **ai-scratch.dev** (kids type the shortest address), the office at
   **office.ai-scratch.dev**. The office's session cookie stays host-only (no `Domain`); both hosts are the same
   site, so better-auth's origin checks (`trustedOrigins`) still matter.
-- **Decided, done (2026-10-31):** an npm workspace at the repo root with `apps/app` (the kids' app) and
-  `apps/office` (a Next.js placeholder, not deployed yet). The slide deck stays in `apps/app/slides` with its own
-  packages. `packages/db` joins once there's data access.
+- **Decided, done (2026-10-31):** an npm workspace at the repo root with `apps/app` (the kids' app),
+  `apps/office` and `packages/db`. The slide deck stays in `apps/app/slides` with its own packages.
 - **Decided:** old links may break; no compatibility redirects (school codes, `?code=` links, the old host
   name).
 - **Proposed:** the kids' app reads codes and writes spend straight to the database and never calls the office
   at runtime. A broken or redeploying office then never interrupts a lesson.
-- **Proposed:** a second App Service web app for the office on the existing P0v3 plan `ts-web-playground`, with
-  a staging slot and its own workflow (Next.js `output: 'standalone'`).
+- **Done (iteration 1):** a second App Service web app for the office (`ai-scratch-office`) on the existing P0v3
+  plan `ts-web-playground`, with a staging slot, a deploy job and the swap workflow per app (Next.js
+  `output: 'standalone'`). Script: `apps/office/scripts/azure/provision.sh`.
 - **Open:** where the public content pages live (what it is, exercises, videos, safety, Impressum, Datenschutz,
   terms of use): in the office, or as static pages in the kids' app.
 - **Open:** whether the event's video page (`/digiferien-2026-live`) and the slide deck (`/slides/`) move to
@@ -58,43 +58,48 @@ Cosmos DB               NoSQL, serverless, westeurope
   - a teacher's and a code's language get a field once English arrives (the kids' app then picks the prompt,
     the guard's fixed answers and the UI texts from the code's language).
 
-## Data: Cosmos DB serverless
+## Data: Postgres
 
-- **Decided:** Azure Cosmos DB for NoSQL, serverless, `westeurope`.
-- **Why not Postgres:** compared using Azure list prices, West Europe, 2026-10-31:
-
-  | Option | Price per month |
-  |---|---|
-  | Postgres Flexible B1ms | about €16.60 whether used or not |
-  | Cosmos serverless | well under €1 at our volume (€0.2684 per 1M request units, a model call ≈ 10–15 RU) |
-  | Table Storage | cents |
-
-- **Why Cosmos over Table Storage:**
-  - atomic partial updates (`incr` with a condition) for the spend counters;
-  - real queries for the admin views;
-  - a feasible better-auth adapter.
-- **Proposed:**
-  - Access through data-plane RBAC with the managed identity, no keys.
-  - Tests and local development run against the Linux Cosmos emulator in Docker.
-  - An Azure budget alert on the resource group, because serverless has no upper limit.
+- **Decided (2026-10-31, replaces Cosmos DB serverless):** Azure Database for PostgreSQL Flexible Server,
+  **Burstable B1ms** (1 vCore, 2 GiB), Postgres 17. Always on, so no wake-up delay.
+- **Region `northeurope`** (Claude, technical): the subscription may not create Postgres servers in
+  `westeurope` or `germanywestcentral`. North Europe is the cheapest open EU region and West Europe's pair.
+- **Cost** (Azure list prices, 2026-10-31): compute €0.0158/h ≈ €11.53 + 32 GiB storage (the minimum) at about
+  €0.12/GB ≈ €3.86, backups free up to the storage size: **about €15.40 a month**, used or not.
+  The cheapest managed Postgres; a self-managed one on a VM saves ~€9 a month but means our own backups and
+  patching.
+- **Why Postgres over Cosmos (serverless would cost cents):** less to build and less risk.
+  - better-auth supports it out of the box (its Drizzle adapter): no adapter of our own.
+  - Local development and CI use the official `postgres` Docker image (a service container in GitHub
+    Actions): no emulator with feature gaps.
+  - Budget sums per teacher and month and the atomic spend updates are plain SQL with transactions.
+- **Done (iteration 1):**
+  - Public endpoint with TLS; firewall for Azure services and the admin's IP. Login with the slots' managed
+    identities (Entra authentication; `pg` takes a token callback as password), so no database password. No
+    VNet: it would need VNet integration for the App Service plan.
+  - One database per slot (`aiscratch`, `aiscratch_staging`), each owned by its slot's role.
+  - One schema in `packages/db`, migrations generated by `drizzle-kit`, applied by the office on start; better-auth's
+    CLI generates the auth tables into it (better-auth's Drizzle adapter). Details: `docs/database.md`.
+- **Proposed:** both apps connect: the office for everything, the kids' app to check codes and add spend.
+- **Decided:** **Drizzle** as the ORM, in both apps. Data access uses Drizzle's built-in mechanisms (query
+  builder, relational queries, `drizzle-kit` migrations); hand-written SQL is allowed, but the exception.
 - **Proposed data shape:**
-  - Code documents (time window, budget, comment, "frage KI" switch, spend), partitioned by teacher.
-  - A lookup document per normalised code string. Creating it fails while a code that hasn't expired yet holds
-    that string.
-  - Monthly counter documents: overall, per teacher, per key.
+  - `codes` (teacher, time window, budget, comment, "frage KI" switch, spend). Unique among codes that haven't
+    expired: checked in the insert's transaction, because a partial index can't use `now()`.
+  - Monthly counters (overall, per teacher, per key): `INSERT … ON CONFLICT DO UPDATE SET eur = eur + …`.
 
 ## Auth: better-auth
 
-- **Decided:** better-auth, with **our own Cosmos adapter**, checked with better-auth's official adapter test
-  suite (`@better-auth/test-utils`). The third-party `@wemogy/better-auth-cosmos` is small and declares
-  better-auth `^1.3` (current: 1.7).
+- **Decided:** better-auth on Postgres through its Drizzle adapter, with the `admin` plugin for roles (`admin` /
+  `user`), user management, banning and impersonation.
 - **Decided:** iteration 1 logs in with **email + password**. The other ways follow later.
+- **Done (iteration 1):** no open sign-up (`disableSignUp`); your account has the admin role (created with
+  `npm run seed:admin -w apps/office`); sessions end after 8 hours without use (shared school PCs), "Abmelden"
+  always visible; passwords at least 12 characters.
 - **Proposed:**
-  - No open sign-up (`disableSignUp`). Accepting an application creates the account, and the teacher sets
-    their password through a link in the acceptance email.
+  - Accepting an application creates the account, and the teacher sets their password through a link in the
+    acceptance email.
   - Password reset by email.
-  - Your account has the admin role.
-  - Short sessions (shared school PCs), "Abmelden" always visible.
 - **Later (discussed, not scheduled):**
   - Email one-time code (better-auth `emailOTP`; it has no "remember me", which is fine).
   - SSO with a multi-tenant Entra app:
@@ -247,7 +252,7 @@ Every way needs an adult: kids can't get access on their own. The per-school cod
   > Sicherheitsprüfung auch außerhalb der EU verarbeitet (Anthropic, OpenRouter, TypeSafe). Darum dürfen
   > Kinder keine persönlichen Daten eingeben.
 
-- **True today in the EU:** app, Key Vault, storage and the future Cosmos DB in `westeurope`, App Service logs
+- **True today in the EU:** app, Key Vault, storage and the future Postgres server in `westeurope`, App Service logs
   with IP addresses, the CoderDojo Locker (hosted in Europe), slide fonts (self-hosted).
 - **Gaps to close before the statement holds:**
 
@@ -273,7 +278,12 @@ Every way needs an adult: kids can't get access on their own. The per-school cod
 
 ## Order (proposed)
 
-1. Office (`apps/office`) deployed at office.ai-scratch.dev, content pages.
+1. **Iteration 1 of the office** (decided: Rainer, 2026-10-31; code done 2026-10-31): Postgres, an empty Next.js
+   app per our rules (`create-next-app`, current packages), better-auth with email + password, Rainer
+   (rainer@software-architects.at) with the `admin` role and no limits, one protected "hello world" page.
+   No other logic. On top: deployment at office.ai-scratch.dev (own web app with staging slot, CI job) and
+   Rainer's account from a seed script. **Open:** running the Azure scripts and the seed against production.
+   Then: content pages.
 2. Database, applications, admin, teacher login, codes with the key pool and budgets.
 3. Teachers' own OpenRouter keys.
 4. Exercises with starter projects.

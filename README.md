@@ -85,13 +85,21 @@ Handy for trying the assistant by hand; each one exercises a different tool fami
 ## Run it locally
 
 Requires Node.js 24 or later. The repo is an npm workspace: `npm install` runs once at the root; the kids' app
-lives in `apps/app`, the teachers' office (Next.js, only a placeholder so far) in `apps/office`.
+lives in `apps/app`, the teachers' office (Next.js) in `apps/office`, the database package in `packages/db`.
 
 ```bash
 npm install
 cp apps/app/.env.example apps/app/.env   # then fill in the Anthropic and TypeSafe keys and the access codes
 npm run dev                              # the kids' app: http://localhost:5173/?code=<one of your access codes>
-npm run dev:office                       # the office: http://localhost:3100
+```
+
+The office needs Docker for its local Postgres:
+
+```bash
+docker compose up -d db                        # Postgres 17 on localhost:5432
+cp apps/office/.env.example apps/office/.env   # then set BETTER_AUTH_SECRET (openssl rand -base64 32)
+npm run seed:admin -w apps/office              # your admin account; asks for a password
+npm run dev:office                             # http://localhost:3100
 ```
 
 The kids' app reads `apps/app/.env`:
@@ -146,13 +154,16 @@ restarts production and interrupts kids mid-answer. The reasons behind the setup
 | Secrets | Key Vault `kv-digiferien`, read by the app's managed identity |
 | Research logs | storage account `stdigiferien`, container `logs`: one JSON blob per AI call and per guard check of the event, no longer written. No retention rule; Rainer deletes them by hand |
 | Image | `acrars2025.azurecr.io/ai-scratch:<commit>` |
-| Workflows | [deploy.yml](.github/workflows/deploy.yml) (every push and PR: all tests; push to `main` that changes the kids' app → staging), [swap.yml](.github/workflows/swap.yml) (manual → production); GitHub logs in with OIDC |
+| Office | `ai-scratch-office` on the same plan: **https://office.ai-scratch.dev**, staging https://ai-scratch-office-staging.azurewebsites.net; image `acrars2025.azurecr.io/ai-scratch-office:<commit>` |
+| Database | Postgres Flexible Server `ai-scratch-db` (northeurope, Burstable B1ms), databases `aiscratch` and `aiscratch_staging`, Entra login only ([docs/database.md](docs/database.md)) |
+| Workflows | [deploy.yml](.github/workflows/deploy.yml) (every push and PR: all tests; push to `main` → staging of each app it changes), [swap.yml](.github/workflows/swap.yml) (manual, per app → production); GitHub logs in with OIDC |
 
 Operations (`az login` with Owner on the subscription; both scripts are safe to re-run):
 
 - **Changed keys or access codes in `.env`:** run `apps/app/scripts/azure/provision.sh`, then restart both slots
   (`az webapp restart -g 2026-digitalferien -n ai-scratch`, and again with `--slot staging`).
 - **GitHub login** (once): `apps/app/scripts/azure/github-identity.sh`.
+- **Office and database:** `apps/office/scripts/azure/provision.sh`, then `apps/office/scripts/azure/domain.sh`.
 - **Download the logs:** `az storage blob download-batch --auth-mode login --account-name stdigiferien -s logs -d <dir>`.
 
 ## Project layout
@@ -171,7 +182,8 @@ apps/app/                   the kids' app (ai-scratch.dev):
   slides/                     the Slidev deck for the video tutorial (own packages), served at /slides/
   scripts/                    postinstall workaround, Scratch bundle preparation, Azure setup (scripts/azure)
   Dockerfile                  its image; built from the repo root
-apps/office/                the teachers' office (office.ai-scratch.dev, Next.js): placeholder, not deployed yet
+apps/office/                the teachers' office (office.ai-scratch.dev, Next.js): login and one protected page so far
+packages/db/                Postgres schema, migrations and connection (Drizzle), shared by both apps
 docs/                       architecture notes per topic, kids-protection report, platform plan
 tsconfig.base.json          strict compiler options shared by both apps
 ```

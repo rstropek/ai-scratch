@@ -1,7 +1,7 @@
 # Every push and pull request: all tests that need no real API keys (check, unit/component tests, the office build,
-# e2e, the game checks against the reference games). Then, on main and only when the kids' app or a shared root
-# file changed: build the image, push it to ACR and run it in the staging slot. Production only changes through
-# the "Swap to production" workflow (swap.yml).
+# both apps' e2e tests, the game checks against the reference games). Then, on main, for each app whose files (or a
+# shared root file) changed: build its image, push it to ACR and run it in its staging slot. Production only
+# changes through the "Swap to production" workflow (swap.yml).
 name: CI and staging deploy
 
 on:
@@ -15,9 +15,7 @@ permissions:
 
 env:
   REGISTRY: acrars2025.azurecr.io
-  IMAGE: acrars2025.azurecr.io/ai-scratch:${{ github.sha }}
   RG: 2026-digitalferien
-  APP: ai-scratch
 
 jobs:
   test:
@@ -46,6 +44,28 @@ jobs:
         working-directory: apps/app
       - run: npm run e2e -w apps/app
 
+  office-e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: aiscratch_e2e
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+        working-directory: apps/office
+      - run: npm run e2e -w apps/office
+
   # the harness's automatic game checks against hand-built and CoderDojo games: no model calls
   games:
     runs-on: ubuntu-latest
@@ -67,12 +87,13 @@ jobs:
           ANTHROPIC_API_KEY: ci-no-real-calls
           JEV_API_KEY: ci-no-real-calls
 
-  # does this push change what the kids' app's image is built from?
+  # does this push change what an app's image is built from?
   changes:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     outputs:
       app: ${{ steps.diff.outputs.app }}
+      office: ${{ steps.diff.outputs.office }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -82,15 +103,14 @@ jobs:
           BEFORE: ${{ github.event.before }}
         run: |
           if [[ "$GITHUB_EVENT_NAME" != push ]] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
-            echo "app=true" >> "$GITHUB_OUTPUT"; exit 0
+            echo "app=true" >> "$GITHUB_OUTPUT"; echo "office=true" >> "$GITHUB_OUTPUT"; exit 0
           fi
           files=$(git diff --name-only "$BEFORE" "$GITHUB_SHA")
           echo "$files"
-          if grep -qE '^(apps/app/|package\.json$|package-lock\.json$|\.npmrc$|tsconfig\.base\.json$|\.github/workflows/deploy\.yml$)' <<< "$files"; then
-            echo "app=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "app=false" >> "$GITHUB_OUTPUT"
-          fi
+          shared='package\.json$|package-lock\.json$|\.npmrc$|tsconfig\.base\.json$|\.github/workflows/deploy\.yml$'
+          changed() { grep -qE "^($1|$shared)" <<< "$files" && echo true || echo false; }
+          echo "app=$(changed 'apps/app/')" >> "$GITHUB_OUTPUT"
+          echo "office=$(changed 'apps/office/|packages/db/')" >> "$GITHUB_OUTPUT"
 
   deploy:
     needs: [test, e2e, games, changes]
@@ -102,6 +122,9 @@ jobs:
     concurrency:
       group: azure-ai-scratch
       cancel-in-progress: false
+    env:
+      IMAGE: acrars2025.azurecr.io/ai-scratch:${{ github.sha }}
+      APP: ai-scratch
     steps:
       - uses: actions/checkout@v7
       - uses: azure/login@v3
@@ -134,4 +157,51 @@ jobs:
             sleep 10
           done
           echo "::error::staging did not start ${GITHUB_SHA} within 10 minutes"
+          exit 1
+
+  deploy-office:
+    needs: [test, office-e2e, changes]
+    if: github.ref == 'refs/heads/main' && needs.changes.outputs.office == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    concurrency:
+      group: azure-ai-scratch-office
+      cancel-in-progress: false
+    env:
+      IMAGE: acrars2025.azurecr.io/ai-scratch-office:${{ github.sha }}
+      APP: ai-scratch-office
+    steps:
+      - uses: actions/checkout@v7
+      - uses: azure/login@v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - run: az acr login -n acrars2025
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: apps/office/Dockerfile
+          push: true
+          tags: ${{ env.IMAGE }}
+          build-args: APP_VERSION=${{ github.sha }}
+          cache-from: type=gha,scope=office
+          cache-to: type=gha,mode=max,scope=office
+      - name: Run the image in the staging slot
+        run: >
+          az webapp config set -g "$RG" -n "$APP" --slot staging -o none
+          --linux-fx-version "DOCKER|$IMAGE"
+          --generic-configurations '{"acrUseManagedIdentityCreds": true}'
+      - name: Wait until staging runs this commit
+        run: |
+          for i in $(seq 60); do
+            version=$(curl -sf --max-time 10 https://ai-scratch-office-staging.azurewebsites.net/healthz | jq -r .version || true)
+            echo "attempt $i: ${version:-no answer}"
+            [[ "$version" == "$GITHUB_SHA" ]] && exit 0
+            sleep 10
+          done
+          echo "::error::office staging did not start ${GITHUB_SHA} within 10 minutes"
           exit 1

@@ -9,12 +9,13 @@
   },
   "workspaces": [
     "apps/app",
-    "apps/office"
+    "apps/office",
+    "packages/db"
   ],
   "scripts": {
     "dev": "npm run dev -w apps/app",
     "dev:office": "npm run dev -w apps/office",
-    "build": "npm run build --workspaces",
+    "build": "npm run build --workspaces --if-present",
     "test": "npm test --workspaces --if-present",
     "check": "biome check . && npm run typecheck --workspaces",
     "lint:fix": "biome check --write ."

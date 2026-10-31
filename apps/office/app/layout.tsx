@@ -1,15 +1,16 @@
 import type { Metadata } from 'next';
-import type { ReactNode } from 'react';
+import { texts } from '../lib/texts.ts';
+import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'AI-Scratch Office',
-  description: 'Zugangscodes für AI-Scratch: für Lehrerinnen und Lehrer',
+  title: texts.appName,
+  robots: { index: false },
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="de">
-      <body>{children}</body>
+      <body className="min-h-dvh bg-slate-50 text-slate-900 antialiased">{children}</body>
     </html>
   );
 }

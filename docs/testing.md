@@ -20,6 +20,11 @@ Prefer the lowest layer that can show the bug: unit > component > e2e.
   dummy keys, so a test without a mock can never call (and pay for) the model. **Any page error fails the
   test** ([app.ts](../apps/app/e2e/helpers/app.ts)). `/api/ask` (the "frage KI" block) is mocked with `page.route`.
 
+- **The office** (`apps/office`): unit tests run better-auth with our configuration on **PGlite** (in-memory
+  Postgres with the real migrations), component tests (jsdom) mock `lib/auth-client.ts` and `next/navigation`,
+  e2e runs the standalone build against a real Postgres (`docker compose up -d db` locally, a service container
+  in CI). Next.js's route announcer is an element with `role="alert"` too: filter alerts by text.
+
 ## What the tests can't show
 
 - **The real editor's rendering.** jsdom and the headless VM have no GUI. The thumbnail throttling and the
@@ -36,7 +41,7 @@ Prefer the lowest layer that can show the bug: unit > component > e2e.
 - **The slide deck** has no tests of its own; only its `/slides` route is tested (server tests). Look at a
   deck change in the browser (`npm run dev` in `slides/`).
 - **CI runs everything that needs no real keys** on every push and pull request: check, unit/component
-  tests, the office build, e2e, and the game checks against the reference games (`--references`, about 6 min,
+  tests, the office build, both apps' e2e tests, and the game checks against the reference games (`--references`, about 6 min,
   no model calls). Only `test:live`, `eval:guard` and model runs of `eval:games` stay local.
 
 ## Game tests (the real model)

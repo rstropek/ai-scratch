@@ -1,22 +1,28 @@
-# Manual: swaps staging and production. Production then runs what staging ran, and staging keeps the old
-# production image, so running this again rolls back. Don't run it while kids are using the app: the swap
-# restarts production and cuts running chats.
+# Manual: swaps an app's staging and production slots. Production then runs what staging ran, and staging keeps the
+# old production image, so running this again rolls back. Don't swap the kids' app while kids are using it: the
+# swap restarts production and cuts running chats.
 name: Swap to production
 
 on:
   workflow_dispatch:
+    inputs:
+      app:
+        description: Which app
+        type: choice
+        options: [ai-scratch, ai-scratch-office]
+        default: ai-scratch
 
 permissions:
   id-token: write
   contents: read
 
 concurrency:
-  group: azure-ai-scratch
+  group: azure-${{ inputs.app }}
   cancel-in-progress: false
 
 env:
   RG: 2026-digitalferien
-  APP: ai-scratch
+  APP: ${{ inputs.app }}
 
 jobs:
   swap:
@@ -25,7 +31,7 @@ jobs:
       - name: Version in staging
         id: staging
         run: |
-          version=$(curl -sf --max-time 10 https://ai-scratch-staging.azurewebsites.net/healthz | jq -r .version)
+          version=$(curl -sf --max-time 10 "https://$APP-staging.azurewebsites.net/healthz" | jq -r .version)
           [[ -n "$version" && "$version" != null ]] || { echo "::error::staging does not answer /healthz"; exit 1; }
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - uses: azure/login@v3
@@ -39,7 +45,7 @@ jobs:
           EXPECTED: ${{ steps.staging.outputs.version }}
         run: |
           for i in $(seq 30); do
-            version=$(curl -sf --max-time 10 https://ai-scratch.azurewebsites.net/healthz | jq -r .version || true)
+            version=$(curl -sf --max-time 10 "https://$APP.azurewebsites.net/healthz" | jq -r .version || true)
             echo "attempt $i: ${version:-no answer}"
             [[ "$version" == "$EXPECTED" ]] && exit 0
             sleep 10

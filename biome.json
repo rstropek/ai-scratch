@@ -6,7 +6,13 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!**/*.md", "!apps/app/src/shared/scratch/block-catalog.json", "!.claude"]
+    "includes": [
+      "**",
+      "!**/*.md",
+      "!apps/app/src/shared/scratch/block-catalog.json",
+      "!packages/db/drizzle",
+      "!.claude"
+    ]
   },
   "formatter": {
     "indentStyle": "space",
@@ -34,5 +40,16 @@
         "organizeImports": "on"
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["apps/office/**"],
+      "linter": {
+        "domains": {
+          "next": "recommended",
+          "react": "recommended"
+        }
+      }
+    }
+  ]
 }

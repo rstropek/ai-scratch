@@ -8,8 +8,9 @@ An npm workspace. Each app has its own `AGENTS.md`; read it before working there
 
 - `apps/app`: the kids' app at ai-scratch.dev (Vite + React + Hono).
 - `apps/office`: the teachers' office at office.ai-scratch.dev (Next.js).
+- `packages/db`: the Postgres schema, migrations and connection (Drizzle), for both apps (`docs/database.md`).
 - `docs/`: topic-specific technical notes, maintained by agents for agents. Index: `docs/README.md`. Read the matching note before changing an area; update it in the same change when a decision or trap changes. As brief as possible: gotchas, patterns, principles; never a prose version of the code.
-- Shared at the root: `biome.json`, `tsconfig.base.json` (the strict compiler options both apps extend), `.npmrc`.
+- Shared at the root: `biome.json`, `tsconfig.base.json` (the strict compiler options every workspace extends), `.npmrc`, `compose.yaml` (the local Postgres).
 
 ## Commands
 
@@ -19,12 +20,13 @@ Run `npm install` at the root only (Node 24+). From the root:
 |---|---|
 | `npm run check` | Biome over the whole repo, then each app's type check |
 | `npm run lint:fix` | Biome with fixes |
-| `npm test` | each app's unit and component tests |
+| `npm test` | every workspace's unit and component tests |
 | `npm run build` | builds both apps |
-| `npm run e2e -w apps/app` | the kids' app's Playwright tests (builds first) |
+| `docker compose up -d db` | the local Postgres (databases `aiscratch`, `aiscratch_e2e`) |
+| `npm run e2e -w apps/app`, `npm run e2e -w apps/office` | each app's Playwright tests (they build first; the office's need the local Postgres) |
 | `npm run dev`, `npm run dev:office` | the kids' app (http://localhost:5173), the office (http://localhost:3100) |
 
-Any app script runs from the root with `-w apps/<name>`. App-specific commands are in the app's `AGENTS.md`.
+Any workspace script runs from the root with `-w <folder>`. App-specific commands are in the app's `AGENTS.md`.
 
 ## Rules
 
@@ -33,6 +35,7 @@ Any app script runs from the root with `-w apps/<name>`. App-specific commands a
 - **Vite** builds the kids' app (Next.js builds the office itself). **Vitest** for unit and component tests, **Playwright** for e2e tests, in both apps.
 - **No warnings, no errors.** At the end of every coding session, `npm run check`, the builds and all tests pass without warnings. Don't silence a warning to get there; fix the cause, or tell Rainer when only a third-party package can.
 - **Deterministic tools over hand edits** for scaffolding, configuration and dependencies: `npm install <pkg>` (versions are saved exact), `npm pkg set`, `npm install-scripts approve|deny`, generators like `create-next-app`. Hand edits aren't forbidden, but the tool comes first.
+- **Data access through Drizzle** (Postgres): its query builder, relational queries and `drizzle-kit` migrations. Hand-written SQL is allowed, but the exception.
 - **Tests: unit > component > e2e.** All three layers are used, but prefer fast, reliable tests of small units over slow e2e tests.
 - **CI runs every test it can.** Only tests that need local resources (real API keys, money) run locally only.
 - **Language:** German only for now (kids, teachers, emails); English comes later, so keep user-facing texts in one place. Code, comments and model-facing tool messages are English.

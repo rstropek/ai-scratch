@@ -1,0 +1,36 @@
+{
+  "name": "@ai-scratch/db",
+  "version": "0.1.0",
+  "description": "Database schema, migrations and connection, shared by the kids' app and the office (Postgres + Drizzle)",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "generate": "drizzle-kit generate",
+    "migrate": "node --env-file-if-exists=../../apps/office/.env src/migrate-cli.ts",
+    "test": "vitest run",
+    "sql": "node src/sql-cli.ts"
+  },
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "dependencies": {
+    "@azure/identity": "4.14.1",
+    "drizzle-orm": "0.45.4",
+    "pg": "8.23.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.13",
+    "@types/node": "24.19.2",
+    "@types/pg": "8.23.1",
+    "drizzle-kit": "0.31.11",
+    "typescript": "7.0.2",
+    "vitest": "5.0.5"
+  },
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema/index.ts",
+    "./testing": "./src/testing.ts"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

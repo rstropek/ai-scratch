@@ -9,8 +9,8 @@ truth for settings and roles.
 - **One container web app with a staging slot**, on Rainer's existing P0v3 plan, image from his existing ACR
   (his choice: no extra cost; the plan and the registry live in other resource groups). The app, Key Vault and
   storage are in their own group `2026-digitalferien`.
-- **A one-day event, not a product:** the setup favors working reliably on that day over elaborate operations.
-  No database, no Redis, no monitoring stack. Live counters come from `/api/stats`; the research log of the
+- **Built for a one-day event:** the kids' app favors working reliably over elaborate operations. No Redis, no
+  monitoring stack. Live counters come from `/api/stats`; the research log of the
   event day stays in Blob storage, nothing new is written ([research-log.md](research-log.md)).
 - **Several instances are possible:** ARR affinity is on, so a kid stays on one instance; hearts and stats are
   per instance, which is acceptable ([limits-and-safety.md](limits-and-safety.md)).
@@ -42,12 +42,13 @@ truth for settings and roles.
 
 ## Release flow
 
-- Every push to `main`: all CI tests ([deploy.yml](../.github/workflows/deploy.yml), `docs/testing.md`). Only
-  when the push changes the kids' app (`apps/app/**` or a shared root file: lock file, `.npmrc`,
-  `tsconfig.base.json`): build the image (tagged with the commit), run it in **staging**, wait until staging's
-  `/healthz` reports that commit. Office-only and docs-only pushes don't touch staging.
-- **Production changes only by the manual swap** ([swap.yml](../.github/workflows/swap.yml)), which checks
-  afterwards that production reports the staging commit. Running it again swaps back (rollback).
+- Every push to `main`: all CI tests ([deploy.yml](../.github/workflows/deploy.yml), `docs/testing.md`). Then
+  per app, only when the push changes it (kids' app: `apps/app/**`; office: `apps/office/**` or `packages/db/**`;
+  both: a shared root file such as the lock file, `.npmrc`, `tsconfig.base.json`): build the image (tagged with
+  the commit), run it in the app's **staging** slot, wait until staging's `/healthz` reports that commit.
+  Docs-only pushes touch neither.
+- **Production changes only by the manual swap** ([swap.yml](../.github/workflows/swap.yml), choose the app),
+  which checks afterwards that production reports the staging commit. Running it again swaps back (rollback).
 - **No deploy to production and no swap during the event:** a swap restarts production and cuts the turns in
   progress. The chats themselves survive (they live in the browser), but kids would see errors mid-answer.
   Pushing to `main` is harmless then; it only touches staging.
@@ -68,6 +69,25 @@ truth for settings and roles.
   and breaks the login; adjust the federated credential first.
 - **Role assignments take minutes to propagate.** Data-plane commands right after an assignment fail or, worse,
   report success and do nothing; `provision.sh` retries them.
+
+## Office and database
+
+- **The office is a second web app** (`ai-scratch-office`, staging slot) on the same plan, its own image
+  (`apps/office/Dockerfile`: Next.js's standalone output), set up by
+  [provision.sh](../apps/office/scripts/azure/provision.sh); the domain by
+  [domain.sh](../apps/office/scripts/azure/domain.sh). No ARR affinity: sessions live in the database.
+- **Postgres `ai-scratch-db` is in `northeurope`,** not next to the apps: this subscription may not create
+  Postgres servers in `westeurope` or `germanywestcentral` ("Subscriptions are restricted from provisioning in
+  this region"). Still in the EU; a few milliseconds per query. Check a region with
+  `az postgres flexible-server list-skus -l <region>` (the `reason` field).
+- **Slot settings are sticky** (`PGDATABASE`, `PGUSER`, `BETTER_AUTH_URL`): staging keeps its database
+  `aiscratch_staging` and its role across swaps. Roles, ownership and migrations: [database.md](database.md).
+- **GitHub's deploy identity** needs Website Contributor on each web app; provision.sh grants it for the office.
+- **The first admin account** comes from `npm run seed:admin -w apps/office` on Rainer's machine with
+  `PGHOST`, `PGDATABASE` and `PGUSER` (his UPN) set and `DATABASE_URL=` empty (the office's `.env` would win):
+  it logs in with his `az login`.
+- **Public network access must be `Enabled`** for firewall rules to exist; a server created with
+  `--public-access None` refuses them.
 
 ## Image
 

@@ -15,6 +15,7 @@ principles, never a prose version of the code.
 | [deployment.md](deployment.md) | the Dockerfile, the workflows, `scripts/azure`, any Azure setting, or how `/slides/` is served |
 | [ki-block.md](ki-block.md) | the "frage KI" block in kids' own programs, `/api/ask` or its guard |
 | [locker.md](locker.md) | saving and loading games in the CoderDojo Locker: the Datei menu entries, the dialog, `/api/locker` |
+| [database.md](database.md) | `packages/db`, the schema, migrations, Postgres roles or the connection |
 | [testing.md](testing.md) | tests, or when debugging a real session from the logs |
 
 More files, not architecture notes:
