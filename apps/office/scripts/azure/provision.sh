@@ -18,6 +18,7 @@ ROLE="$APP" # the database role of the web app's managed identity
 URL="https://office.ai-scratch.dev"
 PLAN_ID="/subscriptions/$(az account show -s "$SUBSCRIPTION" --query id -o tsv)/resourceGroups/ts-web-playground/providers/Microsoft.Web/serverfarms/ts-web-playground"
 KV="kv-digiferien"
+WORKSPACE="log-ai-scratch" # Log Analytics, shared by both apps
 ACR="acrars2025"
 PLACEHOLDER_IMAGE="mcr.microsoft.com/appsvc/staticsite:latest"
 # the Turnstile widget of office.ai-scratch.dev (public; its secret is turnstile-secret-key in the vault)
@@ -152,6 +153,18 @@ az webapp config appsettings set -g "$RG" -n "$APP" -o none --settings \
   "KEY_ENCRYPTION_KEY=@Microsoft.KeyVault(VaultName=$KV;SecretName=key-encryption-key)" \
   "ANTHROPIC_FEDERATION_AUDIENCE=api://$FED_APP_ID" \
   "ANTHROPIC_FEDERATION_CLIENT_ID=$FED_CLIENT_ID"
+
+log "Logs of $APP: console and platform to the workspace $WORKSPACE (docs/deployment.md#logs)"
+if ! az monitor log-analytics workspace show -g "$RG" -n "$WORKSPACE" -o none 2>/dev/null; then
+  az monitor log-analytics workspace create -g "$RG" -n "$WORKSPACE" -l westeurope --retention-time 30 --quota 1 \
+    -o none
+fi
+# no HTTP logs: they would keep visitors' IP addresses and the tokens in links
+az monitor diagnostic-settings create -n logs --resource "$(az webapp show -g "$RG" -n "$APP" --query id -o tsv)" \
+  --workspace "$(az monitor log-analytics workspace show -g "$RG" -n "$WORKSPACE" --query id -o tsv)" \
+  --export-to-resource-specific true -o none \
+  --logs '[{"category":"AppServiceConsoleLogs","enabled":true},{"category":"AppServicePlatformLogs","enabled":true}]'
+az webapp log config -g "$RG" -n "$APP" --docker-container-logging filesystem -o none # for az webapp log tail
 
 az postgres flexible-server db create -g "$RG" -s "$DB_SERVER" -n "$DATABASE" -o none
 # the web app's identity logs in as $ROLE and owns the database (and so the tables its migrations create);

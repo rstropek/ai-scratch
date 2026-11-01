@@ -17,6 +17,7 @@ PLAN_ID="/subscriptions/$(az account show -s "$SUBSCRIPTION" --query id -o tsv)/
 KV="kv-digiferien"
 STORAGE="stdigiferien"
 CONTAINER="logs"
+WORKSPACE="log-ai-scratch" # Log Analytics, shared by both apps
 ACR="acrars2025"
 PLACEHOLDER_IMAGE="mcr.microsoft.com/appsvc/staticsite:latest"
 ENV_FILE="$(dirname "$0")/../../.env"
@@ -125,6 +126,18 @@ az webapp config appsettings set -g "$RG" -n "$APP" --settings "${SETTINGS[@]}" 
 # codes come from the office now: no school codes, no key of the kids' app's own (test codes are never set on Azure)
 az webapp config appsettings delete -g "$RG" -n "$APP" -o none \
   --setting-names ACCESS_CODES ANTHROPIC_API_KEY ANTHROPIC_WORKSPACE_ID TEST_CODES
+
+log "Logs of $APP: console and platform to the workspace $WORKSPACE (docs/deployment.md#logs)"
+if ! az monitor log-analytics workspace show -g "$RG" -n "$WORKSPACE" -o none 2>/dev/null; then
+  az monitor log-analytics workspace create -g "$RG" -n "$WORKSPACE" -l westeurope --retention-time 30 --quota 1 \
+    -o none
+fi
+# no HTTP logs: they would keep visitors' IP addresses and the tokens in links
+az monitor diagnostic-settings create -n logs --resource "$(az webapp show -g "$RG" -n "$APP" --query id -o tsv)" \
+  --workspace "$(az monitor log-analytics workspace show -g "$RG" -n "$WORKSPACE" --query id -o tsv)" \
+  --export-to-resource-specific true -o none \
+  --logs '[{"category":"AppServiceConsoleLogs","enabled":true},{"category":"AppServicePlatformLogs","enabled":true}]'
+az webapp log config -g "$RG" -n "$APP" --docker-container-logging filesystem -o none # for az webapp log tail
 
 log "Database role $ROLE (database $DATABASE)"
 sql postgres <<SQL

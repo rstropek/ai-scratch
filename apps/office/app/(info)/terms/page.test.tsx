@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { terms } from '../../../content/terms.tsx';
-import { CONTACT_EMAIL, SOURCE_URL } from '../../../lib/site.ts';
+import { CONTACT_EMAIL, KIDS_PROTECTION_URL, SOURCE_URL } from '../../../lib/site.ts';
 import TermsPage from './page.tsx';
 
 describe('the terms page', () => {
@@ -33,9 +33,13 @@ describe('the terms page', () => {
     for (const anchor of anchors) expect(container.querySelector(anchor.getAttribute('href') ?? '')).not.toBeNull();
   });
 
-  it('links the source code and the contact address', () => {
+  it('links the source code, the kids protection notes and the contact address', () => {
     render(<TermsPage />);
     expect(screen.getByRole('link', { name: 'github.com/rstropek/ai-scratch' })).toHaveAttribute('href', SOURCE_URL);
+    expect(screen.getByRole('link', { name: 'Dokumentation zum Kinderschutz' })).toHaveAttribute(
+      'href',
+      KIDS_PROTECTION_URL,
+    );
     for (const mail of screen.getAllByRole('link', { name: CONTACT_EMAIL }))
       expect(mail).toHaveAttribute('href', `mailto:${CONTACT_EMAIL}`);
   });

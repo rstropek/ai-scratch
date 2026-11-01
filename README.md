@@ -1,23 +1,28 @@
-# Digiferien KI-Scratch
+# AI-Scratch
 
 The official Scratch 3 editor with a German AI helper ("KI-Helfer") beside it. Kids describe what they want,
 and the helper asks questions, builds small parts of their game, points at things in the editor, adds sprites
 and backdrops from the Scratch library, and draws new sprites.
 
-It was built for **Digiferien**, a one-day AI workshop: about 200 kids aged 10–16 at 10 Austrian schools,
-coding beginners who know a little Scratch. Each kid works through a video tutorial at their own pace, with
-adults in the room.
+It is for kids aged 10–14, coding beginners who know a little Scratch, with adults in the room. It started as the
+app of **Digiferien**, a one-day AI workshop in October 2026 (about 200 kids at 10 Austrian schools, each working
+through a video tutorial at their own pace). Since then it has been an **ongoing offering for schools** at
+https://ai-scratch.dev: teachers and parents create the access codes in the office (https://office.ai-scratch.dev),
+from a free budget or their own OpenRouter key.
 
 ## How it works
 
 ```
 Browser                                         Server (Hono, Azure)            AI services
-┌──────────────────┬───────────────────────┐    ┌─────────────────────┐        ┌───────────────────┐
-│ Chat (React)     │ Scratch 3 editor      │───▶│ access code, limits │───────▶│ Claude Haiku 5.5  │
-│ runs the AI's    │ (unmodified, iframe)  │◀───│ builds the AI input │        │ (Anthropic)       │
-│ tools ──────────▶│ live project          │    │ counts tokens, cost │───────▶│ Jev (TypeSafe):   │
-└──────────────────┴───────────────────────┘    └─────────────────────┘        │ kids protection   │
-                                                                               └───────────────────┘
+┌──────────────────┬───────────────────────┐    ┌─────────────────────┐        ┌────────────────────┐
+│ Chat (React)     │ Scratch 3 editor      │───▶│ access code, limits │───────▶│ Claude Haiku 5.5   │
+│ runs the AI's    │ (unmodified, iframe)  │◀───│ builds the AI input │        │ (Anthropic, or the │
+│ tools ──────────▶│ live project          │    │ counts tokens, cost │        │ adult's OpenRouter │
+└──────────────────┴───────────────────────┘    └──────────┬──────────┘        │ key)               │
+                                                           │ codes, budgets,   │ Jev (TypeSafe):    │
+                                                           ▼ usage             │ kids protection    │
+Office (Next.js, office.ai-scratch.dev) ─────────────▶ Postgres                └────────────────────┘
+adults: accounts, codes, keys
 ```
 
 - **The AI works on the live project in the browser.** Its tools (read and add scripts, point at a block,
@@ -68,7 +73,8 @@ colours with the app. The app serves the built deck at **`/slides/`** without an
   messages get a fixed German answer, for example a kid in distress is sent to an adult. What was tested:
   [docs/kids-protection.md](docs/kids-protection.md).
 - **Limits:** hearts per kid, the Gedächtnis limit, a cap on answer length and on AI steps per message.
-- **Access codes**, one per school. **Budget:** 200 €/month.
+- **Access codes** from the office, each with its own time window and budget. The free budget is capped at 100 $ a
+  month in total and 10 $ per account ([docs/budgets.md](docs/budgets.md)).
 
 ## Sample prompts
 
@@ -90,9 +96,12 @@ lives in `apps/app`, the teachers' office (Next.js) in `apps/office`, the databa
 
 ```bash
 npm install
-cp apps/app/.env.example apps/app/.env   # then fill in the Anthropic and TypeSafe keys and the access codes
-npm run dev                              # the kids' app: http://localhost:5173/?code=<one of your access codes>
+cp apps/app/.env.example apps/app/.env   # then fill in ANTHROPIC_API_KEY and JEV_API_KEY
+npm run dev                              # the kids' app: http://localhost:5173/?code=test
 ```
+
+`TEST_CODES=test` works without the office. Codes from a local office also need its Postgres (below) and its
+`KEY_ENCRYPTION_KEY` in `apps/app/.env`.
 
 The office needs Docker for its local Postgres:
 
@@ -111,9 +120,10 @@ The kids' app reads `apps/app/.env`:
 | `KEY_ENCRYPTION_KEY` | opens the sealed pool keys and adults' OpenRouter keys; the office's value (required with a database) |
 | `TEST_CODES` | dev and tests only, never on Azure: comma-separated codes without a database; codes starting with `admin_` have no heart limit |
 | `ANTHROPIC_API_KEY`, `ANTHROPIC_WORKSPACE_ID` | the key that pays for `TEST_CODES` (required with them); the workspace header for identity-linked keys |
+| `ANTHROPIC_BASE_URL` | default `https://api.anthropic.com`; tests point it at a fake |
 | `ANTHROPIC_FEDERATION_AUDIENCE`, `ANTHROPIC_FEDERATION_CLIENT_ID` | our Azure identity for federated pool entries (`docs/anthropic-federation.md`) |
 | `BUDGET_TOTAL_USD_MONTH`, `BUDGET_ACCOUNT_USD_MONTH`, `FREE_CODES_PER_ACCOUNT_MONTH`, `CODE_BUDGET_USD`, `CODE_MAX_HOURS` | the budgets (`docs/budgets.md`), the same as the office's; defaults 100, 10, 5, 5, 4 |
-| `RESEND_API_KEY`, `MAIL_FROM` | the 80 % budget warnings to the admins; without a key they only go to the log |
+| `RESEND_API_KEY`, `MAIL_FROM` | the 80 % budget warnings to the admins; without a key they only go to the log; default sender `AI-Scratch <office@mail.ai-scratch.dev>` |
 | `JEV_API_KEY` | TypeSafe key for the kids-protection guard (server only) |
 | `MODEL` | default `claude-haiku-5-5` |
 | `EFFORT` | the chat's thinking effort, default `high` |
@@ -154,32 +164,38 @@ using it**. The reasons behind the setup and the traps we hit:
 
 | What | Where |
 |---|---|
-| Web app | `ai-scratch` in RG `2026-digitalferien`, on the existing P0v3 plan `ts-web-playground`: **https://ai-scratch.dev** (also `www.`, and the old https://ai-scratch.azurewebsites.net); `GET /healthz` shows the running commit, `/slides/` the slide deck |
-| Domain | `ai-scratch.dev`, DNS at Cloudflare (`cf` CLI, `npm install --global cf`): CNAMEs to `ai-scratch.azurewebsites.net` plus `asuid` TXT records, DNS only; free App Service managed certificates |
-| Secrets | Key Vault `kv-digiferien`, read by the app's managed identity |
+| Web app | `ai-scratch` in RG `2026-digitalferien`, on the existing P0v3 plan `ts-web-playground`: **https://ai-scratch.dev** (also `www.`, and the old https://ai-scratch.azurewebsites.net); `GET /healthz` shows the running commit, `/slides/` the slide deck, `/digiferien-2026-live` the event's video page |
+| Domain | `ai-scratch.dev` and `office.ai-scratch.dev`, DNS at Cloudflare (`cf` CLI, `npm install --global cf`): CNAMEs to the web apps plus `asuid` TXT records, DNS only; free App Service managed certificates. Mail goes out through Resend from `mail.ai-scratch.dev` |
+| Secrets | Key Vault `kv-digiferien`, read by the apps' managed identities |
 | Research logs | storage account `stdigiferien`, container `logs`: one JSON blob per AI call and per guard check of the event, no longer written. No retention rule; Rainer deletes them by hand |
+| App logs | Log Analytics workspace `log-ai-scratch`: both apps' console output (their errors) and App Service's platform events, 30 days ([docs/deployment.md](docs/deployment.md#logs)) |
 | Image | `acrars2025.azurecr.io/ai-scratch:<commit>` |
 | Office | `ai-scratch-office` on the same plan: **https://office.ai-scratch.dev**; image `acrars2025.azurecr.io/ai-scratch-office:<commit>` |
 | Database | Postgres Flexible Server `ai-scratch-db` (northeurope, Burstable B1ms), database `aiscratch`, Entra login only ([docs/database.md](docs/database.md)) |
 | Workflows | [deploy.yml](.github/workflows/deploy.yml) (every push and PR: all tests; push to `main` → production of each app it changes); GitHub logs in with OIDC |
 
-Operations (`az login` with Owner on the subscription; both scripts are safe to re-run):
+Operations (`az login` with Owner on the subscription; the scripts are safe to re-run):
 
-- **Changed keys or access codes in `.env`:** run `apps/app/scripts/azure/provision.sh`, then restart the app
-  (`az webapp restart -g 2026-digitalferien -n ai-scratch`).
+- **Changed `JEV_API_KEY` or `RESEND_API_KEY` in `apps/app/.env`:** run `apps/app/scripts/azure/provision.sh`, then
+  restart the app (`az webapp restart -g 2026-digitalferien -n ai-scratch`). Codes and the key pool live in the
+  office.
 - **GitHub login** (once): `apps/app/scripts/azure/github-identity.sh`.
 - **Office and database:** `apps/office/scripts/azure/provision.sh`, then `apps/office/scripts/azure/domain.sh`.
-- **Download the logs:** `az storage blob download-batch --auth-mode login --account-name stdigiferien -s logs -d <dir>`.
+- **Read the app logs** (for a bug report): Logs in the portal on `log-ai-scratch`, or live with
+  `az webapp log tail -g 2026-digitalferien -n ai-scratch-office` (or `-n ai-scratch`).
+- **Download the research logs:** `az storage blob download-batch --auth-mode login --account-name stdigiferien -s logs -d <dir>`.
 
 ## Project layout
 
 ```
 apps/app/                   the kids' app (ai-scratch.dev):
   index.html, editor.html     host page, editor iframe page
+  live.html                   the event's video page (/digiferien-2026-live)
   src/shared/                 runs in the browser and in Node: script format, block catalog, tools, prompt
   src/editor/                 inside the iframe: mounts Scratch, UI pointer, "frage KI" block, Locker menu entries, exposes window.ki
-  src/client/                 React host: chat panel, access gate, tool runner, Locker dialog
-  src/server/                 Hono: /api/chat, /api/ask, /api/locker, access code, guards, call log (opt-in), stats
+  src/client/                 React host: chat panel, access gate, tool runner, Locker dialog, video page
+  src/server/                 Hono: /api/chat, /api/compact, /api/ask, /api/locker, access codes and budgets, guards,
+                              call log (opt-in), stats
   test/support/               headless scratch-vm, fake Anthropic streams, fixtures
   e2e/                        Playwright specs
   eval/guard/                 labelled kid messages + runner for the kids-protection guard

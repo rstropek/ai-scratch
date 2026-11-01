@@ -11,7 +11,7 @@ truth for settings and roles.
   live in other resource groups). The app, Key Vault and
   storage are in their own group `2026-digitalferien`.
 - **Built for a one-day event:** the kids' app favors working reliably over elaborate operations. No Redis, no
-  monitoring stack. Live counters come from `/api/stats`; the research log of the
+  monitoring stack beyond the logs (below). Live counters come from `/api/stats`; the research log of the
   event day stays in Blob storage, nothing new is written ([research-log.md](research-log.md)).
 - **Several instances are possible:** ARR affinity is on, so a kid stays on one instance; hearts and stats are
   per instance, which is acceptable ([limits-and-safety.md](limits-and-safety.md)).
@@ -20,6 +20,20 @@ truth for settings and roles.
   can read its secrets.
 - **No keys anywhere:** the storage account has shared-key access disabled, the apps pull from ACR with their
   managed identity, and GitHub logs in with OIDC.
+
+## Logs
+
+- **Both apps' console output and App Service's platform events go to the workspace `log-ai-scratch`**
+  (since 2026-11-01, for bug reports): tables `AppServiceConsoleLogs` (`ResultDescription` is the line, `_ResourceId`
+  the app) and `AppServicePlatformLogs` (starts, crashes, image pulls). 30 days, capped at 1 GB a day. Set by both
+  `provision.sh`, which also keep the container log on the file system for `az webapp log tail`.
+- **What is in them is what the code prints:** errors and warnings (`console.error`/`warn`), and Next.js's own
+  server errors. Error logs may hold (parts of) messages, which the terms allow; never log on the normal path what
+  the terms don't cover.
+- **No HTTP logs on purpose:** they'd keep visitors' IP addresses (kids too) and the tokens in sign-up and reset
+  links, which the terms don't mention.
+- **Entries arrive minutes late;** for a live look use `az webapp log tail`. From the CLI:
+  `az monitor log-analytics query -w <customerId> --analytics-query 'AppServiceConsoleLogs | where TimeGenerated > ago(1d) | project TimeGenerated, _ResourceId, ResultDescription'`.
 
 ## Domain
 

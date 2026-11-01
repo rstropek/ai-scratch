@@ -3,7 +3,7 @@
 // (lib/terms.ts): accounts store the version they accepted. A starting point for Rainer's lawyer, not
 // legal advice; the reasons behind some wordings (Austrian consumer law) are in docs/legal-texts.md.
 import { TextLink } from '../components/ui/text-link.tsx';
-import { CONTACT_EMAIL, SOURCE_URL } from '../lib/site.ts';
+import { CONTACT_EMAIL, KIDS_PROTECTION_URL, SOURCE_URL } from '../lib/site.ts';
 
 export const terms = {
   title: 'Nutzungsbedingungen',
@@ -188,7 +188,9 @@ export function TermsDocument() {
       <ul>
         <li>
           Antworten einer KI können falsch, unvollständig oder unpassend sein. Ein Jugendschutzfilter prüft, was Kinder
-          schreiben, erkennt aber nicht alles. Er ersetzt Ihre Aufsicht nicht.
+          schreiben, erkennt aber nicht alles. Er ersetzt Ihre Aufsicht nicht. Wie er arbeitet und wie er in unseren
+          Tests abschneidet, beschreibt die{' '}
+          <TextLink href={KIDS_PROTECTION_URL}>Dokumentation zum Kinderschutz</TextLink>.
         </li>
         <li>
           <strong>Nur für Lehrkräfte:</strong> Sie klären die Nutzung im Unterricht nach den Regeln Ihrer Schule.

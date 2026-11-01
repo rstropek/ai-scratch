@@ -11,7 +11,8 @@ Rainer has them checked by a lawyer. Read before changing a public text, or a be
 - `TERMS_VERSION` in `apps/office/lib/terms.ts` is the single source. **Any change to the text needs a new
   version and a new date**: accounts store the version they accepted, and a new one asks for consent again.
   Exception until launch: with no real accounts yet, Rainer may decide a change isn't a new version (2026-10-31:
-  the free budget as its own flag; 2026-11-01: Code Club instead of CoderDojo as the example in section 4).
+  the free budget as its own flag; 2026-11-01: Code Club instead of CoderDojo as the example in section 4; a link to `docs/kids-protection.md`
+  in section 7).
 - **Consent in the code:** registration and `/consent` ask with the same fields
   (`components/consent-fields.tsx`: the key points, the terms checkbox, and the separate, explicit consent of
   section 8, linked to `#datenverarbeitung`; its wording is `texts.register.aiConsent*`). `requireSession` sends
