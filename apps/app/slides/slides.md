@@ -1,8 +1,8 @@
 ---
 theme: none
-title: Digitalferien 2026
+title: AI Scratch
 favicon: /favicon.svg
-info: Folien zum Video-Tutorial der Digitalferien 2026 (KI-Scratch)
+info: Folien zum Video-Tutorial von AI Scratch
 canvasWidth: 1280
 aspectRatio: 16/9
 transition: slide-left
@@ -16,7 +16,7 @@ pageNumber: false
 ---
 
 <div class="cover">
-  <h1>Willkommen bei den <span class="hl">Digitalferien 2026!</span></h1>
+  <h1>Willkommen bei <span class="hl">AI Scratch!</span></h1>
   <div class="cat"><Sticker src="/scratch/cat.svg" alt="Scratch-Katze" :width="330" :rotate="8" /></div>
   <p class="credit print">Scratch-Figuren aus der Scratch-Bibliothek, Scratch Foundation, CC BY-SA 2.0. Scratch ist ein Projekt der Scratch Foundation.</p>
 </div>
@@ -57,8 +57,7 @@ ink: dark
     <div><Slot :size="96"><Sticker src="/scratch/cat.svg" alt="Scratch-Katze" :width="70" :rotate="-6" /></Slot><span class="print">leicht</span></div>
     <div><Slot :number="2" :size="96" /></div>
     <div><Slot :number="3" :size="96" /><span class="print">eure Idee</span></div>
-    <div><Slot :number="4" :size="96" /></div>
-    <div><Slot :number="5" :size="96" /><span class="print">knifflig</span></div>
+    <div><Slot :number="4" :size="96" /><span class="print">knifflig</span></div>
   </div>
 </div>
 
@@ -80,7 +79,6 @@ ink: dark
 .day .stairs > :nth-child(2) { margin-bottom: 44px; }
 .day .stairs > :nth-child(3) { margin-bottom: 88px; }
 .day .stairs > :nth-child(4) { margin-bottom: 132px; }
-.day .stairs > :nth-child(5) { margin-bottom: 176px; }
 </style>
 
 <!--
@@ -1102,27 +1100,6 @@ clicks: 3
 So merkt sich euer Chatbot das Gespräch: Er hängt jede Frage und jede Antwort an die Variable Verlauf. Die könnt ihr euch auf der Bühne anzeigen lassen, Häkchen neben der Variable.
 [click] Die Antwort kommt dazu. [click] Die nächste Frage. [click] Und an die KI geht jedes Mal der ganze Verlauf: genau das, was unsere App auch macht, ihr erinnert euch an die Telefonate.
 Darum versteht der Chatbot jetzt auch „Und von Deutschland?“.
--->
-
----
-layout: page
-color: events
-ink: dark
----
-
-<div class="exercise">
-  <div class="text">
-    <h1>Echter Code</h1>
-    <p>Jetzt programmiert ihr wie die Profis: mit Code, direkt im Browser.</p>
-    <p>So lernen wir das auch an der HTL Leonding.</p>
-    <p>Und wieder baut ihr ein kleines Spiel.</p>
-  </div>
-  <Stairs :current="5" />
-</div>
-
-<!--
-Übung 5, für alle, die noch mehr wollen: echter Code. Statt Blöcken schreiben wir Text, so wie Profis programmieren. [TODO Rainer: Name und Link der Programmierumgebung]
-Wir verwenden dieselbe Umgebung im Browser, mit der wir an der HTL Leonding arbeiten, und bauen damit ein kleines Spiel.
 -->
 
 ---

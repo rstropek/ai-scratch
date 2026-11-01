@@ -1,16 +1,15 @@
 <script setup lang="ts">
-// The day's five exercises as the staircase from page 2: done ones carry their sticker, the current one
+// The day's four exercises as the staircase from page 2: done ones carry their sticker, the current one
 // gets its sticker pressed on and its caption, the ones still to come are numbered empty slots.
-const props = defineProps<{ current: 1 | 2 | 3 | 4 | 5 }>();
+const props = defineProps<{ current: 1 | 2 | 3 | 4 }>();
 
 const steps = [
   { src: '/scratch/fish.svg', alt: 'Fisch', width: 100 },
   { src: '/art/chip-ki.svg', alt: 'KI-Chip', width: 86 },
   { src: '/art/lightbulb.svg', alt: 'Glühbirne', width: 82 },
   { src: '/art/chat.svg', alt: 'Zwei Sprechblasen', width: 94 },
-  { src: '/art/code-editor.svg', alt: 'Code-Editor', width: 100 },
 ];
-const tilt = [-6, 5, -4, 6, -3];
+const tilt = [-6, 5, -4, 6];
 </script>
 
 <template>

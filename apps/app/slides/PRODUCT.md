@@ -14,7 +14,7 @@ Slidev (https://sli.dev), as a completely independent Node app in `slides/` with
 
 ## Users
 
-Kids aged 10–16 at the Digiferien workshop (about 200 kids at 10 Austrian schools), coding beginners who know a little Scratch. They do not see the deck live: Rainer records it into the video tutorial they watch at their own pace on a school laptop, with adults in the room but no live trainer. Rainer narrates over the slides.
+Kids aged 10–14 in school classes using AI Scratch (it started at the Digitalferien 2026 workshop), coding beginners who know a little Scratch. They do not see the deck live: Rainer records it into the video tutorial they watch at their own pace on a school laptop, with adults in the room but no live trainer. Rainer narrates over the slides.
 
 ## Product Purpose
 
@@ -40,7 +40,7 @@ The deck lives in the same world as the app the kids use all day: the Scratch 3 
 
 ## Brand Commitments
 
-- Event name: "Digitalferien 2026" (the repo calls it Digiferien).
+- Product name: "AI Scratch" (the deck started for the Digitalferien 2026 event; it is generic now).
 - Binding visual constraint from Rainer: playful and colorful, aligned with the Scratch app's colors; illustrations in Scratch clipart style.
 
 ## Evidence on Hand

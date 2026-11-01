@@ -1,4 +1,4 @@
-# Digitalferien 2026: Folien
+# AI Scratch: Folien
 
 The slides Rainer records into the video tutorial. A standalone [Slidev](https://sli.dev) app; it shares no code
 with the KI-Scratch app, only the Scratch colours (copied into `styles/album.css`).
@@ -27,7 +27,7 @@ The look is a **sticker album** (direction and reasoning: `.impeccable/surfaces/
 - `<SpeechBubble>` is Scratch's own "sagen" bubble (`long` for a whole sentence at text size; `tail="left"`/`"right"` for chat bubbles); `<StickerVideo src />` plays a looping video only while its
   slide is open;
 - `<ContextWindow messages label />` is one question's context window (the Kontextfenster page);
-- `<Stairs :current="n" />` is the day's staircase of five exercises on each exercise's first page (layout: `.exercise` in `album.css`);
+- `<Stairs :current="n" />` is the day's staircase of four exercises on each exercise's first page (layout: `.exercise` in `album.css`);
 - three text sizes: `h1` (display), body text and `.print` for small captions (the Haiku poem is the one exception).
 
 Adding a slide: copy one of the existing ones in `slides.md`, change `color:`, keep one idea per page.
