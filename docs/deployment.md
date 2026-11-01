@@ -35,7 +35,8 @@ truth for settings and roles.
 - **`.dev` is on the HSTS preload list:** browsers use only HTTPS, so the name is unusable until a
   certificate is bound.
 - **Email goes out through Resend from `mail.ai-scratch.dev`** (region eu-west-1, can't change). Its DKIM, SPF
-  and return-path records live under `mail.` at Cloudflare, plus `_dmarc.ai-scratch.dev` with `p=none`. The
+  and return-path records live under `mail.` at Cloudflare, plus `_dmarc.ai-scratch.dev` with `p=quarantine`
+  (since 2026-11-01; anything else that sends as `ai-scratch.dev` needs SPF or DKIM first, or it lands in spam). The
   app's key may only send, and only from that domain (`resend-api-key` in Key Vault).
 - **Turnstile protects the office's application form:** one widget in the same Cloudflare account, managed mode,
   only `office.ai-scratch.dev`, managed with the `cf` CLI (`cf turnstile widgets …`). The site key is public
