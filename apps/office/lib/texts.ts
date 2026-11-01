@@ -4,7 +4,7 @@ import { LINK_VALID_MINUTES } from './rules.ts';
 
 const kindLabels = {
   teacher: 'Lehrkraft',
-  parent: 'Eltern oder andere Erwachsene (z. B. CoderDojo, Jugendgruppe)',
+  parent: 'Eltern oder andere Erwachsene (z. B. Code Club, Jugendgruppe)',
 } as const;
 
 /** the school levels a teacher can tick in the application; the keys are stored */
@@ -25,6 +25,7 @@ export const texts = {
   format: { dateTime: formatDateTime, date: formatDate, time: formatTime },
   login: {
     title: 'Anmelden',
+    subtitle: 'Für Lehrkräfte und Eltern mit Konto.',
     email: 'E-Mail',
     password: 'Passwort',
     submit: 'Anmelden',
@@ -33,14 +34,33 @@ export const texts = {
     tooMany: 'Zu viele Versuche. Bitte warten Sie kurz und versuchen Sie es dann noch einmal.',
     error: 'Die Anmeldung hat nicht geklappt. Bitte versuchen Sie es noch einmal.',
     forgot: 'Passwort vergessen?',
-    noAccount: 'Noch kein Konto?',
-    register: 'Registrieren',
+    newTitle: 'Neu hier?',
+    newText:
+      'Kinder nutzen den KI-Helfer in AI-Scratch mit einem Zugangscode. Diese Codes erstellen Erwachsene in ihrem Konto: Lehrkräfte für ihre Klassen, Eltern für ihre Kinder.',
+    register: 'Als Lehrkraft oder Elternteil registrieren',
+  },
+  /** on the login and the registration page; the last line speaks to kids who landed here, so it says "du" */
+  whoMayRegister: {
+    label: 'Wer sich registrieren darf',
+    yes: [
+      'Lehrkräfte',
+      'Eltern und Erziehungsberechtigte',
+      'Andere Erwachsene, die mit Kindern arbeiten, z. B. im Code Club oder in einer Jugendgruppe',
+    ],
+    no: 'Keine Kinder und Jugendlichen unter 18',
+    kids: 'Deinen Zugangscode für den KI-Helfer bekommst du von deiner Lehrerin, deinem Lehrer oder deinen Eltern.',
+  },
+  /** at the foot of the login and the registration page; the terms say the same in section 11 */
+  scratchNote: {
+    title: 'Kein offizielles Angebot von Scratch',
+    text: 'AI-Scratch ist eine unabhängige App, mit der Kinder Grundlagen der künstlichen Intelligenz lernen. Sie verwendet den Scratch-Editor als Baustein, ist aber kein Angebot der Scratch Foundation oder des MIT.',
+    link: 'Mehr in den Nutzungsbedingungen',
   },
   shell: {
     signOut: 'Abmelden',
     signIn: 'Anmelden',
-    register: 'Registrieren',
     admin: 'Konten',
+    keys: 'API-Schlüssel',
     home: 'Start',
     nav: 'Bereiche',
   },
@@ -65,9 +85,8 @@ export const texts = {
     summary: (count: number) => (count === 1 ? 'Bitte prüfen Sie 1 Angabe.' : `Bitte prüfen Sie ${count} Angaben.`),
   },
   register: {
-    title: 'Registrieren',
-    intro:
-      'Mit einem Konto erstellen Sie Zugangscodes, mit denen Kinder den KI-Helfer in AI-Scratch nutzen. Kinder selbst brauchen kein Konto.',
+    title: 'Konto für Lehrkräfte und Eltern',
+    intro: 'Mit einem Konto erstellen Sie Zugangscodes, mit denen Kinder den KI-Helfer in AI-Scratch nutzen.',
     steps: [
       'Sie geben Ihre E-Mail-Adresse an und stimmen den Nutzungsbedingungen zu.',
       'Sie bestätigen Ihre E-Mail-Adresse über den Link, den wir Ihnen schicken, und legen Ihr Passwort fest.',
@@ -344,10 +363,134 @@ export const texts = {
       mailFailedBanner: 'Entschieden, aber die E-Mail an die Person ging nicht hinaus. Bitte schreiben Sie ihr selbst.',
       decideFailed: 'Speichern hat nicht geklappt. Bitte versuchen Sie es noch einmal.',
     },
+    keys: {
+      title: 'API-Schlüssel',
+      description:
+        'Die gespendeten Anthropic-Zugänge für das Gratis-Budget: Schlüssel, oder eine Föderation, bei der Anthropic der Azure-Identität von AI-Scratch vertraut. Der Pool nutzt sie nacheinander: aktive zuerst, höchste Priorität zuerst.',
+      add: 'Schlüssel hinzufügen',
+      addFederation: 'Föderation hinzufügen',
+      addTitle: 'Anthropic-Schlüssel hinzufügen',
+      addFederationTitle: 'Föderation hinzufügen',
+      back: 'Alle Zugänge',
+      notFound: 'Diesen Zugang gibt es nicht.',
+      empty: 'Noch keine Zugänge. Ohne sie funktionieren keine Codes aus dem Gratis-Budget.',
+      footer: (count: number) => `${count} Zugänge, in der Reihenfolge, in der der Pool sie nutzt`,
+      federation: 'Föderation',
+      columns: {
+        donor: 'Spender*in',
+        key: 'Zugang',
+        workspace: 'Workspace',
+        cap: 'Limit pro Monat',
+        priority: 'Priorität',
+        status: 'Status',
+        action: 'Aktion',
+      },
+      noWorkspace: '–',
+      active: 'Aktiv',
+      paused: 'Pausiert',
+      edit: 'Bearbeiten',
+      cap: (eur: number) => `${eur.toLocaleString('de-AT')} €`,
+      changed: (at: Date) => `Geändert am ${formatDateTime(at)}`,
+      form: {
+        donor: 'Spender*in',
+        donorHint: 'Von wem das Guthaben kommt, z. B. „AI-Scratch“ oder „CoderDojo Linz“.',
+        key: 'API-Schlüssel',
+        keyHint: 'Beginnt mit sk-ant-. Er wird verschlüsselt gespeichert und nie wieder angezeigt.',
+        keyReplace: 'Neuer API-Schlüssel (optional)',
+        keyReplaceHint: (hint: string) =>
+          `Gespeichert ist ${hint}. Leer lassen, um ihn zu behalten; ein neuer Schlüssel ersetzt ihn.`,
+        workspaceId: 'Workspace-ID (optional)',
+        workspaceIdHint:
+          'Nur für persönliche Schlüssel und Service-Account-Schlüssel (nicht an einen Workspace gebunden): die ID des Workspace, über den abgerechnet wird, z. B. wrkspc_01…. Workspace-Schlüssel brauchen keine.',
+        federationIntro:
+          'Kein Schlüssel: Die Organisation der Spenderin oder des Spenders vertraut in der Anthropic Console der Azure-Identität von AI-Scratch (Workload Identity Federation). Die IDs stehen im Testcode der Regel in der Console; keine davon ist geheim.',
+        organizationId: 'Organisations-ID',
+        organizationIdHint: 'Die ID der Anthropic-Organisation, eine UUID wie 16c29832-2434-4718-a036-07dd4846877c.',
+        federationRuleId: 'Regel-ID',
+        federationRuleIdHint: 'Die Regel, die unserer Azure-Identität vertraut. Beginnt mit fdrl_.',
+        serviceAccountId: 'Service-Account-ID (optional)',
+        serviceAccountIdHint:
+          'Als wer die Aufrufe laufen. Beginnt mit svac_. Leer lassen, wenn die Regel den Service Account selbst festlegt.',
+        federationWorkspaceIdHint:
+          'Der Workspace, über den abgerechnet wird, z. B. wrkspc_01…. Leer: der einzige Workspace der Regel.',
+        capEurMonth: 'Limit pro Monat (Euro)',
+        capEurMonthHint:
+          'So viel gibt der Pool über diesen Zugang pro Kalendermonat höchstens aus. Setzen Sie zusätzlich ein Spend Limit in der Anthropic Console.',
+        priority: 'Priorität',
+        priorityHint: 'Höhere Zahlen kommen zuerst dran. Bei gleicher Priorität der ältere Zugang.',
+        active: 'Aktiv: der Pool darf diesen Zugang nutzen',
+        save: 'Speichern',
+        add: 'Prüfen und hinzufügen',
+        checkNote:
+          'Beim Speichern prüfen wir einen neuen Schlüssel mit einem kleinen Aufruf bei Anthropic (Bruchteile eines Cents).',
+        federationCheckNote:
+          'Beim Speichern holen wir über die Föderation ein Token und prüfen es mit einem kleinen Aufruf bei Anthropic (Bruchteile eines Cents).',
+      },
+      check: {
+        invalid: {
+          title: 'Anthropic kennt diesen Schlüssel nicht.',
+          text: 'Er ist falsch, abgelaufen oder gelöscht. Nichts wurde gespeichert.',
+        },
+        forbidden: {
+          title: 'Anthropic lässt diesen Zugang nicht zu.',
+          text: (message?: string) => `Nichts wurde gespeichert.${message ? ` Antwort von Anthropic: ${message}` : ''}`,
+        },
+        rejected: {
+          title: 'Anthropic hat den Testaufruf abgelehnt.',
+          text: (message?: string) =>
+            `Oft fehlt die Workspace-ID oder sie passt nicht, oder es ist kein Guthaben mehr da. Nichts wurde gespeichert.${message ? ` Antwort von Anthropic: ${message}` : ''}`,
+        },
+        unreachable: {
+          title: 'Anthropic war nicht erreichbar.',
+          text: 'Der Zugang konnte nicht geprüft werden, nichts wurde gespeichert. Bitte versuchen Sie es gleich noch einmal.',
+        },
+        exchange: {
+          title: 'Anthropic hat die Föderation abgelehnt.',
+          text: (message?: string) =>
+            `Stimmen Organisation, Regel und Workspace? Passt die Regel zu unserer Azure-Identität? Den Grund zeigt die Console unter „Workload identity“ → „Authentication events“. Nichts wurde gespeichert.${message ? ` Antwort von Anthropic: ${message}` : ''}`,
+        },
+        identity: {
+          title: 'Das Office bekommt kein Token seiner Azure-Identität.',
+          text: 'Die Föderation ist auf diesem Server nicht (richtig) eingerichtet, nichts wurde gespeichert. Lokal braucht sie ein az login, auf Azure die Identität aus provision.sh (docs/anthropic-federation.md).',
+        },
+      },
+      validation: {
+        donor: (max: number) => `Bitte geben Sie an, von wem der Zugang kommt (höchstens ${max} Zeichen).`,
+        key: 'Das ist kein Anthropic-API-Schlüssel. Er beginnt mit sk-ant- und hat keine Leerzeichen.',
+        adminKey: 'Das ist ein Admin-Schlüssel. Der Pool braucht einen normalen API-Schlüssel.',
+        duplicate: 'Diesen Schlüssel gibt es schon im Pool.',
+        federationDuplicate: 'Diese Regel gibt es für diesen Workspace schon im Pool.',
+        organizationId: 'Eine Organisations-ID ist eine UUID, zum Beispiel 16c29832-2434-4718-a036-07dd4846877c.',
+        federationRuleId: 'Eine Regel-ID beginnt mit fdrl_, zum Beispiel fdrl_01XiXjNwgFMpW5PXMZ6W6ogq.',
+        serviceAccountId: 'Eine Service-Account-ID beginnt mit svac_, zum Beispiel svac_01Gi6Kw95sBeRDFT5iVLcc4X.',
+        workspaceId: 'Eine Workspace-ID beginnt mit wrkspc_, zum Beispiel wrkspc_01JwQvzr7rXLA5AGx3HKfFUJ.',
+        cap: (max: number) => `Bitte eine ganze Zahl von 1 bis ${max.toLocaleString('de-AT')}.`,
+        priority: (max: number) => `Bitte eine ganze Zahl von 0 bis ${max}.`,
+      },
+      delete: 'Zugang löschen',
+      deleteTitle: 'Zugang löschen?',
+      deleteText: (donor: string, hint: string) =>
+        `Der Schlüssel ${hint} von ${donor} wird gelöscht und vom Pool nicht mehr genutzt. Bei Anthropic bleibt er gültig: Widerrufen Sie ihn dort, wenn er nicht mehr gebraucht wird.`,
+      deleteFederationText: (donor: string, hint: string) =>
+        `Die Föderation ${hint} von ${donor} wird gelöscht und vom Pool nicht mehr genutzt. Bei Anthropic bleibt die Regel aktiv: Archivieren Sie sie dort, wenn sie nicht mehr gebraucht wird.`,
+      deleteHint: 'Wollen Sie den Zugang nur vorübergehend nicht nutzen, pausieren Sie ihn stattdessen.',
+      cancel: 'Abbrechen',
+      saved: {
+        added: 'Geprüft und hinzugefügt.',
+        updated: 'Änderungen gespeichert.',
+        deleted: 'Zugang gelöscht.',
+      },
+      error: {
+        title: 'Speichern hat nicht geklappt.',
+        text: 'Bitte versuchen Sie es noch einmal. Einen neuen Schlüssel geben Sie bitte noch einmal ein.',
+      },
+      deleteFailed: { title: 'Löschen hat nicht geklappt.', text: 'Bitte versuchen Sie es noch einmal.' },
+    },
   },
   footer: {
     label: 'Weitere Seiten',
     terms: 'Nutzungsbedingungen',
+    access: 'So funktioniert der Zugang',
     source: 'Quellcode',
   },
   mail: {

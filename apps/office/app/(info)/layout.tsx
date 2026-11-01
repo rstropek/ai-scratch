@@ -13,7 +13,8 @@ export default function InfoLayout({ children }: LayoutProps<'/'>) {
           {texts.shell.signIn}
         </Link>
       </TopBar>
-      <main className="mx-auto grid max-w-3xl gap-5 px-4 py-6">{children}</main>
+      {/* wide enough for /access; text pages narrow themselves */}
+      <main className="mx-auto grid max-w-5xl gap-5 px-4 py-6">{children}</main>
       <SiteFooter />
     </>
   );

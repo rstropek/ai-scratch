@@ -65,6 +65,9 @@
   --radius-button: 0.25rem;
   --radius-field: 5px;
   --radius-panel: 0.5rem;
+
+  /* the one authored motion: the active path of the /access diagram draws on */
+  --ease-draw: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @layer base {

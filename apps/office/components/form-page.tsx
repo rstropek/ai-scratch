@@ -4,14 +4,20 @@ import type { ReactNode } from 'react';
 export function FormPage({
   title,
   intro,
+  aboveSteps,
   steps,
   note,
+  footer,
   children,
 }: {
   title: string;
   intro: ReactNode;
+  /** between the intro and the steps, such as who may register */
+  aboveSteps?: ReactNode;
   steps: readonly string[];
   note?: ReactNode;
+  /** under both columns, across their full width */
+  footer?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -19,6 +25,7 @@ export function FormPage({
       <aside className="grid content-start gap-4 text-sm">
         <h1 className="text-balance font-bold text-2xl text-primary-ink">{title}</h1>
         <p>{intro}</p>
+        {aboveSteps}
         <ol className="grid list-decimal gap-2 pl-4.5 marker:font-bold marker:text-primary">
           {steps.map((step) => (
             <li key={step}>{step}</li>
@@ -27,6 +34,7 @@ export function FormPage({
         {note && <p>{note}</p>}
       </aside>
       {children}
+      {footer && <div className="md:col-span-2">{footer}</div>}
     </div>
   );
 }

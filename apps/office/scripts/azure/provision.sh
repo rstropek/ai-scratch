@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Creates (or updates) the office's Azure resources: the Postgres server (shared with the kids' app later), the
 # database with an Entra role for the web app's managed identity, the web app on the existing P0v3 plan (no staging
-# slot: CI deploys straight to production), its Key Vault secret and app settings. Safe to re-run. The image is set
-# by the deploy workflow.
+# slot: CI deploys straight to production), its Key Vault secrets and app settings, and the Azure side of Anthropic's
+# federation (docs/anthropic-federation.md). Safe to re-run. The image is set by the deploy workflow.
 # Usage: apps/office/scripts/azure/provision.sh   (needs `az login` with Owner on the subscription, and Node)
 set -euo pipefail
 
@@ -23,6 +23,11 @@ PLACEHOLDER_IMAGE="mcr.microsoft.com/appsvc/staticsite:latest"
 # the Turnstile widget of office.ai-scratch.dev (public; its secret is turnstile-secret-key in the vault)
 TURNSTILE_SITE_KEY="0x4AAAAAAFt9P51346HQ8eXj"
 REPO="$(cd "$(dirname "$0")/../../../.." && pwd)"
+# Anthropic's federation: the app registration our tokens are issued for, and the user-assigned identity the pool's
+# federation rules trust (the kids' app gets the same one when it uses the pool)
+FED_APP_NAME="ai-scratch-anthropic-audience"
+FED_IDENTITY="id-ai-scratch-anthropic"
+AZURE_CLI_APP_ID="04b07795-8ddb-461a-bbee-02f9e1bf7b46" # Microsoft's public client ID of the Azure CLI
 
 az account set -s "$SUBSCRIPTION"
 log() { echo "==> $*"; }
@@ -76,6 +81,44 @@ if ! az keyvault secret show --vault-name "$KV" -n office-auth-secret -o none 2>
   log "Secret office-auth-secret"
   az keyvault secret set --vault-name "$KV" -n office-auth-secret --file <(openssl rand -base64 32) -o none
 fi
+# seals the Anthropic key pool in the database; the kids' app reads it too. Created once and never replaced: a new
+# value makes every stored key unreadable (docs/key-pool.md)
+if ! az keyvault secret show --vault-name "$KV" -n key-encryption-key -o none 2>/dev/null; then
+  log "Secret key-encryption-key"
+  az keyvault secret set --vault-name "$KV" -n key-encryption-key --file <(openssl rand -base64 32) -o none
+fi
+
+log "Anthropic federation: app registration $FED_APP_NAME, identity $FED_IDENTITY"
+FED_APP_ID=$(az ad app list --display-name "$FED_APP_NAME" --query "[0].appId" -o tsv)
+if [ -z "$FED_APP_ID" ]; then
+  FED_APP_ID=$(az ad app create --display-name "$FED_APP_NAME" --sign-in-audience AzureADMyOrg --query appId -o tsv)
+fi
+FED_APP_OBJECT=$(az ad app show --id "$FED_APP_ID" --query id -o tsv)
+# a delegated scope with the Azure CLI pre-authorized: `az login --scope api://<APP_ID>/.default` then gets you a
+# token for local debugging. The scope keeps its ID across runs (Graph refuses to replace an enabled one)
+FED_SCOPE_ID=$(az ad app show --id "$FED_APP_ID" \
+  --query "api.oauth2PermissionScopes[?value=='user_impersonation'].id | [0]" -o tsv)
+# a new GUID from openssl (needed above anyway), so the script also runs on macOS
+FED_SCOPE_ID=${FED_SCOPE_ID:-$(openssl rand -hex 16 | sed -E 's/(.{8})(.{4})(.{4})(.{4})(.{12})/\1-\2-\3-\4-\5/')}
+graph_patch() { # body
+  az rest --method PATCH --url "https://graph.microsoft.com/v1.0/applications/$FED_APP_OBJECT" \
+    --headers "Content-Type=application/json" --body "$1" -o none
+}
+# `az ad app update --set api.…` fails on a fresh registration ("Couldn't find 'api'"); Graph takes it. v2 tokens:
+# the issuer registered at Anthropic is the v2.0 one
+graph_patch "{\"identifierUris\": [\"api://$FED_APP_ID\"], \"api\": {\"requestedAccessTokenVersion\": 2,
+  \"oauth2PermissionScopes\": [{\"id\": \"$FED_SCOPE_ID\", \"value\": \"user_impersonation\", \"type\": \"User\",
+    \"isEnabled\": true, \"adminConsentDisplayName\": \"Call Claude via Anthropic federation\",
+    \"adminConsentDescription\": \"Get a token for the Anthropic federation audience (local debugging).\",
+    \"userConsentDisplayName\": \"Call Claude via Anthropic federation\",
+    \"userConsentDescription\": \"Get a token for the Anthropic federation audience (local debugging).\"}]}}"
+# a separate call: Graph refuses to pre-authorize a scope that the same request creates
+graph_patch "{\"api\": {\"preAuthorizedApplications\": [{\"appId\": \"$AZURE_CLI_APP_ID\",
+  \"delegatedPermissionIds\": [\"$FED_SCOPE_ID\"]}]}}"
+az ad sp show --id "$FED_APP_ID" -o none 2>/dev/null || az ad sp create --id "$FED_APP_ID" -o none
+az identity show -g "$RG" -n "$FED_IDENTITY" -o none 2>/dev/null || az identity create -g "$RG" -n "$FED_IDENTITY" -o none
+FED_IDENTITY_ID=$(az identity show -g "$RG" -n "$FED_IDENTITY" --query id -o tsv)
+FED_CLIENT_ID=$(az identity show -g "$RG" -n "$FED_IDENTITY" --query clientId -o tsv)
 
 log "Web app $APP (plan ts-web-playground)"
 if ! az webapp show -g "$RG" -n "$APP" -o none 2>/dev/null; then
@@ -85,7 +128,10 @@ fi
 
 ACR_ID=$(az acr show -n "$ACR" --query id -o tsv)
 log "Configure $APP (database $DATABASE, role $ROLE)"
-PRINCIPAL=$(az webapp identity assign -g "$RG" -n "$APP" --query principalId -o tsv)
+# the system-assigned identity logs in to the database and reads the vault; the user-assigned one is only for
+# federation. Never set AZURE_CLIENT_ID: DefaultAzureCredential would then log in to the database as the other one
+PRINCIPAL=$(az webapp identity assign -g "$RG" -n "$APP" --identities '[system]' "$FED_IDENTITY_ID" \
+  --query principalId -o tsv)
 assign "$PRINCIPAL" "Key Vault Secrets User" "$KV_ID"
 assign "$PRINCIPAL" "AcrPull" "$ACR_ID"
 az webapp update -g "$RG" -n "$APP" --https-only true --client-affinity-enabled false -o none
@@ -102,7 +148,10 @@ az webapp config appsettings set -g "$RG" -n "$APP" -o none --settings \
   "RESEND_API_KEY=@Microsoft.KeyVault(VaultName=$KV;SecretName=resend-api-key)" \
   "TURNSTILE_SITE_KEY=$TURNSTILE_SITE_KEY" \
   "TURNSTILE_SECRET_KEY=@Microsoft.KeyVault(VaultName=$KV;SecretName=turnstile-secret-key)" \
-  "JEV_API_KEY=@Microsoft.KeyVault(VaultName=$KV;SecretName=jev-api-key)"
+  "JEV_API_KEY=@Microsoft.KeyVault(VaultName=$KV;SecretName=jev-api-key)" \
+  "KEY_ENCRYPTION_KEY=@Microsoft.KeyVault(VaultName=$KV;SecretName=key-encryption-key)" \
+  "ANTHROPIC_FEDERATION_AUDIENCE=api://$FED_APP_ID" \
+  "ANTHROPIC_FEDERATION_CLIENT_ID=$FED_CLIENT_ID"
 
 az postgres flexible-server db create -g "$RG" -s "$DB_SERVER" -n "$DATABASE" -o none
 # the web app's identity logs in as $ROLE and owns the database (and so the tables its migrations create);
@@ -127,3 +176,5 @@ GH_SP=$(az ad sp list --display-name gh-ai-scratch-deploy --query "[0].id" -o ts
 assign "$GH_SP" "Website Contributor" "$(az webapp show -g "$RG" -n "$APP" --query id -o tsv)"
 
 log "Done: https://$APP.azurewebsites.net (domain: domain.sh)"
+echo "Federation rules at Anthropic match: issuer https://login.microsoftonline.com/$(az account show --query tenantId -o tsv)/v2.0,"
+echo "audience $FED_APP_ID, oid $(az identity show -g "$RG" -n "$FED_IDENTITY" --query principalId -o tsv)"

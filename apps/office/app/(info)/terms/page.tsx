@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: terms.title };
 
 export default function TermsPage() {
   return (
-    <>
+    <div className="mx-auto grid w-full max-w-3xl gap-5">
       <PageHeader title={terms.title} description={terms.date} />
       <Panel className="grid gap-6">
         <Callout title={terms.keyPointsTitle}>
@@ -25,6 +25,6 @@ export default function TermsPage() {
           <TermsDocument />
         </Prose>
       </Panel>
-    </>
+    </div>
   );
 }

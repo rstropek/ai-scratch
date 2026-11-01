@@ -83,8 +83,8 @@ export function TermsDocument() {
           Konto.
         </li>
         <li>
-          Sie registrieren sich als Lehrkraft oder als Elternteil oder anderer Erwachsener (zum Beispiel für einen
-          CoderDojo oder eine Jugendgruppe).
+          Sie registrieren sich als Lehrkraft oder als Elternteil oder anderer Erwachsener (zum Beispiel für einen Code
+          Club oder eine Jugendgruppe).
         </li>
         <li>
           Ihre Angaben müssen wahr sein. Ihr Konto ist persönlich: Geben Sie Ihr Passwort nicht weiter, und melden Sie

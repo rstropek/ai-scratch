@@ -87,7 +87,12 @@ truth for settings and roles.
 - **The office's secrets come from the same vault as the kids' app's:** `resend-api-key` and `jev-api-key`
   (uploaded by the kids' app's provision.sh), `turnstile-secret-key` (by hand, see Domain). provision.sh stops
   when one is missing. Without them the office starts, but registration, mails and applications fail: the
-  services are read on first use ([registration.md](registration.md)).
+  services are read on first use ([registration.md](registration.md)). `key-encryption-key` (the key pool's
+  master key) is created by provision.sh once and must never be replaced ([key-pool.md](key-pool.md)).
+- **The office has two managed identities:** the system-assigned one logs in to the database and reads the vault
+  and ACR; the user-assigned `id-ai-scratch-anthropic` is only for Anthropic's federation, picked by its client ID
+  in `ANTHROPIC_FEDERATION_CLIENT_ID` ([anthropic-federation.md](anthropic-federation.md)). **Never set
+  `AZURE_CLIENT_ID`:** `DefaultAzureCredential` would then log in to the database as the federation identity.
 - **A changed provision.sh runs before the push that needs it.** CI only deploys the image; app settings come
   from provision.sh alone, and `/healthz` doesn't read them, so the deploy stays green. Hit on 2026-10-31:
   iteration 2 went out without its four settings, and `/register` answered 500 until provision.sh ran.

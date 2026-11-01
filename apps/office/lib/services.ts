@@ -1,6 +1,9 @@
-// The office's database pool, mailer, Turnstile check and Jev screening, created on first use from the
-// environment (like getAuth in session.ts: `next build` imports routes without any environment). Server-only.
-import { createDb, createPool, type Database } from '@ai-scratch/db';
+// The office's database pool, mailer, Turnstile check, Jev screening, the key pool's encryption and check, created on
+// first use from the environment (like getAuth in session.ts: `next build` imports routes without any
+// environment). Server-only.
+import { createDb, createKeyBox, createPool, type Database, type KeyBox, parseMasterKey } from '@ai-scratch/db';
+import { createAnthropicKeyChecker, type KeyChecker } from './anthropic-keys.ts';
+import { createEntraTokenProvider } from './entra-token.ts';
 import { loadServicesEnv, type ServicesEnv } from './env.ts';
 import { type ApplicationScreener, createJevScreener } from './jev.ts';
 import { createOutboxMailer, createResendMailer, type Mailer } from './mail.ts';
@@ -12,6 +15,8 @@ interface Services {
   mailer?: Mailer;
   verifyTurnstile?: TurnstileVerifier;
   screenApplication?: ApplicationScreener;
+  keyBox?: KeyBox;
+  checkKey?: KeyChecker;
 }
 
 // on globalThis: hot reloads in development re-run this module but must not open another pool
@@ -57,4 +62,21 @@ export const getApplicationScreener = (): ApplicationScreener | undefined => {
   const { jev } = getServicesEnv();
   if (jev) s.screenApplication ??= createJevScreener(jev);
   return s.screenApplication;
+};
+
+/** the Anthropic key pool's encryption (KEY_ENCRYPTION_KEY): only the admin's key pages need it */
+export const getKeyBox = (): KeyBox => {
+  const s = services();
+  s.keyBox ??= createKeyBox(parseMasterKey());
+  return s.keyBox;
+};
+
+/** checks keys, and federations when ANTHROPIC_FEDERATION_AUDIENCE is set */
+export const getKeyChecker = (): KeyChecker => {
+  const s = services();
+  if (!s.checkKey) {
+    const { federation } = getServicesEnv();
+    s.checkKey = createAnthropicKeyChecker(federation ? { identityToken: createEntraTokenProvider(federation) } : {});
+  }
+  return s.checkKey;
 };

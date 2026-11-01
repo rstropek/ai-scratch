@@ -25,9 +25,14 @@ export function AppShell({
             {texts.shell.home}
           </Link>
           {admin && (
-            <Link href="/admin" className={buttonClass('on-bar', 'sm')}>
-              {texts.shell.admin}
-            </Link>
+            <>
+              <Link href="/admin" className={buttonClass('on-bar', 'sm')}>
+                {texts.shell.admin}
+              </Link>
+              <Link href="/admin/keys" className={buttonClass('on-bar', 'sm')}>
+                {texts.shell.keys}
+              </Link>
+            </>
           )}
         </nav>
         <span className="hidden truncate sm:inline">{userName}</span>

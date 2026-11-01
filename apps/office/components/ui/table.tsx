@@ -8,12 +8,27 @@ export interface Column {
 }
 
 /** A data table inside an unpadded Panel; scrolls sideways on narrow screens. Rows use Cell. */
-export function Table({ columns, children }: { columns: Column[]; children: ReactNode }) {
+export function Table({
+  columns,
+  stack = false,
+  children,
+}: {
+  columns: Column[];
+  /** phones: each row as a block, its first cell as the title and the others under it with their `label` */
+  stack?: boolean;
+  children: ReactNode;
+}) {
   return (
     // relative: screen-reader-only text in cells is positioned absolutely and would widen the page otherwise
     <div className="relative overflow-x-auto">
-      <table className="w-full border-collapse text-sm">
-        <thead>
+      <table
+        className={cx(
+          'w-full border-collapse text-sm',
+          stack &&
+            'max-sm:block max-sm:[&_tbody]:block max-sm:[&_td]:border-0 max-sm:[&_td]:p-0 max-sm:[&_tr:last-child]:border-b-0 max-sm:[&_tr]:grid max-sm:[&_tr]:gap-1 max-sm:[&_tr]:border-divider max-sm:[&_tr]:border-b max-sm:[&_tr]:px-4 max-sm:[&_tr]:py-3',
+        )}
+      >
+        <thead className={cx(stack && 'max-sm:sr-only')}>
           <tr>
             {columns.map((column) => (
               <th
@@ -33,7 +48,18 @@ export function Table({ columns, children }: { columns: Column[]; children: Reac
 }
 
 /** A table cell: a main line and an optional smaller one under it; `action` hugs the right edge. */
-export function Cell({ children, sub, action }: { children: ReactNode; sub?: ReactNode; action?: boolean }) {
+export function Cell({
+  children,
+  sub,
+  action,
+  label,
+}: {
+  children: ReactNode;
+  sub?: ReactNode;
+  action?: boolean;
+  /** shown before the content on phones when the Table stacks: the column's label */
+  label?: string;
+}) {
   return (
     <td
       className={cx(
@@ -41,6 +67,7 @@ export function Cell({ children, sub, action }: { children: ReactNode; sub?: Rea
         action ? 'w-px whitespace-nowrap py-1 text-right' : 'py-3',
       )}
     >
+      {label && <span className="font-bold sm:hidden">{label}: </span>}
       {children}
       {sub && <span className="block text-muted text-xs">{sub}</span>}
     </td>

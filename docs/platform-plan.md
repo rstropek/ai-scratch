@@ -2,8 +2,8 @@
 
 Status: **iteration 2 of the office implemented** (registration of parents and teachers, email confirmation,
 teachers' applications for the free budget screened by Jev, the admin's account list, decisions and free-budget
-switch, password reset); access codes and
-keys come next. The outcome of the architecture discussion of 2026-10-31. Each point is
+switch, password reset), **and the admin's Anthropic key pool** (`/admin/keys`); access codes, budgets and the
+kids' app using the pool come next. The outcome of the architecture discussion of 2026-10-31. Each point is
 marked **decided** (Rainer agreed), **proposed** (Claude's suggestion, not confirmed yet) or **open**.
 
 ## Why
@@ -47,7 +47,8 @@ Postgres                Azure Database for PostgreSQL Flexible Server, Burstable
   plan `ts-web-playground`, deployed by CI straight to production, no staging slot (Next.js
   `output: 'standalone'`). Script: `apps/office/scripts/azure/provision.sh`.
 - **Done (2026-10-31):** the legal pages live in the office, public and static (`app/(info)/`); the terms of
-  use at `/terms` (draft for a lawyer, `docs/legal-texts.md`). **Open:** where the other content pages live
+  use at `/terms` (draft for a lawyer, `docs/legal-texts.md`); since 2026-11-01 also `/access`, a click-through of
+  codes, budgets, the key pool and federation as designed here. **Open:** where the other content pages live
   (what it is, exercises, videos, safety): in the office, or as static pages in the kids' app.
 - **Open:** whether the event's video page (`/digiferien-2026-live`) and the slide deck (`/slides/`) move to
   the office or stay in the kids' app.
@@ -178,7 +179,11 @@ Decided by Rainer on 2026-10-31; it replaces the earlier teacher-only applicatio
   money); after that, or when Jev fails, the application reaches you unchecked. When Jev refuses an answer, the
   form says why, so a real teacher can fix it.
 - **Your email hints when the email domain doesn't match the school's URL.** It's a hint, not a gate.
-- **Labels for the choice:** "Lehrkraft" and "Eltern oder andere Erwachsene (z. B. CoderDojo, Jugendgruppe)".
+- **Labels for the choice:** "Lehrkraft" and "Eltern oder andere Erwachsene (z. B. Code Club, Jugendgruppe)"
+  (Rainer, 2026-11-01: Code Club as the example, not CoderDojo; in the terms too).
+- **Who may register, on the login page and the registration page** (Rainer, 2026-11-01): a yes/no list (teachers,
+  parents and guardians, other adults who work with kids; no kids under 18, with a line in "du" saying where their
+  code comes from) and, at the foot, the note that AI-Scratch is not Scratch's own offering.
 - **One terms document with a section per role**, so there's one version to track (`TERMS_VERSION` in
   `apps/office/lib/terms.ts`).
 - **No later applications** (Rainer, 2026-10-31): only the checkbox at registration leads to one, and there is
@@ -270,9 +275,16 @@ Every way needs an adult: kids can't get access on their own. The per-school cod
   the system switches to the next.
 - **Decided (Rainer, 2026-10-31):** every donated key has a cap per calendar month (Vienna time), configurable
   per key (`capEurMonth`).
+- **Decided (Rainer, 2026-10-31, replaces the Key Vault JSON):** the admin maintains the keys on an admin-only
+  page in the office. **Done (2026-10-31)**, details and traps in `docs/key-pool.md`:
+  - Table `anthropic_key`: donor, the key sealed with AES-256-GCM (`KEY_ENCRYPTION_KEY` in Key Vault, for both
+    apps), its last four characters, an optional workspace ID, `capEurMonth`, priority, active/paused.
+  - Add, edit (also replace the key), pause, delete. A new key, or a new workspace, is checked with one tiny
+    Anthropic call before it is saved; the key is never shown again.
+  - **No remaining budget from Anthropic** (Rainer: "without budget"): Anthropic has no endpoint for a key's
+    balance, only cost and usage reports with an Admin API key. `capEurMonth` is our own cap.
+  - **The workspace ID** is needed only by keys not bound to a workspace (personal and service account keys).
 - **Proposed:**
-  - One Key Vault secret holds JSON: `[{id, key, workspaceId, donor, capEurMonth, priority}]`. No admin page
-    and no encryption code for keys. The database stores usage per key `id` only.
   - A session sticks to its key (prompt caching), otherwise the active key with the highest priority that
     has budget left. Keys are used up one at a time, not in rotation.
   - A key counts as used up when its monthly spend reaches its cap, or when Anthropic refuses it (billing,
@@ -282,6 +294,42 @@ Every way needs an adult: kids can't get access on their own. The per-school cod
   - With no key left, kids get a German message and you get an email.
 - **Open:** whether Anthropic accepts signed thinking blocks from another organisation's key when a session
   switches mid-turn. If not, the server drops old thinking blocks on a switch.
+
+### Federated pool entries (Workload Identity Federation)
+
+- **Decided (Rainer, 2026-11-01):** besides keys, the pool takes **federated entries**: no key at all, our Azure
+  identity is trusted by the donor's Anthropic organisation. Not a replacement for keys; mainly for Rainer's
+  own organisation, the main donor. Other donors would need an org admin, so keys stay the normal donation.
+- **Proven (2026-11-01):** a throwaway container with the managed identity called Claude through Rainer's org;
+  setup, IDs and traps (issuer lifetime 25 h, JTI off) in `docs/anthropic-federation.md`.
+- **Decided (Rainer, 2026-11-01):** the office side first, the kids' app's client with the pool. In the list, two
+  buttons: "Föderation hinzufügen" next to "Schlüssel hinzufügen", each with its own form.
+- **Built (2026-11-01), office side:** table, admin pages, check, provision.sh, local debugging with `az login`
+  (`docs/key-pool.md#federations`).
+- **Technical** (built in the office so far):
+  - **How it works:** an app gets an Entra token for its managed identity, exchanges it at Anthropic
+    (`POST /v1/oauth/token`, jwt-bearer) for an access token that lasts minutes, and calls Claude with it.
+    `@anthropic-ai/sdk` 1.x does both: `credentials: oidcFederationProvider({ identityTokenProvider, … })`
+    from `@anthropic-ai/sdk/lib/credentials/oidc-federation`, refreshed by the client's `TokenCache`.
+  - **One user-assigned managed identity for both apps** (both have system-assigned ones today, with different
+    object IDs): one federation rule then covers the office's check and the kids' calls. Tokens come from
+    `IDENTITY_ENDPOINT` (App Service) with the identity's `client_id`; IMDS isn't reachable there.
+  - **Azure, once (provision.sh):** an app registration as the token audience (`api://<APP_ID>`,
+    `requestedAccessTokenVersion=2`, with a service principal), the user-assigned identity on both web apps,
+    app settings for the audience and the identity's client ID.
+  - **Anthropic, once per donor organisation (Console, by its org admin):** an issuer
+    `https://login.microsoftonline.com/<TENANT_ID>/v2.0` (discovery), a service account in the workspace, a rule
+    with `audience: <APP_ID>` that matches the identity's `oid` and our `tid`. Never only the tenant: any
+    workload in the tenant could then mint tokens.
+  - **Table `anthropic_key`** gets a kind: `key` (as today) or `federation` with organisation ID, rule ID
+    (`fdrl_…`), service account ID (`svac_…`, optional) and workspace ID. None of them is secret, so nothing
+    is sealed. Donor, cap, priority and pausing stay the same for both kinds.
+  - **The check** stays one tiny Messages call, after the exchange; the exchange's errors (unknown rule, claims
+    that don't match) show like a refused key.
+  - **The kids' app** keeps one client per federated entry, so it exchanges only when the token runs out.
+  - **Tests:** the fake Anthropic answers `/v1/oauth/token` and plays App Service's identity endpoint. Locally,
+    your `az login` stands in for the managed identity, with a rule of its own.
+- **Open:** the kids' app's side, with the pool; attaching the identity to the kids' web app then.
 
 ## Own OpenRouter keys (teachers and parents)
 
@@ -380,8 +428,8 @@ Every way needs an adult: kids can't get access on their own. The per-school cod
    No other logic. On top: deployment at office.ai-scratch.dev (own web app, CI deploys to production) and
    Rainer's account from a seed script. **Open:** running the Azure scripts and the seed against production.
    Then: content pages.
-2. Database, registration and applications, admin, login (**done 2026-10-31**, iteration 2 of the office); then
-   codes with the key pool and budgets.
+2. Database, registration and applications, admin, login (**done 2026-10-31**, iteration 2 of the office); the
+   admin's key pool (**done 2026-10-31**); then codes, the kids' app on the pool, and budgets.
 3. Own OpenRouter keys (teachers and parents).
 4. Exercises with starter projects.
 

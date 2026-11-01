@@ -1,8 +1,18 @@
-// What the server actions hand to registration.ts and applications.ts, from the environment. Server-only.
+// What the server actions hand to registration.ts, applications.ts and anthropic-keys.ts, from the environment.
+// Server-only.
+import type { KeyDeps } from './anthropic-keys.ts';
 import type { ApplicationDeps } from './applications.ts';
 import { loadEnv } from './env.ts';
 import type { RegistrationDeps } from './registration.ts';
-import { getApplicationScreener, getDb, getMailer, getServicesEnv, getTurnstileVerifier } from './services.ts';
+import {
+  getApplicationScreener,
+  getDb,
+  getKeyBox,
+  getKeyChecker,
+  getMailer,
+  getServicesEnv,
+  getTurnstileVerifier,
+} from './services.ts';
 import { getAuth } from './session.ts';
 
 export const registrationDeps = (): RegistrationDeps => {
@@ -24,3 +34,5 @@ export const applicationDeps = (): ApplicationDeps => ({
   adminNotifyEmail: getServicesEnv().adminNotifyEmail,
   baseURL: loadEnv().baseURL,
 });
+
+export const keyDeps = (): KeyDeps => ({ db: getDb(), box: getKeyBox(), check: getKeyChecker() });

@@ -12,6 +12,9 @@ export function SiteFooter() {
             <TextLink href="/terms">{texts.footer.terms}</TextLink>
           </li>
           <li>
+            <TextLink href="/access">{texts.footer.access}</TextLink>
+          </li>
+          <li>
             <TextLink href={SOURCE_URL}>{texts.footer.source}</TextLink>
           </li>
         </ul>

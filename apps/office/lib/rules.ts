@@ -23,3 +23,25 @@ export const NOTE_MAX = 1000;
 
 /** Jev checks per account: each costs money; after that, applications reach Rainer unchecked */
 export const MAX_JEV_CHECKS = 5;
+
+/** who donated an Anthropic key */
+export const DONOR_MAX = 100;
+/** the highest monthly cap per Anthropic key, in whole euros (a typo guard, not a policy) */
+export const KEY_CAP_MAX_EUR = 10_000;
+/** Anthropic keys are used highest priority first */
+export const KEY_PRIORITY_MAX = 1000;
+
+// Access codes and budgets: the starting values of the env vars in docs/platform-plan.md ("Budgets"). The public
+// page /access shows them; once budgets are built, these are the env vars' defaults, so keep both in step.
+/** the longest validity window of an access code */
+export const CODE_MAX_HOURS = 4;
+/** the AI cost of one access code */
+export const CODE_BUDGET_EUR = 5;
+/** access codes from the free budget per account and calendar month */
+export const FREE_CODES_PER_ACCOUNT_MONTH = 5;
+/** the free budget's AI cost per account and calendar month */
+export const BUDGET_ACCOUNT_EUR_MONTH = 10;
+/** the free budget's AI cost for all accounts together per calendar month */
+export const BUDGET_TOTAL_EUR_MONTH = 100;
+/** an own OpenRouter key: the most it may have left (limit_remaining, dollars) when a code is created from it */
+export const OWN_KEY_MAX_REMAINING_USD = 25;

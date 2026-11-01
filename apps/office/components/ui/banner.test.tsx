@@ -12,4 +12,14 @@ describe('Banner', () => {
     render(<Banner tone="success">Code erstellt.</Banner>);
     expect(screen.getByRole('status')).toHaveTextContent('Code erstellt.');
   });
+
+  it('announces nothing when it is a standing note', () => {
+    render(
+      <Banner tone="warning" title="Kein offizielles Angebot von Scratch" announce={false}>
+        Hinweis
+      </Banner>,
+    );
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.getByText('Kein offizielles Angebot von Scratch')).toBeVisible();
+  });
 });

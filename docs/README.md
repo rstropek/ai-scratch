@@ -16,8 +16,10 @@ principles, never a prose version of the code.
 | [ki-block.md](ki-block.md) | the "frage KI" block in kids' own programs, `/api/ask` or its guard |
 | [locker.md](locker.md) | saving and loading games in the CoderDojo Locker: the Datei menu entries, the dialog, `/api/locker` |
 | [database.md](database.md) | `packages/db`, the schema, migrations, Postgres roles or the connection |
+| [key-pool.md](key-pool.md) | the Anthropic key pool: `/admin/keys`, sealing keys (`KEY_ENCRYPTION_KEY`), workspace IDs, the key check |
+| [anthropic-federation.md](anthropic-federation.md) | Workload Identity Federation: calling Claude with an Azure managed identity instead of a key, its Azure and Console setup |
 | [registration.md](registration.md) | the office's registration, confirmation link, the free budget (applications, Jev screening, the admin's switch) or the admin's account list |
-| [legal-texts.md](legal-texts.md) | the terms of use or any public legal page of the office, or a behaviour they describe |
+| [legal-texts.md](legal-texts.md) | the terms of use, the info page `/access` or any public page of the office, or a behaviour they describe |
 | [testing.md](testing.md) | tests, or when debugging a real session from the logs |
 
 More files, not architecture notes:

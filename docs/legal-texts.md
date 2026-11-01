@@ -1,8 +1,8 @@
 # Legal texts
 
-The public legal pages of the office (`apps/office/app/(info)/`, no login, static). So far: the terms of use at
-`/terms`. They are drafts by Claude as a starting point; Rainer has them checked by a lawyer. Read before
-changing a legal text, or a behaviour a legal text describes.
+The public pages of the office (`apps/office/app/(info)/`, no login, static). So far: the terms of use at
+`/terms` and the info page on access and keys at `/access`. The terms are drafts by Claude as a starting point;
+Rainer has them checked by a lawyer. Read before changing a public text, or a behaviour one describes.
 
 ## Where things are
 
@@ -11,12 +11,18 @@ changing a legal text, or a behaviour a legal text describes.
 - `TERMS_VERSION` in `apps/office/lib/terms.ts` is the single source. **Any change to the text needs a new
   version and a new date**: accounts store the version they accepted, and a new one asks for consent again.
   Exception until launch: with no real accounts yet, Rainer may decide a change isn't a new version (2026-10-31:
-  the free budget as its own flag).
+  the free budget as its own flag; 2026-11-01: Code Club instead of CoderDojo as the example in section 4).
 - **Consent in the code:** registration and `/consent` ask with the same fields
   (`components/consent-fields.tsx`: the key points, the terms checkbox, and the separate, explicit consent of
   section 8, linked to `#datenverarbeitung`; its wording is `texts.register.aiConsent*`). `requireSession` sends
   every account with an older `terms_version` to `/consent` first (§ 15 "bei der nächsten Anmeldung"); the
   seeded admin has no profile and is never asked. Section ids are link targets: keep them when editing.
+
+## Only the terms name Rainer
+
+Rainer (2026-11-01): his name appears only in the terms (the office's `/terms` and the parents' terms in the kids'
+app, `TermsDialog.tsx`), where the operator and contact must be named. Every other user-facing text, the info
+page `/access` included, says "die Administrator:innen von AI-Scratch"; no example values with his name either.
 
 ## The terms promise things the code must keep
 
@@ -33,6 +39,19 @@ When one of these changes in the code, change the terms in the same change (with
 - Codes: at most 4 hours (`CODE_MAX_HOURS`); own OpenRouter keys: a limit, at most $25 left when a code is
   created (checked only then; resetting limits allowed), stored encrypted in the EU.
 - No accounts for kids; the app never asks kids for personal data.
+
+## The info page /access
+
+- **It describes the system as designed** in `platform-plan.md` (codes, budgets, the key pool, federated entries,
+  own OpenRouter keys), with no "not built yet" markers (Rainer, 2026-11-01). When a decision there changes,
+  change `apps/office/content/access.tsx` in the same change. It is not a legal text: no version, no consent.
+- **Its numbers come from `apps/office/lib/rules.ts`**: the budget env vars' starting values
+  (`CODE_MAX_HOURS`, `CODE_BUDGET_EUR`, …) live there and become the env vars' defaults once budgets are built.
+  The terms still state 4 hours and $25 in their own words (versioned text).
+- **The click-through** (`components/access-tour.tsx`) lights nodes and edges of a hand-placed SVG
+  (`components/access-map.tsx`); `access-map.test.tsx` checks that every edge starts and ends on a box and that
+  every edge a step names exists. The diagram sits beside the text from tablets up, so Weiter never changes a
+  diagram scrolled out of view; on phones Weiter scrolls the panel's top into view.
 
 ## Austrian consumer law traps (researched 2026-10-31, not legal advice)
 

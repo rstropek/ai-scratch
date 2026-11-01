@@ -16,15 +16,17 @@ type BannerProps = {
   /** one bold line; the children explain it */
   title?: ReactNode;
   children?: ReactNode;
+  /** false for a standing note that is part of the page rather than a response to something */
+  announce?: boolean;
   className?: string;
 };
 
 /** A message at the top of a page or form. Errors are announced at once (role alert), the rest politely. */
-export function Banner({ tone, title, children, className }: BannerProps) {
+export function Banner({ tone, title, children, announce = true, className }: BannerProps) {
   const { className: toneClass, Icon } = tones[tone];
   return (
     <div
-      role={tone === 'error' ? 'alert' : 'status'}
+      role={announce ? (tone === 'error' ? 'alert' : 'status') : undefined}
       className={cx(
         'grid grid-cols-[1.25rem_1fr] items-start gap-3 rounded-panel border px-4 py-3 text-sm',
         toneClass,

@@ -15,6 +15,17 @@ test('the start page needs a login', async ({ page }) => {
   await expect(page.getByRole('heading', { name: texts.login.title })).toBeVisible();
 });
 
+test('the login page says who may register and leads there', async ({ page }) => {
+  await page.goto('/login');
+  const who = page.getByRole('list', { name: texts.whoMayRegister.label });
+  await expect(who.getByText(texts.whoMayRegister.no)).toBeVisible();
+  await expect(who.getByText(texts.whoMayRegister.kids)).toBeVisible();
+  await expect(page.getByText(texts.scratchNote.title)).toBeVisible();
+  await page.getByRole('link', { name: texts.login.register }).click();
+  await expect(page).toHaveURL(/\/register$/);
+  await expect(page.getByRole('heading', { name: texts.register.title })).toBeVisible();
+});
+
 test('a wrong password is refused', async ({ page }) => {
   await page.goto('/login');
   await signIn(page, 'not-the-password');
