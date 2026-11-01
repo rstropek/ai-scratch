@@ -1,7 +1,6 @@
 // The host side of the Locker (docs/locker.md): the kid's Locker code for this tab, the calls to our
 // server's /api/locker routes, and what saving and loading do to the Scratch project.
 import type { KiBridge } from '../../editor/bridge.ts';
-import { ACCESS_CODE_HEADER } from '../../shared/chat-types.ts';
 import {
   LOCKER_CODE_HEADER,
   LOCKER_GAMES_PATH,
@@ -50,12 +49,11 @@ export const openLockerPage = (code: string): boolean => {
   return tab !== null;
 };
 
-export const NEED_ACCESS_CODE = 'Gib links im Chat den Zugangscode deiner Schule ein. Dann geht auch der Locker.';
 const FAILED = 'Da ist etwas schiefgegangen. Versuch es bitte nochmal.';
 
 /** A failed Locker call: `message` is German for the kid. `notFound`: wrong code (list) or a game that's gone. */
 export class LockerCallError extends Error {
-  readonly kind: 'not-found' | 'access' | 'other';
+  readonly kind: 'not-found' | 'other';
   constructor(message: string, kind: LockerCallError['kind']) {
     super(message);
     this.kind = kind;
@@ -70,28 +68,22 @@ export interface LockerApi {
 }
 
 export interface LockerApiDeps {
-  accessCode: string;
-  /** the server no longer accepts the school code (401) */
-  onAccessDenied: () => void;
   fetch?: typeof fetch;
 }
 
-export const createLockerApi = ({ accessCode, onAccessDenied, fetch: baseFetch = fetch }: LockerApiDeps): LockerApi => {
+/** the Locker works without an access code, always */
+export const createLockerApi = ({ fetch: baseFetch = fetch }: LockerApiDeps = {}): LockerApi => {
   const request = async (code: string, url: string, init: RequestInit = {}): Promise<Response> => {
     let res: Response;
     try {
       res = await baseFetch(url, {
         ...init,
-        headers: { ...init.headers, [ACCESS_CODE_HEADER]: accessCode, [LOCKER_CODE_HEADER]: code },
+        headers: { ...init.headers, [LOCKER_CODE_HEADER]: code },
       });
     } catch {
       throw new LockerCallError(OFFLINE, 'other');
     }
     if (res.ok) return res;
-    if (res.status === 401) {
-      onAccessDenied();
-      throw new LockerCallError(NEED_ACCESS_CODE, 'access');
-    }
     const body = (await res.json().catch(() => ({}))) as { error?: unknown };
     const message = typeof body.error === 'string' ? body.error : FAILED;
     throw new LockerCallError(message, res.status === 404 ? 'not-found' : 'other');

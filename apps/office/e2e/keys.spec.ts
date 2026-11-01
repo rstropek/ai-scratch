@@ -16,7 +16,7 @@ const uniqueKey = (kind: 'api03' | 'usr' | 'bad') =>
 const fillKey = async (page: Page, { donor, key, cap }: { donor: string; key: string; cap: string }) => {
   await page.getByLabel(f.donor).fill(donor);
   await page.getByLabel(f.key).fill(key);
-  await page.getByLabel(f.capEurMonth).fill(cap);
+  await page.getByLabel(f.capMonth).fill(cap);
 };
 
 test('the admin adds a personal key with its workspace, pauses it and deletes it', async ({ page }) => {
@@ -42,7 +42,7 @@ test('the admin adds a personal key with its workspace, pauses it and deletes it
   const row = page.getByRole('row').filter({ hasText: donor });
   await expect(row).toContainText(`…${key.slice(-4)}`);
   await expect(row).toContainText('wrkspc_01E2eWorkspaceAbc');
-  await expect(row).toContainText(k.cap(40));
+  await expect(row).toContainText(k.monthSpend(0, 40));
   await expect(row.getByText(k.active, { exact: true })).toBeVisible();
   await expect(page.getByText(key)).toHaveCount(0);
 
@@ -78,7 +78,7 @@ test('the admin adds a federation, edits it and deletes it', async ({ page }) =>
   await page.getByLabel(f.organizationId).fill('16c29832-2434-4718-a036-07dd4846877c');
   await page.getByLabel(f.federationRuleId).fill(uniqueRule('bad'));
   await page.getByLabel(f.workspaceId).fill('wrkspc_01E2eWorkspaceAbc');
-  await page.getByLabel(f.capEurMonth).fill('200');
+  await page.getByLabel(f.capMonth).fill('200');
   await page.getByRole('button', { name: f.add }).click();
   await expect(page.getByText(k.check.exchange.title)).toBeVisible();
   await expect(page.getByLabel(f.donor)).toHaveValue(donor);

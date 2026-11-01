@@ -32,12 +32,16 @@ export const anthropicKey = pgTable(
      * rule's only workspace
      */
     workspaceId: text('workspace_id'),
-    /** the most the pool spends through this entry per calendar month (Vienna time), in whole euros */
-    capEurMonth: integer('cap_eur_month').notNull(),
+    /** the most the pool spends through this entry per calendar month (Vienna time), in whole dollars */
+    capMonth: integer('cap_month').notNull(),
     /** higher first: entries are used up one after another, not in rotation */
     priority: integer('priority').default(0).notNull(),
     /** paused entries are never used */
     active: boolean('active').default(true).notNull(),
+    /** when Anthropic last refused the entry (billing, spend limit, invalid key): the kids' app skips it then */
+    refusedAt: timestamp('refused_at', { withTimezone: true }),
+    /** Anthropic's message, for the admin */
+    refusedReason: text('refused_reason'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     createdBy: text('created_by').references(() => user.id, { onDelete: 'set null' }),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),

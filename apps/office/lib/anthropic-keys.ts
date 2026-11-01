@@ -3,13 +3,17 @@
 // Anthropic before it is stored; a key never leaves the server again. The kids' app reads the pool from the
 // database. A factory-free module over its dependencies, so tests run it on PGlite with a fake check.
 import { randomUUID } from 'node:crypto';
+import {
+  federationProvider,
+  IdentityTokenError,
+  type IdentityTokenProvider,
+  WorkloadIdentityError,
+} from '@ai-scratch/anthropic';
 import { type Database, type KeyBox, schema } from '@ai-scratch/db';
 import Anthropic from '@anthropic-ai/sdk';
-import { oidcFederationProvider } from '@anthropic-ai/sdk/lib/credentials/oidc-federation';
-import { type IdentityTokenProvider, WorkloadIdentityError } from '@anthropic-ai/sdk/lib/credentials/types';
 import { and, asc, desc, eq, isNull, ne, type SQL } from 'drizzle-orm';
 import type { FieldErrors } from './registration.ts';
-import { DONOR_MAX, KEY_CAP_MAX_EUR, KEY_PRIORITY_MAX } from './rules.ts';
+import { DONOR_MAX, KEY_CAP_MAX_USD, KEY_PRIORITY_MAX } from './rules.ts';
 import { texts } from './texts.ts';
 
 const { anthropicKey } = schema;
@@ -21,14 +25,14 @@ export type KeyField =
   | 'federationRuleId'
   | 'serviceAccountId'
   | 'workspaceId'
-  | 'capEurMonth'
+  | 'capMonth'
   | 'priority';
 
 /** the fields both kinds of entry share */
 interface EntryInput {
   donor: string;
   workspaceId: string;
-  capEurMonth: string;
+  capMonth: string;
   priority: string;
   active: boolean;
 }
@@ -47,7 +51,7 @@ export interface FederationInput extends EntryInput {
 interface ValidEntry {
   donor: string;
   workspaceId: string | null;
-  capEurMonth: number;
+  capMonth: number;
   priority: number;
   active: boolean;
 }
@@ -115,12 +119,12 @@ const validateEntry = (input: EntryInput, fieldErrors: FieldErrors<KeyField>): V
   if (!donor || donor.length > DONOR_MAX) fieldErrors.donor = v.donor(DONOR_MAX);
   const workspaceId = input.workspaceId.trim();
   if (workspaceId && !WORKSPACE_PATTERN.test(workspaceId)) fieldErrors.workspaceId = v.workspaceId;
-  const capEurMonth = wholeNumber(input.capEurMonth, 1, KEY_CAP_MAX_EUR);
-  if (capEurMonth === undefined) fieldErrors.capEurMonth = v.cap(KEY_CAP_MAX_EUR);
+  const capMonth = wholeNumber(input.capMonth, 1, KEY_CAP_MAX_USD);
+  if (capMonth === undefined) fieldErrors.capMonth = v.cap(KEY_CAP_MAX_USD);
   const priority = wholeNumber(input.priority, 0, KEY_PRIORITY_MAX);
   if (priority === undefined) fieldErrors.priority = v.priority(KEY_PRIORITY_MAX);
-  if (Object.keys(fieldErrors).length > 0 || capEurMonth === undefined || priority === undefined) return undefined;
-  return { donor, workspaceId: workspaceId || null, capEurMonth, priority, active: input.active };
+  if (Object.keys(fieldErrors).length > 0 || capMonth === undefined || priority === undefined) return undefined;
+  return { donor, workspaceId: workspaceId || null, capMonth, priority, active: input.active };
 };
 
 export function validateKey(input: KeyInput, options: { keyRequired: true }): Validated<ValidKey<string>>;
@@ -180,9 +184,6 @@ const shorten = (message: string) => (message.length > MESSAGE_MAX ? `${message.
 /** the cheapest call that proves the key works and has credit: one output token from the smallest model */
 const CHECK_MODEL = 'claude-haiku-5-5';
 
-/** the identity token provider failed: no managed identity, no `az login`, or Entra refused */
-class IdentityTokenError extends Error {}
-
 const isClientError = (status: number | null | undefined) => status != null && status >= 400 && status < 500;
 
 /**
@@ -213,18 +214,8 @@ export const createAnthropicKeyChecker =
         : new Anthropic({
             ...common,
             // exchanges the identity token for a workspace-scoped Anthropic token before the call
-            credentials: oidcFederationProvider({
-              identityTokenProvider: async () => {
-                try {
-                  return await (identityToken as IdentityTokenProvider)();
-                } catch (cause) {
-                  throw new IdentityTokenError('getting the identity token failed', { cause });
-                }
-              },
-              organizationId: credential.organizationId,
-              federationRuleId: credential.federationRuleId,
-              serviceAccountId: credential.serviceAccountId ?? undefined,
-              workspaceId: credential.workspaceId ?? undefined,
+            credentials: federationProvider(credential, {
+              identityToken: identityToken as IdentityTokenProvider,
               baseURL,
               fetch,
             }),
@@ -272,9 +263,12 @@ export interface KeyRow {
   federationRuleId: string | null;
   serviceAccountId: string | null;
   workspaceId: string | null;
-  capEurMonth: number;
+  capMonth: number;
   priority: number;
   active: boolean;
+  /** when Anthropic last refused the entry (the kids' app writes it); saving the entry clears it */
+  refusedAt: Date | null;
+  refusedReason: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -288,9 +282,11 @@ const rowColumns = {
   federationRuleId: anthropicKey.federationRuleId,
   serviceAccountId: anthropicKey.serviceAccountId,
   workspaceId: anthropicKey.workspaceId,
-  capEurMonth: anthropicKey.capEurMonth,
+  capMonth: anthropicKey.capMonth,
   priority: anthropicKey.priority,
   active: anthropicKey.active,
+  refusedAt: anthropicKey.refusedAt,
+  refusedReason: anthropicKey.refusedReason,
   createdAt: anthropicKey.createdAt,
   updatedAt: anthropicKey.updatedAt,
 };
@@ -371,6 +367,9 @@ const refuseDuplicateRace = (error: unknown) => {
   throw error;
 };
 
+/** saving an entry clears the kids' app's refusal: the next call tries it again */
+const notRefused = { refusedAt: null, refusedReason: null };
+
 export const addKey = async (deps: KeyDeps, adminId: string, input: KeyInput): Promise<SaveResult> => {
   const valid = validateKey(input, { keyRequired: true });
   if (!valid.ok) return valid;
@@ -399,7 +398,7 @@ export const addKey = async (deps: KeyDeps, adminId: string, input: KeyInput): P
 
 /**
  * Saves the admin's changes. A new key, or a new workspace for the stored one, is checked with Anthropic first;
- * the other fields (donor, cap, priority, pausing) never need a check.
+ * the other fields (donor, cap, priority, pausing) never need a check. Every save clears a refusal.
  */
 export const updateKey = async (deps: KeyDeps, adminId: string, id: string, input: KeyInput): Promise<SaveResult> => {
   const valid = validateKey(input, { keyRequired: false });
@@ -432,6 +431,8 @@ export const updateKey = async (deps: KeyDeps, adminId: string, id: string, inpu
           keyFingerprint: replacement.fingerprint,
           keyHint: keyHint(replacement.key),
         }),
+        // the admin looked at the entry again (a refused key replaced, a billing problem solved): the pool tries it
+        ...notRefused,
         updatedAt: new Date(),
         updatedBy: adminId,
       })
@@ -495,7 +496,7 @@ export const updateFederation = async (
   try {
     updated = await deps.db
       .update(anthropicKey)
-      .set({ ...federation, updatedAt: new Date(), updatedBy: adminId })
+      .set({ ...federation, ...notRefused, updatedAt: new Date(), updatedBy: adminId })
       .where(eq(anthropicKey.id, id))
       .returning({ id: anthropicKey.id });
   } catch (error) {

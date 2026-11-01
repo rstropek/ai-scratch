@@ -1,38 +1,27 @@
+import { randomBytes, randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { createKeyBox, type Database, generateCode, schema } from '@ai-scratch/db';
+import { createTestDb } from '@ai-scratch/db/testing';
 import { parseJsonEventStream, readUIMessageStream, uiMessageChunkSchema } from 'ai';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { eq } from 'drizzle-orm';
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { anthropicMessage, anthropicSse, sseResponse } from '../../test/support/anthropic-sse.ts';
+import { testConfig } from '../../test/support/config.ts';
 import type { ChatMessage } from '../shared/chat-types.ts';
 import { CONTEXT_LIMIT } from '../shared/energy.ts';
 import { ASK_FAILED, ASK_PATH } from '../shared/ki-block.ts';
-import { BUDGET_EMPTY, OPENROUTER_LABEL } from './access.ts';
+import { ASK_OFF, TRY_AGAIN } from './access.ts';
 import { createApp } from './app.ts';
 import { PIECE } from './ask.ts';
-import type { Config } from './config.ts';
 import { BLOCK_QUESTIONS, JEV_URL, type Nouls, QUESTIONS } from './guard.ts';
 import { WRONG_LOCKER_CODE } from './locker.ts';
 import { CUT_TOOL_CALL_ERROR, MAX_STEPS_PER_TURN, THOUGHT_TOO_LONG } from './output-guard.ts';
+import type { Mail } from './warnings.ts';
 import type { CallRecord, GuardRecord, LogSink } from './wire-log.ts';
 
-const config: Config = {
-  port: 0,
-  anthropicApiKey: 'test-key',
-  anthropicWorkspaceId: 'ws-test',
-  model: 'claude-haiku-5-5',
-  openRouterUrl: 'https://openrouter.test/api/v1',
-  openRouterModel: 'anthropic/claude-haiku-5.5',
-  effort: 'high',
-  instructions: undefined,
-  jevApiKey: 'jev-key',
-  jevModel: 'jev-1.13.0',
-  accessCodes: new Set(['schule1', 'admin_test']),
-  logDir: undefined,
-  distDir: 'does-not-exist',
-  version: 'abc123',
-  lockerUrl: 'https://locker.test',
-};
+const config = testConfig;
 
 /** Jev's answer: every question 0.01 unless given */
 const jevAnswer = (nouls: Nouls = {}) =>
@@ -44,28 +33,25 @@ const jevAnswer = (nouls: Nouls = {}) =>
     usage: { input_tokens: 500, output_tokens: 10 },
   });
 
-/** OpenRouter's GET /key for a key with a $5 limit, $4.99 left */
-const keyInfo = (data: Record<string, unknown> = {}) =>
-  Response.json({ data: { label: 'sk-or-v1-abc...xyz', limit: 5, limit_remaining: 4.99, usage: 0.01, ...data } });
-
-/** OpenRouter's GET /credits for an account with $10 bought, $1 used */
-const creditsInfo = (data: Record<string, unknown> = {}) =>
-  Response.json({ data: { total_credits: 10, total_usage: 1, ...data } });
-
-interface FakeOpenRouter {
-  /** GET /key */
-  key?: () => Response | Promise<Response>;
-  /** GET /credits */
-  credits?: () => Response | Promise<Response>;
-  /** answers a model call instead of the fake reply */
-  refuse?: () => Response | undefined;
+interface SetupOptions {
+  /** the office's database: its codes and pool (config.database on) */
+  db?: Database;
+  /** answers a model call instead of the fake reply (Anthropic's or OpenRouter's refusal) */
+  refuse?: (request: { url: string; headers: Headers }) => Response | undefined;
+  /** our Azure identity's token, for federated pool entries */
+  identityToken?: () => Promise<string>;
 }
 
+const master = randomBytes(32);
+/** seals the test keys as the office would */
+const box = createKeyBox(master);
+
 /** `reply`: the fake Anthropic answer, or one per call (the last one repeats). */
-const setup = (reply: string | string[], nouls?: Nouls, openRouter: FakeOpenRouter = {}) => {
+const setup = (reply: string | string[], nouls?: Nouls, { db, refuse, identityToken }: SetupOptions = {}) => {
   const replies = [reply].flat();
   const records: CallRecord[] = [];
   const guardRecords: GuardRecord[] = [];
+  const mails: Mail[] = [];
   const sink: LogSink = {
     storePrefix: () => 'h',
     append: (r) => records.push(r),
@@ -73,20 +59,15 @@ const setup = (reply: string | string[], nouls?: Nouls, openRouter: FakeOpenRout
   };
   const requests: { url: string; headers: Headers; body: Record<string, unknown> }[] = [];
   const jevRequests: Record<string, unknown>[] = [];
-  const keyChecks: Headers[] = [];
   const fakeFetch: typeof fetch = async (url, init) => {
-    if (String(url) === `${config.openRouterUrl}/key`) {
-      keyChecks.push(new Headers(init?.headers));
-      return (openRouter.key ?? keyInfo)();
-    }
-    if (String(url) === `${config.openRouterUrl}/credits`) return (openRouter.credits ?? creditsInfo)();
     if (String(url) === JEV_URL) {
       jevRequests.push(JSON.parse(String(init?.body)));
       return jevAnswer(nouls);
     }
     const body = JSON.parse(String(init?.body));
-    requests.push({ url: String(url), headers: new Headers(init?.headers), body });
-    const refused = openRouter.refuse?.();
+    const headers = new Headers(init?.headers);
+    requests.push({ url: String(url), headers, body });
+    const refused = refuse?.({ url: String(url), headers });
     if (refused) return refused;
     const next = replies.length > 1 ? (replies.shift() as string) : (replies[0] as string);
     // generateText (compact) asks for a plain JSON message
@@ -94,12 +75,21 @@ const setup = (reply: string | string[], nouls?: Nouls, openRouter: FakeOpenRout
     return sseResponse(next);
   };
   return {
-    app: createApp({ config, sink, fetch: fakeFetch }),
+    app: createApp({
+      config: db ? { ...config, database: true, keyEncryptionKey: master } : config,
+      sink,
+      fetch: fakeFetch,
+      db,
+      identityToken,
+      sendMail: async (mail) => {
+        mails.push(mail);
+      },
+    }),
     records,
     guardRecords,
     requests,
     jevRequests,
-    keyChecks,
+    mails,
   };
 };
 
@@ -131,7 +121,7 @@ describe('api', () => {
     const { app, requests } = setup('');
     const res = await post(app, chatBody, 'falsch');
     expect(res.status).toBe(401);
-    expect(await res.json()).toEqual({ error: 'Falscher Zugangscode' });
+    expect(await res.json()).toEqual({ error: 'Falscher Zugangscode', reason: 'unknown' });
     expect((await app.request('/api/stats')).status).toBe(401);
     expect(requests).toEqual([]);
   });
@@ -140,8 +130,8 @@ describe('api', () => {
     const { app, requests, records } = setup('');
     const check = (code?: string) =>
       app.request('/api/access', { headers: code === undefined ? {} : { 'X-Access-Code': code } });
-    expect((await check('schule1')).status).toBe(204);
-    expect((await check(' Schule1 ')).status).toBe(204);
+    expect(await (await check('schule1')).json()).toEqual({ endsAt: null, ask: true });
+    expect((await check(' Schule1 ')).status).toBe(200);
     expect((await check('falsch')).status).toBe(401);
     expect((await check()).status).toBe(401);
     expect(requests).toEqual([]);
@@ -162,7 +152,8 @@ describe('api', () => {
     expect(stream).toMatch(/"type":"finish".*"usage"/);
 
     const call = requests[0];
-    expect(call?.url).toMatch(/\/messages$/);
+    expect(call?.url).toBe('https://anthropic.test/v1/messages');
+    expect(call?.headers.get('x-api-key')).toBe('test-key');
     expect(call?.headers.get('anthropic-workspace-id')).toBe('ws-test');
     expect(call?.body).toMatchObject({ model: 'claude-haiku-5-5', max_tokens: 16000, stream: true });
     expect(call?.body.tools).toEqual(expect.arrayContaining([expect.objectContaining({ name: 'add_scripts' })]));
@@ -607,76 +598,222 @@ describe('frage KI block', () => {
   });
 });
 
-describe("parents' own OpenRouter key", () => {
-  afterEach(() => vi.useRealTimers());
-  const KEY = 'sk-or-v1-AbCdEf0123456789';
-  const check = (app: ReturnType<typeof setup>['app'], key = KEY) =>
-    app.request('/api/access', { headers: { 'X-Access-Code': key } });
+describe('codes from the office', () => {
+  let db: Database;
+  let close: () => Promise<void>;
+  const TEACHER = 'teacher';
+  const ADMIN = 'admin';
+  const HOUR = 3_600_000;
 
-  test('the gate asks OpenRouter about the key, unchanged in case, and remembers a good one', async () => {
-    const { app, keyChecks } = setup('');
-    expect((await check(app, `  ${KEY} `)).status).toBe(204);
-    expect(keyChecks[0]?.get('authorization')).toBe(`Bearer ${KEY}`);
-    expect((await check(app)).status).toBe(204);
-    expect(keyChecks).toHaveLength(1);
+  beforeAll(async () => {
+    ({ db, close } = await createTestDb());
+    const now = new Date();
+    await db.insert(schema.user).values([
+      { id: TEACHER, name: 'Lehrerin', email: 'lehrerin@example.com' },
+      { id: ADMIN, name: 'Admin', email: 'admin@example.com', role: 'admin' },
+    ]);
+    await db.insert(schema.adultProfile).values({
+      userId: TEACHER,
+      kind: 'teacher',
+      termsVersion: 't',
+      termsAcceptedAt: now,
+      aiConsentAt: now,
+      adultConfirmedAt: now,
+      freeBudgetAt: now,
+    });
+  });
+  afterAll(() => close());
+  beforeEach(async () => {
+    for (const table of [
+      schema.usage,
+      schema.accessCode,
+      schema.openrouterKey,
+      schema.anthropicKey,
+      schema.budgetWarning,
+    ])
+      await db.delete(table);
   });
 
-  test('refuses an unknown key, a key without limit or money left, and says when OpenRouter is down', async () => {
-    const refusal = async (key: () => Response | Promise<Response>, credits?: () => Response) => {
-      const res = await check(setup('', undefined, { key, credits }).app);
-      return { status: res.status, body: await res.json() };
-    };
-    expect(await refusal(() => Response.json({ error: { code: 401 } }, { status: 401 }))).toMatchObject({
-      status: 401,
-      body: { reason: 'unknown' },
+  const addEntry = async (values: Partial<typeof schema.anthropicKey.$inferInsert> = {}) => {
+    const id = randomUUID();
+    const key = `sk-ant-api03-${id}`;
+    await db.insert(schema.anthropicKey).values({
+      id,
+      donor: 'Spender',
+      keySealed: box.seal(id, key),
+      keyFingerprint: id,
+      keyHint: key.slice(-4),
+      capMonth: 10,
+      ...values,
     });
-    expect(await refusal(() => keyInfo({ limit: null, limit_remaining: null }))).toMatchObject({
-      status: 403,
-      body: { reason: 'no-limit' },
+    return { id, key };
+  };
+  const addOwnKey = async () => {
+    const id = randomUUID();
+    const key = `sk-or-v1-${id}`;
+    await db.insert(schema.openrouterKey).values({
+      id,
+      ownerId: TEACHER,
+      label: 'Zuhause',
+      keySealed: box.seal(id, key),
+      keyFingerprint: id,
+      keyHint: '…',
     });
-    expect(await refusal(() => keyInfo({ limit_remaining: 0 }))).toEqual({
-      status: 402,
-      body: { reason: 'empty', error: BUDGET_EMPTY },
+    return { id, key };
+  };
+  const addCode = async (values: Partial<typeof schema.accessCode.$inferInsert> = {}) => {
+    const [row] = await db
+      .insert(schema.accessCode)
+      .values({
+        code: generateCode(),
+        ownerId: TEACHER,
+        source: 'free',
+        startsAt: new Date(Date.now() - HOUR),
+        endsAt: new Date(Date.now() + HOUR),
+        ...values,
+      })
+      .returning();
+    return row as typeof schema.accessCode.$inferSelect;
+  };
+  const check = (app: ReturnType<typeof setup>['app'], code: string) =>
+    app.request('/api/access', { headers: { 'X-Access-Code': code } });
+  /** every call in its own session: the hearts never get in the way */
+  const call = (app: ReturnType<typeof setup>['app'], code: string, body: unknown, route = '/api/chat') =>
+    app.request(route, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Access-Code': code, 'X-Session-Id': randomUUID() },
+      body: JSON.stringify(body),
     });
-    // a limit on the key, but nothing left on the account
-    expect(await refusal(keyInfo, () => creditsInfo({ total_usage: 10 }))).toMatchObject({
-      status: 402,
-      body: { reason: 'empty' },
-    });
-    expect(await refusal(() => new Response('', { status: 500 }))).toMatchObject({
-      status: 503,
-      body: { reason: 'down' },
-    });
-    expect(
-      await refusal(() => {
-        throw new TypeError('fetch failed');
-      }),
-    ).toMatchObject({ status: 503, body: { reason: 'down' } });
+  const ask = (app: ReturnType<typeof setup>['app'], code: string) => call(app, code, { question: 'Hallo?' }, ASK_PATH);
+
+  test('an unknown code is a wrong code, counted in /api/stats', async () => {
+    const { app } = setup('', undefined, { db });
+    const res = await check(app, 'tiger-apfel-00');
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: 'Falscher Zugangscode', reason: 'unknown' });
+    expect(await stats(app)).toMatchObject({ wrongCodes: 1 });
   });
 
-  test("the chat calls OpenRouter with the parent's key; logs and hearts never see the key", async () => {
-    const { app, requests, records, guardRecords } = setup(anthropicSse({ text: 'Hallo Kind!' }));
-    const stream = await (await post(app, chatBody, KEY)).text();
-    expect(stream).toContain('"delta":"Hallo Kind!"');
-    const call = requests[0];
-    expect(call?.url).toBe('https://openrouter.test/api/v1/messages');
-    expect(call?.headers.get('authorization')).toBe(`Bearer ${KEY}`);
-    expect(call?.headers.get('x-api-key')).toBeNull();
-    expect(call?.headers.get('anthropic-workspace-id')).toBeNull();
-    expect(call?.body).toMatchObject({ model: 'anthropic/claude-haiku-5.5', thinking: { type: 'adaptive' } });
-    await expect.poll(() => records.length).toBe(1);
-    expect(records[0]).toMatchObject({ accessCode: OPENROUTER_LABEL, session: 'sess' });
-    expect(JSON.stringify([records, guardRecords])).not.toContain(KEY);
-    // hearts as for a school code
-    for (const id of ['u2', 'u3']) await (await post(app, { messages: [userMessage('Hi', id)] }, KEY)).text();
-    expect((await post(app, { messages: [userMessage('Hi', 'u4')] }, KEY)).status).toBe(429);
+  test('the gate gets the end time and the "frage KI" switch; a code created a moment ago works at once', async () => {
+    await addEntry();
+    const { app } = setup('', undefined, { db });
+    expect((await check(app, 'tiger-apfel-00')).status).toBe(401);
+    const code = await addCode({ askEnabled: false });
+    const res = await check(app, `  ${code.code.toUpperCase().replaceAll('-', ' ')} `);
+    expect(await res.json()).toEqual({ endsAt: code.endsAt.toISOString(), ask: false });
   });
 
-  test('a spent budget reaches the kid in German; then the key is refused for a minute without a model call', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] });
-    let spent = true;
-    // only the "frage KI" block gets past the refusal: a plain JSON answer
-    const { app, keyChecks, requests, jevRequests } = setup('Ok', undefined, {
+  test('a free code calls Anthropic with the pool entry of the highest priority and writes the usage', async () => {
+    await addEntry({ priority: 1 });
+    const high = await addEntry({ priority: 5, workspaceId: 'wrkspc_donor' });
+    const code = await addCode();
+    const { app, requests } = setup(anthropicSse({ text: 'Hallo Kind!' }), undefined, { db });
+    expect(await (await call(app, code.code, chatBody)).text()).toContain('"delta":"Hallo Kind!"');
+    expect(requests[0]?.url).toBe('https://anthropic.test/v1/messages');
+    expect(requests[0]?.headers.get('x-api-key')).toBe(high.key);
+    expect(requests[0]?.headers.get('anthropic-workspace-id')).toBe('wrkspc_donor');
+    await expect.poll(async () => (await db.select().from(schema.usage)).length).toBe(1);
+    expect((await db.select().from(schema.usage))[0]).toMatchObject({
+      codeId: code.id,
+      ownerId: TEACHER,
+      source: 'free',
+      poolKeyId: high.id,
+      openrouterKeyId: null,
+      calls: 1,
+      inputTokens: 1000,
+      outputTokens: 50,
+    });
+    expect(await stats(app)).toMatchObject({ calls: 1 });
+  });
+
+  test("a federated entry exchanges our identity's token once and calls with Anthropic's token as Bearer", async () => {
+    await addEntry({
+      kind: 'federation',
+      keySealed: null,
+      keyFingerprint: null,
+      keyHint: null,
+      organizationId: '00000000-0000-4000-8000-000000000001',
+      federationRuleId: 'fdrl_0123456789abcdef',
+      workspaceId: 'wrkspc_0123456789abcdef',
+    });
+    const code = await addCode();
+    const { app, requests } = setup('Ok', undefined, {
+      db,
+      identityToken: async () => 'entra-jwt',
+      refuse: ({ url }) =>
+        url.endsWith('/v1/oauth/token')
+          ? Response.json({ access_token: 'anthropic-token', expires_in: 3600, token_type: 'Bearer' })
+          : undefined,
+    });
+    expect(await (await ask(app, code.code)).json()).toEqual({ answer: 'Ok' });
+    expect(await (await ask(app, code.code)).json()).toEqual({ answer: 'Ok' });
+    const [exchange, ...calls] = requests;
+    expect(exchange?.url).toBe('https://anthropic.test/v1/oauth/token');
+    expect(exchange?.body).toMatchObject({ assertion: 'entra-jwt' });
+    expect(calls.map((c) => c.url)).toEqual([
+      'https://anthropic.test/v1/messages',
+      'https://anthropic.test/v1/messages',
+    ]);
+    expect(calls[0]?.headers.get('authorization')).toBe('Bearer anthropic-token');
+    expect(calls[0]?.headers.get('anthropic-beta')).toContain('oauth-2025-04-20');
+    expect(calls[0]?.headers.get('x-api-key')).toBeNull();
+  });
+
+  test('refusals reach the kid in German: not valid yet, expired, used up, no pool entry', async () => {
+    await addEntry();
+    const later = await addCode({ startsAt: new Date(Date.now() + 2 * HOUR), endsAt: new Date(Date.now() + 3 * HOUR) });
+    const spent = await addCode();
+    await db.insert(schema.usage).values({
+      codeId: spent.id,
+      ownerId: TEACHER,
+      source: 'free',
+      month: '2026-01',
+      outputTokens: 10_000_000,
+    });
+    const { app, requests } = setup('Ok', undefined, { db });
+    const notYet = await check(app, later.code);
+    expect(notYet.status).toBe(403);
+    expect((await notYet.json()).error).toMatch(/^Dein Code gilt erst (am \d+\.\d+\. )?ab \d\d:\d\d Uhr\.$/);
+    const usedUp = await ask(app, spent.code);
+    expect(usedUp.status).toBe(402);
+    expect((await usedUp.json()).error).toMatch(/^Das KI-Guthaben dieses Codes ist aufgebraucht/);
+    expect(requests).toHaveLength(0);
+    await db.delete(schema.anthropicKey);
+    const empty = await check(setup('', undefined, { db }).app, (await addCode()).code);
+    expect(empty.status).toBe(503);
+    expect(await empty.json()).toMatchObject({ reason: 'no-pool-entry' });
+  });
+
+  test('a refused pool entry is skipped: the kid tries again, and the next request takes the next entry', async () => {
+    const first = await addEntry({ priority: 5 });
+    const second = await addEntry({ priority: 1 });
+    const code = await addCode({ ownerId: ADMIN });
+    const { app, requests } = setup('Ok', undefined, {
+      db,
+      refuse: ({ headers }) =>
+        headers.get('x-api-key') === first.key
+          ? Response.json(
+              { type: 'error', error: { type: 'invalid_request_error', message: 'Your credit balance is too low' } },
+              { status: 400 },
+            )
+          : undefined,
+    });
+    const refused = await ask(app, code.code);
+    expect(refused.status).toBe(503);
+    expect(await refused.json()).toEqual({ error: TRY_AGAIN });
+    expect(await (await ask(app, code.code)).json()).toEqual({ answer: 'Ok' });
+    expect(requests.map((r) => r.headers.get('x-api-key'))).toEqual([first.key, second.key]);
+    const [entry] = await db.select().from(schema.anthropicKey).where(eq(schema.anthropicKey.id, first.id));
+    expect(entry?.refusedAt).toBeInstanceOf(Date);
+    expect(entry?.refusedReason).toContain('credit balance');
+  });
+
+  test("an own-key code calls OpenRouter with the owner's key; a spent key is refused for a minute", async () => {
+    const own = await addOwnKey();
+    const code = await addCode({ source: 'openrouter', openrouterKeyId: own.id });
+    let spent = false;
+    const { app, requests, records } = setup(anthropicSse({ text: 'Hallo!' }), undefined, {
+      db,
       refuse: () =>
         spent
           ? Response.json(
@@ -687,64 +824,64 @@ describe("parents' own OpenRouter key", () => {
             )
           : undefined,
     });
-    const stream = await (await post(app, chatBody, KEY)).text();
-    expect(stream).toContain(JSON.stringify(JSON.stringify({ error: BUDGET_EMPTY })).slice(1, -1));
-    expect(requests).toHaveLength(1);
-    // OpenRouter's GET /key would still pass the key: refused anyway, before a heart, Jev or a model call
-    const compact = await post(app, { messages: [userMessage('Hallo')] }, KEY, '/api/compact');
-    expect(compact.status).toBe(402);
-    expect(await compact.json()).toEqual({ error: BUDGET_EMPTY, reason: 'empty' });
-    expect((await post(app, { messages: [userMessage('Hi', 'u2')] }, KEY)).status).toBe(402);
-    expect([requests.length, jevRequests.length, keyChecks.length]).toEqual([1, 1, 1]);
-    // the parents raised the limit: a minute later the key is asked about again
-    spent = false;
-    vi.setSystemTime(Date.now() + 61_000);
-    const ask = await post(app, { question: 'Hallo?' }, KEY, ASK_PATH);
-    expect(await ask.json()).toEqual({ answer: 'Ok' });
-    expect(keyChecks).toHaveLength(2);
+    await (await call(app, code.code, chatBody)).text();
+    expect(requests[0]?.url).toBe('https://openrouter.test/api/v1/messages');
+    expect(requests[0]?.headers.get('authorization')).toBe(`Bearer ${own.key}`);
+    expect(requests[0]?.headers.get('x-api-key')).toBeNull();
+    expect(requests[0]?.body).toMatchObject({ model: 'anthropic/claude-haiku-5.5' });
+    await expect.poll(async () => (await db.select().from(schema.usage)).length).toBe(1);
+    expect((await db.select().from(schema.usage))[0]).toMatchObject({ source: 'openrouter', openrouterKeyId: own.id });
+    // own keys are their owners' money: not in /api/stats, and never in a log record
+    expect(await stats(app)).toMatchObject({ calls: 0 });
+    expect(JSON.stringify(records)).not.toContain(own.key);
+    spent = true;
+    const refused = await ask(app, code.code);
+    expect(refused.status).toBe(402);
+    expect((await refused.json()).error).toMatch(/^Das KI-Guthaben ist aufgebraucht/);
+    expect((await ask(app, code.code)).status).toBe(402);
+    expect(requests).toHaveLength(2);
   });
 
-  test('a 403 without a budget behind it (moderation) is not a spent budget', async () => {
-    const { app } = setup('', undefined, {
-      refuse: () =>
-        Response.json({ error: { code: 403, message: 'flagged', metadata: { reasons: ['x'] } } }, { status: 403 }),
+  test('"frage KI" works only while its switch is on; /api/stats only for test codes', async () => {
+    await addEntry();
+    const code = await addCode({ askEnabled: false });
+    const { app, requests } = setup('Ok', undefined, { db });
+    const res = await ask(app, code.code);
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ error: ASK_OFF });
+    expect(requests).toHaveLength(0);
+    expect((await app.request('/api/stats', { headers: { 'X-Access-Code': code.code } })).status).toBe(403);
+  });
+
+  test('at 80 % of a pool entry every admin gets one email, from one instance only', async () => {
+    const entry = await addEntry({ capMonth: 5 });
+    const code = await addCode({ ownerId: ADMIN });
+    await db.insert(schema.usage).values({
+      codeId: code.id,
+      ownerId: ADMIN,
+      source: 'free',
+      poolKeyId: entry.id,
+      month: new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Vienna', year: 'numeric', month: '2-digit' })
+        .format(new Date())
+        .slice(0, 7),
+      outputTokens: 8_000_000,
     });
-    const res = await post(app, { question: 'Hallo?' }, KEY, ASK_PATH);
-    expect(res.status).toBe(502);
-    expect(await res.json()).toEqual({ error: ASK_FAILED });
-    expect((await check(app)).status).toBe(204);
+    const one = setup('', undefined, { db });
+    await check(one.app, code.code);
+    await expect.poll(() => one.mails.length).toBe(1);
+    expect(one.mails[0]).toMatchObject({ to: ['admin@example.com'], subject: expect.stringContaining('80 %') });
+    expect(one.mails[0]?.text).toContain('Der Pool-Eintrag von Spender hat');
+    const other = setup('', undefined, { db });
+    await check(other.app, code.code);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(other.mails).toHaveLength(0);
   });
+});
 
-  test('the Locker works without money left or with OpenRouter down; an unknown key is refused', async () => {
-    const locker = (key: () => Response | Promise<Response>) =>
-      setup('', undefined, { key }).app.request('/api/locker', { headers: { 'X-Access-Code': KEY } });
-    for (const key of [() => keyInfo({ limit_remaining: 0 }), () => new Response('', { status: 500 })]) {
-      const res = await locker(key);
-      // past the access check: the route itself answers (no Locker code sent)
-      expect(await res.json()).toEqual({ error: WRONG_LOCKER_CODE });
-    }
-    expect((await locker(() => new Response('', { status: 401 }))).status).toBe(401);
-  });
-
-  test('/api/stats is for school codes; OpenRouter calls are not counted in it', async () => {
-    const { app, records } = setup(anthropicSse({ text: 'Hallo!' }));
-    expect((await app.request('/api/stats', { headers: { 'X-Access-Code': KEY } })).status).toBe(403);
-    await (await post(app, chatBody, KEY)).text();
-    // counted (or not) when the call's record is written
-    await expect.poll(() => records.length).toBe(1);
-    expect(await stats(app)).toMatchObject({ calls: 0, cost: 0 });
-    await (await post(app, chatBody)).text();
-    await expect.poll(async () => (await stats(app)).calls).toBe(1);
-  });
-
-  test('without credits (402) the "frage KI" block gets the budget text', async () => {
-    const { app } = setup('', undefined, {
-      refuse: () => Response.json({ error: { code: 402, message: 'Insufficient credits' } }, { status: 402 }),
-    });
-    const res = await post(app, { question: 'Hallo?' }, KEY, ASK_PATH);
-    expect(res.status).toBe(402);
-    expect(await res.json()).toEqual({ error: BUDGET_EMPTY });
-  });
+test('the Locker works without an access code', async () => {
+  const res = await setup('').app.request('/api/locker');
+  // past every access check: the route itself answers (no Locker code sent)
+  expect(await res.json()).toEqual({ error: WRONG_LOCKER_CODE });
 });
 
 describe('video page', () => {

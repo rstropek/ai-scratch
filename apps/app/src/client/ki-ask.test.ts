@@ -77,9 +77,9 @@ describe('frage KI in the browser', () => {
     const failed = setup('schule1', () => new Response('<html>Bad Gateway</html>', { status: 502 }));
     expect(await failed.ask('Hallo', signal())).toBe(ASK_FAILED);
 
-    // the server's reason, e.g. a parent's key without money left or OpenRouter down: the program shows why
+    // the server's reason, e.g. a code's budget used up or "frage KI" switched off: the program shows why
     for (const status of [402, 403, 503]) {
-      const refused = setup('sk-or-v1-x', () => Response.json({ error: `Grund ${status}` }, { status }));
+      const refused = setup('tiger-apfel-48', () => Response.json({ error: `Grund ${status}` }, { status }));
       expect(await refused.ask('Hallo', signal())).toBe(`Grund ${status}`);
     }
   });

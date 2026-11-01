@@ -25,7 +25,8 @@ Run them here (or from the root with `-w apps/app`). The `.env` is `apps/app/.en
 - **Editor:** the `@scratch/scratch-gui` standalone build, **unmodified**, in a same-origin iframe, driven through the VM API. Leave Scratch unmodified wherever possible.
 - **Host:** Vite + React 19, Tailwind 4 + shadcn/ui.
 - **Backend:** Hono + Vercel AI SDK v7. Tools run in the browser on the live VM. The server rebuilds the model input every turn and stores no conversations (only a local log with `LOG_DIR`).
-- **Model:** Claude Haiku 5.5 (effort high) through the Anthropic API directly; requests need the `anthropic-workspace-id` header. With a parent's own key, the same model through OpenRouter (`src/server/model.ts`).
+- **Model:** Claude Haiku 5.5 (effort high) through the Anthropic API directly, on the donated key pool (a key, or a federation's token); a key that isn't bound to a workspace sends `anthropic-workspace-id`. With a code on an adult's own OpenRouter key, the same model through OpenRouter (`src/server/model.ts`).
+- **Database:** the office's Postgres (`@ai-scratch/db`) for codes, the pool and usage, read through a snapshot per instance refreshed every 60 s (`docs/budgets.md`). Without one, only `TEST_CODES` work (dev, e2e, the game harness).
 - **Scripts:** the model reads and writes the nested-JSON DSL, never raw sb3.
 - **Prior work:** the tested prototype in `/home/rainer/github/ki-scratch`; its `docs/report.md` holds the measurements behind these choices (its README is outdated).
 
@@ -44,7 +45,7 @@ Run them here (or from the root with `-w apps/app`). The `.env` is `apps/app/.en
 ## Requirements and decisions
 
 - **Scope:** German UI, desktop only, no image uploads. Projects are saved and loaded through Scratch's *Datei* menu: its own .sb3 entries plus ours for the **CoderDojo Locker** (`docs/locker.md`). The Locker belongs to a friend of Rainer's: don't change it.
-- **Access:** without a valid access code the chat is locked (Scratch works); the code comes from the chat panel or `?code=`, the browser remembers it, codes are not case-sensitive. **Or a parent's own OpenRouter key** with a spending limit; it is never stored or logged on the server (`docs/limits-and-safety.md`). Teacher codes from the office replace the per-school codes (`docs/platform-plan.md`).
+- **Access:** without a valid access code the chat is locked (Scratch and the Locker work); codes come from the office (generated, `TIGER-APFEL-48`), the chat panel or `?code=` takes them, the browser remembers them, case and spaces don't matter. Each has a time window, a budget and the "frage KI" switch; the chat shows its end time (`docs/limits-and-safety.md`, `docs/budgets.md`).
 - **Sessions:** a random id per page load (`X-Session-Id`, no cookie, intentionally not secure); warn before closing the tab; no session resume. **"Rückgängig"** under each answer that changed the project restores it as it was before the kid's message; the copies live in browser memory only.
 - **Logging:** the event's AI calls are kept in Azure Blob for research (never delete them). **Since 2026-10-27 no conversations are stored**; token stats stay in memory (`/api/stats`).
 - **KI-Energie** (`src/shared/energy.ts`): **3 hearts**, one refills every 20 s (`admin_` codes are exempt), and the **Gedächtnis** gauge against an **80k** context limit, freed by hand ("Zusammenfassen" or "Neu anfangen"). The server enforces what the client shows.

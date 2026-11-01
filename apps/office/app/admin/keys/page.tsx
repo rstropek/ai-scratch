@@ -1,3 +1,4 @@
+import { entrySpend, loadPrice, viennaMonth } from '@ai-scratch/db';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { NotAdmin } from '../../../components/admin-gate.tsx';
@@ -30,7 +31,12 @@ export default async function KeysPage({ searchParams }: PageProps<'/admin/keys'
   const { saved } = await searchParams;
   const banner =
     typeof saved === 'string' && Object.hasOwn(k.saved, saved) ? k.saved[saved as SavedOutcome] : undefined;
-  const keys = await listKeys(getDb());
+  const db = getDb();
+  // this month's spend per entry, from the same sums the kids' app checks against each cap
+  const [keys, spend] = await Promise.all([
+    listKeys(db),
+    loadPrice(db).then((price) => entrySpend(db, price, viennaMonth(new Date()))),
+  ]);
   return (
     <AppShell userName={user.name} admin>
       <PageHeader
@@ -58,7 +64,7 @@ export default async function KeysPage({ searchParams }: PageProps<'/admin/keys'
                 { label: k.columns.donor },
                 { label: k.columns.key },
                 { label: k.columns.workspace },
-                { label: k.columns.cap },
+                { label: k.columns.spent },
                 { label: k.columns.priority },
                 { label: k.columns.status },
                 { label: k.columns.action, hidden: true },
@@ -77,12 +83,15 @@ export default async function KeysPage({ searchParams }: PageProps<'/admin/keys'
                   <Cell>
                     <span className="font-mono">{key.workspaceId ?? k.noWorkspace}</span>
                   </Cell>
-                  <Cell>
-                    <span className="whitespace-nowrap">{k.cap(key.capEurMonth)}</span>
+                  <Cell sub={k.columns.cap}>
+                    <span className="whitespace-nowrap">{k.monthSpend(spend.get(key.id) ?? 0, key.capMonth)}</span>
                   </Cell>
                   <Cell>{key.priority}</Cell>
-                  <Cell>
-                    <Chip tone={key.active ? 'success' : 'neutral'}>{key.active ? k.active : k.paused}</Chip>
+                  <Cell sub={key.refusedAt ? k.refusedAt(key.refusedAt, key.refusedReason) : undefined}>
+                    <span className="flex flex-wrap gap-1">
+                      <Chip tone={key.active ? 'success' : 'neutral'}>{key.active ? k.active : k.paused}</Chip>
+                      {key.refusedAt && <Chip tone="error">{k.refused}</Chip>}
+                    </span>
                   </Cell>
                   <Cell action>
                     <Link href={`/admin/keys/${key.id}`} className={buttonClass('secondary', 'sm')}>

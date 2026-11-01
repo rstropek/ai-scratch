@@ -20,8 +20,8 @@ Rainer has them checked by a lawyer. Read before changing a public text, or a be
 
 ## Only the terms name Rainer
 
-Rainer (2026-11-01): his name appears only in the terms (the office's `/terms` and the parents' terms in the kids'
-app, `TermsDialog.tsx`), where the operator and contact must be named. Every other user-facing text, the info
+Rainer (2026-11-01): his name appears only in the terms (the office's `/terms`; the kids' app's parents' terms went
+with iteration 3), where the operator and contact must be named. Every other user-facing text, the info
 page `/access` included, says "die Administrator:innen von AI-Scratch"; no example values with his name either.
 
 ## The terms promise things the code must keep
@@ -45,9 +45,9 @@ When one of these changes in the code, change the terms in the same change (with
 - **It describes the system as designed** in `platform-plan.md` (codes, budgets, the key pool, federated entries,
   own OpenRouter keys), with no "not built yet" markers (Rainer, 2026-11-01). When a decision there changes,
   change `apps/office/content/access.tsx` in the same change. It is not a legal text: no version, no consent.
-- **Its numbers come from `apps/office/lib/rules.ts`**: the budget env vars' starting values
-  (`CODE_MAX_HOURS`, `CODE_BUDGET_EUR`, …) live there and become the env vars' defaults once budgets are built.
-  The terms still state 4 hours and $25 in their own words (versioned text).
+- **Its numbers are the budget env vars' defaults** (`DEFAULT_LIMITS` and `OWN_KEY_MAX_REMAINING_USD` of
+  `@ai-scratch/db/limits`, in US dollars): the page is static and reads no environment, so a changed env var on
+  Azure isn't shown there. The terms still state 4 hours and $25 in their own words (versioned text).
 - **The click-through** (`components/access-tour.tsx`) lights nodes and edges of a hand-placed SVG
   (`components/access-map.tsx`); `access-map.test.tsx` checks that every edge starts and ends on a box and that
   every edge a step names exists. The diagram sits beside the text from tablets up, so Weiter never changes a

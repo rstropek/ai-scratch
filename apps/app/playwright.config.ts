@@ -22,11 +22,12 @@ export default defineConfig({
     timeout: 120_000,
     env: {
       PORT: String(PORT),
-      ACCESS_CODES: 'e2e',
+      // test codes only: no database, even when the .env names one
+      TEST_CODES: 'e2e',
+      DATABASE_URL: '',
+      PGHOST: '',
       ANTHROPIC_API_KEY: 'e2e-no-real-calls',
       JEV_API_KEY: 'e2e-no-real-calls',
-      // a key typed into the gate is never checked with the real OpenRouter (tests mock /api/access)
-      OPENROUTER_URL: 'http://127.0.0.1:9/api/v1',
       LOG_DIR: 'test-results/logs',
     },
   },

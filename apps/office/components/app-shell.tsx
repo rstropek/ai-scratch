@@ -17,23 +17,29 @@ export function AppShell({
   admin?: boolean;
   children: ReactNode;
 }) {
+  const s = texts.shell;
+  const links: [string, string][] = [
+    ['/', s.home],
+    ['/openrouter-keys', s.openrouterKeys],
+    ...(admin
+      ? ([
+          ['/admin', s.admin],
+          ['/admin/codes', s.codes],
+          ['/admin/keys', s.keys],
+          ['/admin/prices', s.prices],
+        ] as [string, string][])
+      : []),
+  ];
   return (
     <>
       <TopBar>
-        <nav aria-label={texts.shell.nav} className="flex gap-1">
-          <Link href="/" className={buttonClass('on-bar', 'sm')}>
-            {texts.shell.home}
-          </Link>
-          {admin && (
-            <>
-              <Link href="/admin" className={buttonClass('on-bar', 'sm')}>
-                {texts.shell.admin}
-              </Link>
-              <Link href="/admin/keys" className={buttonClass('on-bar', 'sm')}>
-                {texts.shell.keys}
-              </Link>
-            </>
-          )}
+        {/* phones: the links scroll sideways instead of widening the page */}
+        <nav aria-label={texts.shell.nav} className="flex min-w-0 gap-1 overflow-x-auto">
+          {links.map(([href, label]) => (
+            <Link key={href} href={href} className={buttonClass('on-bar', 'sm')}>
+              {label}
+            </Link>
+          ))}
         </nav>
         <span className="hidden truncate sm:inline">{userName}</span>
         <SignOutButton />

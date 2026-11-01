@@ -49,9 +49,10 @@ Browser                                         Server (Hono, Azure)            
   by joining the conversation into a variable). Each question costs a heart, like a chat message, and is
   screened like one. Projects with this block open only in this app, not on scratch.mit.edu.
   Details: [docs/ki-block.md](docs/ki-block.md).
-- Until the school's **access code** is entered (or comes with the link as `?code=`), only the chat is locked;
-  Scratch works. Outside the schools, parents can enter their own **OpenRouter key** with a spending limit
-  instead; they agree to terms of use first ([docs/limits-and-safety.md](docs/limits-and-safety.md#parents-own-openrouter-key)).
+- Until an **access code** is entered (or comes with the link as `?code=`), only the chat is locked; Scratch and
+  the Locker work. Teachers and parents create the codes in the office (office.ai-scratch.dev), from the free
+  budget or their own OpenRouter key; each code has its own time window and budget
+  ([docs/budgets.md](docs/budgets.md)).
 
 ## The slide deck
 
@@ -106,9 +107,13 @@ The kids' app reads `apps/app/.env`:
 
 | Variable | Meaning |
 |---|---|
-| `ANTHROPIC_API_KEY` | Anthropic API key (server only) |
-| `ANTHROPIC_WORKSPACE_ID` | sent as `anthropic-workspace-id`; needed for identity-linked keys |
-| `ACCESS_CODES` | comma-separated, one per school; not case-sensitive; codes starting with `admin_` have no heart limit (testing) |
+| `DATABASE_URL` (or `PGHOST`, `PGDATABASE`, `PGUSER` on Azure) | the office's database: codes, the key pool, usage; empty: only `TEST_CODES` work |
+| `KEY_ENCRYPTION_KEY` | opens the sealed pool keys and adults' OpenRouter keys; the office's value (required with a database) |
+| `TEST_CODES` | dev and tests only, never on Azure: comma-separated codes without a database; codes starting with `admin_` have no heart limit |
+| `ANTHROPIC_API_KEY`, `ANTHROPIC_WORKSPACE_ID` | the key that pays for `TEST_CODES` (required with them); the workspace header for identity-linked keys |
+| `ANTHROPIC_FEDERATION_AUDIENCE`, `ANTHROPIC_FEDERATION_CLIENT_ID` | our Azure identity for federated pool entries (`docs/anthropic-federation.md`) |
+| `BUDGET_TOTAL_USD_MONTH`, `BUDGET_ACCOUNT_USD_MONTH`, `FREE_CODES_PER_ACCOUNT_MONTH`, `CODE_BUDGET_USD`, `CODE_MAX_HOURS` | the budgets (`docs/budgets.md`), the same as the office's; defaults 100, 10, 5, 5, 4 |
+| `RESEND_API_KEY`, `MAIL_FROM` | the 80 % budget warnings to the admins; without a key they only go to the log |
 | `JEV_API_KEY` | TypeSafe key for the kids-protection guard (server only) |
 | `MODEL` | default `claude-haiku-5-5` |
 | `EFFORT` | the chat's thinking effort, default `high` |
@@ -117,7 +122,7 @@ The kids' app reads `apps/app/.env`:
 | `PORT`, `DIST_DIR` | default `3000`, `dist` |
 | `LOG_DIR` | stores every AI call and guard check there (game harness, e2e, debugging); unset by default and in production: nothing is stored |
 | `LOCKER_URL` | the CoderDojo Locker for saving games, default `https://locker.coderdojo.net` |
-| `OPENROUTER_URL`, `OPENROUTER_MODEL` | for parents' own keys; default `https://openrouter.ai/api/v1`, `anthropic/claude-haiku-5.5` |
+| `OPENROUTER_URL`, `OPENROUTER_MODEL` | for codes on adults' own keys; default `https://openrouter.ai/api/v1`, `anthropic/claude-haiku-5.5` |
 | `OPENROUTER_API_KEY` | only for `npm run test:live` (a key with a spending limit); the server never reads it |
 
 ### Commands
@@ -133,7 +138,7 @@ At the root: `npm run check` (Biome over the whole repo + each workspace's type 
 | `npm start` | production server: API + `dist/` on :3000 (the slide deck at `/slides/` once `npm run build --prefix slides` has run before `npm run build`) |
 | `npm test` | unit and component tests (Vitest, headless scratch-vm, no network) |
 | `npm run e2e` | Playwright against the production build, model mocked |
-| `npm run test:live` | the OpenRouter path with the real key in `.env` (`OPENROUTER_API_KEY`): gate, two chat turns, "Zusammenfassen", "frage KI"; about 2 cents |
+| `npm run test:live` | a code on an own OpenRouter key, with the real key in `.env` (`OPENROUTER_API_KEY`): two chat turns, "Zusammenfassen", "frage KI"; about 2 cents |
 | `npm run eval:games` | a simulated kid builds a game (Memory, Fangspiel, Fang mich, Space Shooter, Minesweeper) with the real app and model, a bot plays and checks each version ([eval/games](apps/app/eval/games/README.md)); costs real money |
 | `npm run eval:guard` | runs the labelled kid messages against the real Jev guard, writes [docs/kids-protection.md](docs/kids-protection.md) |
 | `npm run typecheck` | TypeScript |
@@ -182,7 +187,7 @@ apps/app/                   the kids' app (ai-scratch.dev):
   slides/                     the Slidev deck for the video tutorial (own packages), served at /slides/
   scripts/                    postinstall workaround, Scratch bundle preparation, Azure setup (scripts/azure)
   Dockerfile                  its image; built from the repo root
-apps/office/                the teachers' office (office.ai-scratch.dev, Next.js): login and one protected page so far
+apps/office/                the teachers' office (office.ai-scratch.dev, Next.js): registration, codes, own keys, the admin's pool
 packages/db/                Postgres schema, migrations and connection (Drizzle), shared by both apps
 docs/                       architecture notes per topic, kids-protection report, platform plan
 tsconfig.base.json          strict compiler options shared by both apps

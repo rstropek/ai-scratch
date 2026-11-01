@@ -16,11 +16,12 @@ import type { Context } from 'hono';
 import { type ChatMessage, type ChatMetadata, type GuardCategory, SESSION_HEADER } from '../shared/chat-types.ts';
 import { isAdminCode, memoryFull } from '../shared/energy.ts';
 import { buildInstructions, toolDefinitions } from '../shared/tools/index.ts';
-import { accessCodeOf, type KeyChecker } from './access.ts';
+import { type AppEnv, accessCodeOf, type RefusedKeys } from './access.ts';
+import type { Budget } from './budget.ts';
 import type { Config } from './config.ts';
 import { FIXED_ANSWERS, type Screening, screen } from './guard.ts';
 import type { Hearts } from './hearts.ts';
-import { requestModel } from './model.ts';
+import { type Models, requestModel } from './model.ts';
 import { buildModelInput, turnNumber } from './model-input.ts';
 import {
   capAnswerText,
@@ -68,8 +69,12 @@ export interface ChatDeps {
   sink: LogSink;
   stats: Stats;
   hearts: Hearts;
-  /** parents' OpenRouter keys (access.ts) */
-  keys: KeyChecker;
+  /** the codes from the office and their budgets; undefined without a database (test codes only) */
+  budget: Budget | undefined;
+  /** own OpenRouter keys that OpenRouter refused a moment ago (access.ts) */
+  refusedKeys: RefusedKeys;
+  /** the model for a request, by who pays (model.ts) */
+  models: Models;
   /** the fetch for Anthropic, OpenRouter and Jev (tests pass a fake) */
   fetch?: typeof fetch;
 }
@@ -145,7 +150,7 @@ const guardNewMessage = async (
 
 export const createChatHandler =
   (deps: ChatDeps) =>
-  async (c: Context): Promise<Response> => {
+  async (c: Context<AppEnv>): Promise<Response> => {
     const { config, stats, hearts } = deps;
     const body: unknown = await c.req.json().catch(() => undefined);
     const messages = (body as { messages?: unknown } | undefined)?.messages;
@@ -181,7 +186,9 @@ export const createChatHandler =
     const abort = new AbortController();
     // the kid's "Stopp" (or a closed tab) ends the model call too; nothing reads the rest
     c.req.raw.signal.addEventListener('abort', () => abort.abort(), { once: true });
-    const { model, refusal: keyRefusal } = requestModel(c, deps, ctx);
+    const prepared = await requestModel(c, deps, ctx);
+    if (!prepared.ok) return c.json({ error: prepared.error }, prepared.status);
+    const { model, refusal: keyRefusal } = prepared;
     const input = await modelMessages(messages);
     /** One model call as a UI message stream. */
     const answer = (effort: Config['effort']) =>
@@ -214,7 +221,7 @@ export const createChatHandler =
             part.type === 'finish'
               ? { usage: part.totalUsage, ...(newTurn ? { context: part.totalUsage.inputTokens } : {}) }
               : undefined,
-          // a refused key reads like the server's JSON errors, so the chat shows its German text
+          // a refusal of who pays reads like the server's JSON errors, so the chat shows its German text
           onError: (e) => {
             const refusal = keyRefusal(e);
             return refusal ? JSON.stringify({ error: refusal.error }) : toolErrorText(e);

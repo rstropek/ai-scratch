@@ -2,8 +2,9 @@
 
 The donated Anthropic access behind the free budget: keys, and federations (no key, the donor's organisation
 trusts our Azure identity: [anthropic-federation.md](anthropic-federation.md)). The admin maintains them in the
-office (`/admin/keys`, `apps/office/lib/anthropic-keys.ts`); the kids' app will draw on them (not built yet:
-[platform-plan.md](platform-plan.md#anthropic-key-pool)). Table `anthropic_key` in `packages/db/src/schema/keys.ts`,
+office (`/admin/keys`, `apps/office/lib/anthropic-keys.ts`); the kids' app draws on them (docs/budgets.md). The
+credential code (a key, or a federation's token exchange and Entra token) lives in `packages/anthropic`
+(`@ai-scratch/anthropic`), so the office's check and the kids' calls use one implementation. Table `anthropic_key` in `packages/db/src/schema/keys.ts`,
 one row per entry, `kind` `key` or `federation`; a check constraint keeps each kind's columns filled and the
 other's empty.
 
@@ -19,7 +20,8 @@ other's empty.
   A save that loses the race to the same key gets the index's error, mapped to the same "already in the pool".
   The admin sees only `keyHint` (the last four characters); the sealed key and the fingerprint never leave
   `anthropic-keys.ts`.
-- The OpenRouter keys of teachers and parents should use the same key box later.
+- Adults' own OpenRouter keys (`apps/office/lib/openrouter-keys.ts`) use the same key box; their fingerprint is
+  unique per owner (`openrouter_key_owner_fingerprint_idx`), not globally: two adults may share a key.
 
 ## Workspace ID
 
@@ -36,9 +38,10 @@ other's empty.
   `coalesce(workspace_id, '')`; a lost race maps to the same message, like keys).
 - **Two buttons on the list** (Rainer, 2026-11-01): "Föderation hinzufügen" opens `/admin/keys/new/federation`;
   the edit page shows the form of the row's kind. Changing an ID checks again; the kind never changes.
-- **The check exchanges first:** the office's identity token (`lib/entra-token.ts`) goes to `/v1/oauth/token`,
-  then the same one-token call runs with the Anthropic token. A refused exchange (`WorkloadIdentityError` with a
-  4xx, or a 401 on the call) → `exchange` with Anthropic's message; no identity token, or no
+- **The check exchanges first:** the office's identity token (`createEntraTokenProvider` of `packages/anthropic`)
+  goes to `/v1/oauth/token`, then the same one-token call runs with the Anthropic token. A refused exchange
+  (`WorkloadIdentityError` with a 4xx, or a 401 on the call) → `exchange` with Anthropic's message; no identity
+  token, or no
   `ANTHROPIC_FEDERATION_AUDIENCE` on this server → `identity`; a 5xx or a 429 at the token endpoint → "not
   reachable" (a busy endpoint says nothing about the rule, unlike a 429 on the call, which proves a key).
 
@@ -52,8 +55,16 @@ other's empty.
 - **The office uses `@anthropic-ai/sdk` 1.x,** which sends the key as `Authorization: Bearer`, not `x-api-key`.
 - **There is no remaining budget to read.** Anthropic has no endpoint for a key's or workspace's balance; spend
   limits live per workspace in the Console only. Spent amounts come from the Admin API's cost and usage reports
-  (an Admin API key, not a pool key). Hence `capEurMonth` is our own cap, counted by the kids' app later, and
-  donors should also set a spend limit in the Console.
+  (an Admin API key, not a pool key). Hence `capMonth` (whole US dollars) is our own cap, counted by the kids'
+  app from the `usage` table, and donors should also set a spend limit in the Console.
+
+## Refusals
+
+- **The kids' app writes `refusedAt`/`refusedReason`** when Anthropic refuses an entry (billing, spend limit, invalid
+  key) and skips it from then on. `/admin/keys` shows it with the reason and each entry's month spend against its
+  cap.
+- **Any successful save of the entry in the office clears both** (`updateKey`/`updateFederation`): the admin looked
+  at it, so the pool tries it again. A save whose check fails changes nothing, the refusal included.
 - **e2e tests answer the check with `e2e/fake-anthropic.ts`** (the office's `ANTHROPIC_BASE_URL`, which the SDK
   reads): the key's prefix decides the answer (`sk-ant-bad-` → 401, `sk-ant-usr-` without workspace → 400), never
   a substring: the tests' keys end in random text. For federations it also plays App Service's identity endpoint

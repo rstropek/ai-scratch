@@ -40,11 +40,6 @@ const typeCode = (code: string) => {
 afterEach(() => sessionStorage.clear());
 
 describe('LockerDialog', () => {
-  test('without the school code it points to the chat', () => {
-    setup({ api: undefined });
-    expect(screen.getByText('Zuerst den Zugangscode')).toBeInTheDocument();
-  });
-
   test('the sticker code is typed the forgiving way, then remembered for this tab', async () => {
     const { api } = setup();
     const field = screen.getByLabelText('Tipp deinen Locker-Code ein.');
@@ -163,7 +158,7 @@ describe('LockerDialog', () => {
   test('"open": the typed code opens the Locker\'s page in a new tab, without asking our server', async () => {
     const tab = { opener: window } as unknown as Window;
     const windowOpen = vi.spyOn(window, 'open').mockReturnValue(tab);
-    const { api, onClose } = setup({ action: 'open', api: undefined });
+    const { api, onClose } = setup({ action: 'open' });
     expect(screen.getByRole('heading')).toHaveTextContent('Locker in neuem Tab öffnen');
     typeCode('k7qm 4xrt');
     expect(windowOpen).toHaveBeenCalledWith('https://locker.coderdojo.net/locker/K7QM4XRT', '_blank');

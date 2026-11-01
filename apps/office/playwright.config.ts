@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { defineConfig, devices } from '@playwright/test';
-import { FAKE_ANTHROPIC_PORT, FAKE_IDENTITY } from './e2e/fake-anthropic.ts';
+import { FAKE_ANTHROPIC_PORT, FAKE_IDENTITY, FAKE_OPENROUTER_URL } from './e2e/fake-anthropic.ts';
 import { E2E_ADMIN, E2E_DATABASE_URL, E2E_OUTBOX } from './e2e/settings.ts';
 
 const PORT = 3110;
@@ -14,7 +14,8 @@ export default defineConfig({
   use: { baseURL: `http://localhost:${PORT}`, trace: 'retain-on-failure' },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: [
-    // answers the office's key checks instead of api.anthropic.com, and its federated ones instead of Azure
+    // answers the office's key checks instead of api.anthropic.com, its federated ones instead of Azure, and its
+    // OpenRouter requests (own keys, the model list)
     {
       command: 'node e2e/fake-anthropic.ts',
       url: `http://localhost:${FAKE_ANTHROPIC_PORT}/healthz`,
@@ -46,6 +47,7 @@ export default defineConfig({
         ANTHROPIC_FEDERATION_CLIENT_ID: FAKE_IDENTITY.clientId,
         IDENTITY_ENDPOINT: FAKE_IDENTITY.endpoint,
         IDENTITY_HEADER: FAKE_IDENTITY.header,
+        OPENROUTER_URL: FAKE_OPENROUTER_URL,
       },
     },
   ],

@@ -2,12 +2,14 @@
 
 import { X } from 'lucide-react';
 import { type ReactNode, useId, useRef } from 'react';
-import { Button, type ButtonVariant } from './button.tsx';
+import { Button, type ButtonSize, type ButtonVariant } from './button.tsx';
 
 type ConfirmDialogProps = {
   /** the button that opens the dialog */
   trigger: string;
   triggerVariant?: ButtonVariant;
+  /** `sm` in a table row */
+  triggerSize?: ButtonSize;
   title: string;
   children: ReactNode;
   cancel: string;
@@ -26,6 +28,7 @@ type ConfirmDialogProps = {
 export function ConfirmDialog({
   trigger,
   triggerVariant = 'danger',
+  triggerSize,
   title,
   children,
   cancel,
@@ -39,7 +42,7 @@ export function ConfirmDialog({
   const close = () => ref.current?.close();
   return (
     <>
-      <Button variant={triggerVariant} pending={pending} onClick={() => ref.current?.showModal()}>
+      <Button variant={triggerVariant} size={triggerSize} pending={pending} onClick={() => ref.current?.showModal()}>
         {trigger}
       </Button>
       <dialog

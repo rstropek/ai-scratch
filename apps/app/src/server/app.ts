@@ -1,18 +1,23 @@
 // The Hono app: API routes + static files. Kept free of side effects so tests can call app.request().
 import fs from 'node:fs';
 import path from 'node:path';
+import type { IdentityTokenProvider } from '@ai-scratch/anthropic';
+import { createKeyBox, type Database } from '@ai-scratch/db';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import { ASK_PATH } from '../shared/ki-block.ts';
 import { LIVE_PATH } from '../shared/live.ts';
-import { createKeyChecker, requireAccess, requireBudget, schoolOnly } from './access.ts';
+import { type AppEnv, accessInfo, createRefusedKeys, requireBudget, requireCode, testOnly } from './access.ts';
 import { createAskHandler } from './ask.ts';
+import { createBudget } from './budget.ts';
 import { createChatHandler } from './chat.ts';
 import { createCompactHandler } from './compact.ts';
 import type { Config } from './config.ts';
 import { createHearts } from './hearts.ts';
 import { addLockerRoutes } from './locker.ts';
+import { createModels } from './model.ts';
 import { createStats } from './stats.ts';
+import { createWarnings, logMail, type SendMail } from './warnings.ts';
 import type { LogSink } from './wire-log.ts';
 
 export interface AppDeps {
@@ -20,26 +25,43 @@ export interface AppDeps {
   sink: LogSink;
   /** the fetch for Anthropic, OpenRouter and Jev (tests pass a fake) */
   fetch?: typeof fetch;
+  /** the office's codes, the pool and the usage; required with `config.database` */
+  db?: Database;
+  /** our Azure identity's token, for federated pool entries */
+  identityToken?: IdentityTokenProvider;
+  /** the 80 % warnings to the admins */
+  sendMail?: SendMail;
 }
 
-export const createApp = ({ config, sink, fetch }: AppDeps): Hono => {
+export const createApp = ({ config, sink, fetch, db, identityToken, sendMail = logMail }: AppDeps): Hono<AppEnv> => {
+  if (config.database && !db) throw new Error('createApp: the config names a database, but none was passed');
   const stats = createStats();
-  const keys = createKeyChecker(config.openRouterUrl, fetch);
-  const deps = { config, sink, stats, hearts: createHearts(), keys, fetch };
-  const app = new Hono();
+  const box = config.keyEncryptionKey && createKeyBox(config.keyEncryptionKey);
+  const budget = db && createBudget({ db, limits: config.limits, onRefresh: createWarnings({ db, send: sendMail }) });
+  const refusedKeys = createRefusedKeys();
+  const models = createModels({
+    config,
+    box,
+    identityToken,
+    baseFetch: fetch,
+    entryOf: (id) => budget?.entryOf(id),
+    refuse: (id, reason) => budget?.refuse(id, reason),
+  });
+  const deps = { config, sink, stats, hearts: createHearts(), budget, refusedKeys, models, fetch };
+  const app = new Hono<AppEnv>();
 
   // for the deploy workflow and App Service: which commit is running, no access code needed
   app.get('/healthz', (c) => c.json({ version: config.version }));
-  app.use('/api/*', requireAccess(config.accessCodes, keys));
-  // a parent's key needs money left wherever the model is called; the Locker works without
-  const budget = requireBudget(keys);
-  // the gate's check of a typed-in code or key: the middlewares do the work
-  app.get('/api/access', budget, (c) => c.body(null, 204));
-  app.post('/api/chat', budget, createChatHandler(deps));
-  app.post('/api/compact', budget, createCompactHandler(deps));
-  app.post(ASK_PATH, budget, createAskHandler(deps));
+  // the Locker works without a code, always: registered before the code check, so it never runs for these routes
   addLockerRoutes(app, deps);
-  app.get('/api/stats', schoolOnly, (c) => c.json(stats));
+  app.use('/api/*', requireCode(config.testCodes, budget, stats));
+  // the code's budgets wherever the model is called, and for the gate's check
+  const withBudget = requireBudget(budget, refusedKeys);
+  app.get('/api/access', withBudget, accessInfo);
+  app.post('/api/chat', withBudget, createChatHandler(deps));
+  app.post('/api/compact', withBudget, createCompactHandler(deps));
+  app.post(ASK_PATH, withBudget, createAskHandler(deps));
+  app.get('/api/stats', testOnly, (c) => c.json(stats));
   app.all('/api/*', (c) => c.json({ error: 'Nicht gefunden' }, 404));
 
   // The slide deck for the video tutorial (slides/, built with base /slides/), public like the editor.

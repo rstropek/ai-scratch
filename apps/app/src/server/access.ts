@@ -1,149 +1,155 @@
-// Access check, sent by the client on every /api call (X-Access-Code): a school's code, or a parent's own
-// OpenRouter key (told apart by its prefix, src/shared/access.ts). A key is checked with OpenRouter: it must
-// be valid for every route, and for the routes that call the model also have a spending limit and money
-// left. The key is never stored, logged or put into a log record.
-import crypto from 'node:crypto';
+// Access with a code (X-Access-Code on every /api call except the Locker's): a code an adult created in the office,
+// looked up in the budget snapshot (budget.ts), or a test code from TEST_CODES (dev, tests, the game harness). The
+// routes that call the model also check the code's budgets (docs/budgets.md) and pick who pays: the pool, the
+// owner's own OpenRouter key, or the test codes' key.
+import { type CodeGrant, normalizeCode, type Refusal } from '@ai-scratch/db';
 import type { Context, MiddlewareHandler } from 'hono';
-import { isOpenRouterKey, type KeyProblem, normalizeCode } from '../shared/access.ts';
+import type { AccessInfo } from '../shared/access.ts';
 import { ACCESS_CODE_HEADER } from '../shared/chat-types.ts';
+import type { Budget } from './budget.ts';
+import type { Stats } from './stats.ts';
 
-export type Credential = { kind: 'school'; code: string } | { kind: 'openrouter'; key: string };
+export type Access = { kind: 'test'; code: string } | { kind: 'code'; grant: CodeGrant };
 
-export const credentialOf = (c: Context): Credential => {
-  const raw = c.req.header(ACCESS_CODE_HEADER) ?? '';
-  return isOpenRouterKey(raw) ? { kind: 'openrouter', key: raw.trim() } : { kind: 'school', code: normalizeCode(raw) };
-};
+/** who pays for the request's model calls */
+export type Route = { kind: 'test' } | { kind: 'pool'; entryId: string } | { kind: 'openrouter' };
 
-/** stands in for a key wherever the access code is recorded (log records, hearts): never the key itself */
-export const OPENROUTER_LABEL = 'openrouter';
-
-/** The request's access code, normalized like the configured ones; OPENROUTER_LABEL for a key. */
-export const accessCodeOf = (c: Context): string => {
-  const credential = credentialOf(c);
-  return credential.kind === 'school' ? credential.code : OPENROUTER_LABEL;
-};
-
-export const BUDGET_EMPTY = 'Das KI-Guthaben ist aufgebraucht. Frag deine Eltern, ob sie es bei OpenRouter aufladen.';
-
-/**
- * For the kid: what the chat and the "frage KI" block show when a key stops working mid-session. The gate
- * shows its own texts, for the parents (App.tsx), and only reads the reason.
- */
-const KEY_REFUSED: Record<KeyProblem, { status: 401 | 402 | 403 | 503; error: string }> = {
-  unknown: { status: 401, error: 'Falscher Zugangscode' },
-  'no-limit': {
-    status: 403,
-    error: 'Dieser OpenRouter-Schlüssel hat kein Ausgabelimit. Bitte deine Eltern, eines einzustellen.',
-  },
-  empty: { status: 402, error: BUDGET_EMPTY },
-  down: { status: 503, error: 'OpenRouter antwortet gerade nicht. Versuch es in einer Minute nochmal.' },
-};
-
-/** A key that passed is not asked about again for this long. */
-const KEY_OK_MS = 5 * 60_000;
-/** A refusal from GET /key stands this long, so the two checks of one request ask only once. */
-const KEY_REFUSED_MS = 15_000;
-/** A refusal by a model call stands this long: GET /key may still pass a key whose calls fail (a balance too small for a turn), and each try would cost a heart and a screening. */
-const MODEL_REFUSED_MS = 60_000;
-const KEY_CHECK_TIMEOUT_MS = 5_000;
-/** less than this left (dollars) counts as empty: not enough for a long turn */
-const MIN_DOLLARS = 0.05;
-
-export interface KeyChecker {
-  check(key: string): Promise<KeyProblem | undefined>;
-  /** a model call refused the key: refuse it here too for a while instead of asking OpenRouter */
-  refuse(key: string, problem: KeyProblem): void;
+export interface AppEnv {
+  Variables: { access: Access; route: Route };
 }
 
-const keyId = (key: string) => crypto.createHash('sha256').update(key).digest('hex');
+/** why an own OpenRouter key's call was refused by OpenRouter */
+export type KeyProblem = 'empty' | 'invalid';
 
-/**
- * Checks a key with OpenRouter: GET /key for its limit and what is left of it, GET /credits for the
- * account's balance (both in dollars). A key without a limit is refused: parents promise a budget-limited
- * key in the terms, and this keeps them to it.
- */
-export const createKeyChecker = (openRouterUrl: string, baseFetch: typeof fetch = fetch): KeyChecker => {
-  /** sha256 of the key → the last answer, until when it stands */
-  const known = new Map<string, { problem: KeyProblem | undefined; until: number }>();
-  const remember = (key: string, problem: KeyProblem | undefined, ms: number) => {
-    if (known.size > 10_000) known.clear();
-    known.set(keyId(key), { problem, until: Date.now() + ms });
-  };
-  const get = (key: string, path: string) =>
-    baseFetch(`${openRouterUrl}${path}`, {
-      headers: { Authorization: `Bearer ${key}` },
-      signal: AbortSignal.timeout(KEY_CHECK_TIMEOUT_MS),
-    });
-  const dataOf = async <T>(res: Response) =>
-    ((await res.json().catch(() => undefined)) as { data?: T } | undefined)?.data;
+export const WRONG_CODE = 'Falscher Zugangscode';
+export const UNAVAILABLE = 'Die KI ist gerade nicht erreichbar. Versuch es in einer Minute nochmal.';
+/** Anthropic refused the pool entry just used: the next request takes the next one */
+export const TRY_AGAIN = 'Das hat gerade nicht geklappt. Versuch es gleich nochmal.';
+export const ASK_OFF = 'Für diesen Code ist der Block „frage KI“ ausgeschaltet.';
+const ASK_ADULTS = 'Frag die Erwachsenen, die dir den Code gegeben haben.';
 
-  const ask = async (key: string): Promise<KeyProblem | undefined> => {
-    let res: Response;
-    let credits: Response | undefined;
-    try {
-      [res, credits] = await Promise.all([get(key, '/key'), get(key, '/credits').catch(() => undefined)]);
-    } catch {
-      return 'down';
-    }
-    if (res.status === 401 || res.status === 403) return 'unknown';
-    if (!res.ok) return 'down';
-    const data = await dataOf<{ limit?: number | null; limit_remaining?: number | null }>(res);
-    if (!data) return 'down';
-    if (data.limit === null || data.limit === undefined) return 'no-limit';
-    if ((data.limit_remaining ?? 0) < MIN_DOLLARS) return 'empty';
-    // the balance is a second line of defence (a model call that fails with 402 is refused too), so a failed
-    // or odd answer from /credits doesn't lock anyone out
-    const account = credits?.ok ? await dataOf<{ total_credits?: number; total_usage?: number }>(credits) : undefined;
-    if (
-      typeof account?.total_credits === 'number' &&
-      typeof account.total_usage === 'number' &&
-      account.total_credits - account.total_usage < MIN_DOLLARS
-    )
-      return 'empty';
-    return undefined;
-  };
+type Refused = { status: 402 | 403 | 503; error: string };
 
-  const check = async (key: string): Promise<KeyProblem | undefined> => {
-    const last = known.get(keyId(key));
-    if (last && Date.now() < last.until) return last.problem;
-    const problem = await ask(key);
-    remember(key, problem, problem ? KEY_REFUSED_MS : KEY_OK_MS);
-    return problem;
-  };
-  return { check, refuse: (key, problem) => remember(key, problem, MODEL_REFUSED_MS) };
+/** For the kid: the chat, the gate and the "frage KI" block show these. */
+const REFUSED: Record<Exclude<Refusal, 'not-yet'> | `key-${KeyProblem}`, Refused> = {
+  expired: { status: 403, error: `Dein Code ist abgelaufen. ${ASK_ADULTS}` },
+  'code-budget': { status: 402, error: `Das KI-Guthaben dieses Codes ist aufgebraucht. ${ASK_ADULTS}` },
+  'free-withdrawn': { status: 403, error: `Das KI-Guthaben für diesen Code ist gerade nicht verfügbar. ${ASK_ADULTS}` },
+  'account-budget': { status: 402, error: `Das KI-Guthaben für diesen Code ist gerade nicht verfügbar. ${ASK_ADULTS}` },
+  'total-budget': { status: 402, error: `Das KI-Guthaben für diesen Code ist gerade nicht verfügbar. ${ASK_ADULTS}` },
+  'no-pool-entry': {
+    status: 503,
+    error: 'Die KI hat gerade kein Guthaben mehr. Die Erwachsenen von AI-Scratch kümmern sich darum.',
+  },
+  unavailable: { status: 503, error: UNAVAILABLE },
+  'key-empty': { status: 402, error: `Das KI-Guthaben ist aufgebraucht. ${ASK_ADULTS}` },
+  'key-invalid': { status: 403, error: `Der OpenRouter-Schlüssel hinter diesem Code gilt nicht mehr. ${ASK_ADULTS}` },
 };
 
-/**
- * Every /api route: a school's code, or a key OpenRouter knows. A key's budget is not checked here, so the
- * Locker still saves a game when the money is used up or OpenRouter is down. `codes` are normalized
- * (config.ts).
- */
-export const requireAccess =
-  (codes: ReadonlySet<string>, keys: KeyChecker): MiddlewareHandler =>
+const viennaTime = new Intl.DateTimeFormat('de-AT', { timeZone: 'Europe/Vienna', hour: '2-digit', minute: '2-digit' });
+const viennaDay = new Intl.DateTimeFormat('de-AT', { timeZone: 'Europe/Vienna', day: 'numeric', month: 'numeric' });
+
+/** "ab 10:00 Uhr" today, "am 12.11. ab 10:00 Uhr" on another day */
+export const notYetText = (startsAt: Date, now: Date): string => {
+  const day = viennaDay.format(startsAt);
+  const when = day === viennaDay.format(now) ? '' : `am ${day} `;
+  return `Dein Code gilt erst ${when}ab ${viennaTime.format(startsAt)} Uhr.`;
+};
+
+export const refusedFor = (refusal: Refusal | `key-${KeyProblem}`, grant: CodeGrant, now: Date): Refused =>
+  refusal === 'not-yet' ? { status: 403, error: notYetText(grant.startsAt, now) } : REFUSED[refusal];
+
+/** Own keys OpenRouter refused: refused here for a minute instead of costing the kid a heart and a screening each try. */
+export const createRefusedKeys = (ms = 60_000) => {
+  const refused = new Map<string, { problem: KeyProblem; until: number }>();
+  return {
+    get: (keyId: string): KeyProblem | undefined => {
+      const entry = refused.get(keyId);
+      return entry && Date.now() < entry.until ? entry.problem : undefined;
+    },
+    set: (keyId: string, problem: KeyProblem) => {
+      if (refused.size > 10_000) refused.clear();
+      refused.set(keyId, { problem, until: Date.now() + ms });
+    },
+  };
+};
+export type RefusedKeys = ReturnType<typeof createRefusedKeys>;
+
+/** Every /api route but the Locker's: a known code. A deleted or unknown code answers 401 (back to the gate). */
+export const requireCode =
+  (testCodes: ReadonlySet<string>, budget: Budget | undefined, stats: Stats): MiddlewareHandler<AppEnv> =>
   async (c, next) => {
-    const credential = credentialOf(c);
-    if (credential.kind === 'school' && !codes.has(credential.code))
-      return c.json({ error: KEY_REFUSED.unknown.error }, 401);
-    if (credential.kind === 'openrouter' && (await keys.check(credential.key)) === 'unknown')
-      return c.json({ error: KEY_REFUSED.unknown.error, reason: 'unknown' }, 401);
+    const code = normalizeCode(c.req.header(ACCESS_CODE_HEADER) ?? '');
+    if (code && testCodes.has(code)) {
+      c.set('access', { kind: 'test', code });
+      return next();
+    }
+    let grant: CodeGrant | undefined;
+    if (code && budget) {
+      try {
+        grant = await budget.find(code);
+      } catch (error) {
+        console.error('access: looking up a code failed', error);
+        return c.json({ error: UNAVAILABLE, reason: 'unavailable' }, 503);
+      }
+    }
+    if (!grant) {
+      // guessing codes shows here and in /api/stats; the code itself is never logged
+      stats.wrongCodes += 1;
+      if (code) console.warn('access: unknown code');
+      return c.json({ error: WRONG_CODE, reason: 'unknown' }, 401);
+    }
+    c.set('access', { kind: 'code', grant });
     await next();
   };
 
-/** The routes that call the model, and the gate's check: a key also needs a limit and money left. */
+/** The routes that call the model, and the gate's check: the code's budgets, then who pays. */
 export const requireBudget =
-  (keys: KeyChecker): MiddlewareHandler =>
+  (budget: Budget | undefined, refusedKeys: RefusedKeys): MiddlewareHandler<AppEnv> =>
   async (c, next) => {
-    const credential = credentialOf(c);
-    const problem = credential.kind === 'openrouter' ? await keys.check(credential.key) : undefined;
-    if (problem) {
-      const { status, error } = KEY_REFUSED[problem];
-      return c.json({ error, reason: problem }, status);
+    const access = c.get('access');
+    if (access.kind === 'test' || !budget) {
+      c.set('route', { kind: 'test' });
+      return next();
+    }
+    const { grant } = access;
+    const now = new Date();
+    const refuse = (refusal: Refusal | `key-${KeyProblem}`) => {
+      const { status, error } = refusedFor(refusal, grant, now);
+      return c.json({ error, reason: refusal }, status);
+    };
+    const refusal = budget.refusal(grant, now);
+    if (refusal) return refuse(refusal);
+    if (grant.source === 'openrouter') {
+      const problem = grant.openrouterKeyId ? refusedKeys.get(grant.openrouterKeyId) : undefined;
+      if (problem) return refuse(`key-${problem}`);
+      c.set('route', { kind: 'openrouter' });
+    } else {
+      const entry = budget.entry();
+      if (!entry) return refuse('no-pool-entry');
+      c.set('route', { kind: 'pool', entryId: entry.id });
     }
     await next();
   };
 
-/** /api/stats: for school codes, not for anyone who makes an OpenRouter key */
-export const schoolOnly: MiddlewareHandler = async (c, next) => {
-  if (credentialOf(c).kind !== 'school') return c.json({ error: 'Nicht erlaubt' }, 403);
+/** GET /api/access, the gate's check: what the chat shows of the code */
+export const accessInfo = (c: Context<AppEnv>) => {
+  const access = c.get('access');
+  const info: AccessInfo =
+    access.kind === 'test'
+      ? { endsAt: null, ask: true }
+      : { endsAt: access.grant.endsAt.toISOString(), ask: access.grant.askEnabled };
+  return c.json(info);
+};
+
+/** /api/stats: only with a test code */
+export const testOnly: MiddlewareHandler<AppEnv> = async (c, next) => {
+  if (c.get('access').kind !== 'test') return c.json({ error: 'Nicht erlaubt' }, 403);
   await next();
+};
+
+/** the code as it goes into log records and keys the hearts without a session */
+export const accessCodeOf = (c: Context<AppEnv>): string => {
+  const access = c.get('access');
+  return access.kind === 'test' ? access.code : access.grant.code;
 };

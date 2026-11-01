@@ -1,5 +1,5 @@
-// Live counters since the server started (GET /api/stats): Anthropic calls (school codes only: parents pay
-// OpenRouter themselves), the kids-protection guard, the output guard, KI-Energie, the "frage KI" block and
+// Live counters since the server started (GET /api/stats, test codes only): Anthropic calls (the pool and the test
+// codes; own OpenRouter keys are their owners' money), codes that didn't exist, the kids-protection guard, the output guard, KI-Energie, the "frage KI" block and
 // the Locker.
 import type { GuardCategory } from '../shared/chat-types.ts';
 import { type AnthropicUsage, costOf } from './cost.ts';
@@ -12,6 +12,8 @@ export interface Stats {
   cacheWriteTokens: number;
   outputTokens: number;
   cost: number;
+  /** requests with a code that doesn't exist: guessing shows here */
+  wrongCodes: number;
   guard: { checks: number; errors: number; byCategory: Partial<Record<GuardCategory, number>> };
   /** answers cut at the text limit, turns ended at the step limit, tool calls cut short by max_tokens, calls that only thought until max_tokens */
   outputCaps: { textCuts: number; stepLimits: number; toolCuts: number; thinkingCuts: number };
@@ -31,6 +33,7 @@ export const createStats = (): Stats => ({
   cacheWriteTokens: 0,
   outputTokens: 0,
   cost: 0,
+  wrongCodes: 0,
   guard: { checks: 0, errors: 0, byCategory: {} },
   outputCaps: { textCuts: 0, stepLimits: 0, toolCuts: 0, thinkingCuts: 0 },
   energy: { heartsEmpty: 0, memoryFull: 0, compacts: 0 },

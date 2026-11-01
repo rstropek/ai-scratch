@@ -39,7 +39,8 @@ or `src/server/locker.ts`.
 - **Loading replaces the project and clears the chat's undo copies** ("Rückgängig" would bring back the
   project before the load). The chat goes on: every turn sends the current project anyway. Loading waits
   while the KI-Helfer is working.
-- The Locker needs the **school access code** like every `/api` route; before it, the dialog points to the chat.
+- **The Locker needs no access code** (Rainer, 2026-11-01): its routes are registered before the code check in
+  `app.ts`, and the client calls them without the header.
 - The assistant's prompt names both ways to save (section "SPEICHERN UND LADEN") and points at the menu;
   only the kid saves and loads.
 

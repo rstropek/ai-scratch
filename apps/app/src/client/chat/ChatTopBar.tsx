@@ -1,6 +1,7 @@
-// The chat's top bar: continues Scratch's purple menu bar (same height and colour). It holds the font
-// size buttons, the tool-call toggle, "Schlüssel vergessen" (with a parent's key) and the fold button. KI-Energie sits in its own strip below (EnergyBar).
-import { AArrowDown, AArrowUp, LogOut, PanelLeftClose, Wrench } from 'lucide-react';
+// The chat's top bar: continues Scratch's purple menu bar (same height and colour). It holds the code's end time
+// ("Code gilt bis 10:50"), the font size buttons, the tool-call toggle and the fold button. KI-Energie sits in
+// its own strip below (EnergyBar).
+import { AArrowDown, AArrowUp, PanelLeftClose, Wrench } from 'lucide-react';
 import type { ComponentProps } from 'react';
 import { cn } from '@/lib/utils';
 import { FONT_SIZE } from '../ui-prefs.ts';
@@ -11,10 +12,15 @@ export interface ChatTopBarProps {
   /** without it there is no tool toggle (the access gate) */
   showTools?: boolean;
   onShowTools?: (show: boolean) => void;
-  /** only with a parent's OpenRouter key: forget it on this computer */
-  onForgetKey?: () => void;
+  /** when the access code stops working (ISO time); the kid sees the end time, never the budget */
+  endsAt?: string;
   onFold: () => void;
 }
+
+const viennaTime = new Intl.DateTimeFormat('de-AT', { timeZone: 'Europe/Vienna', hour: '2-digit', minute: '2-digit' });
+
+/** "Code gilt bis 10:50" */
+export const endsAtText = (endsAt: string): string => `Code gilt bis ${viennaTime.format(new Date(endsAt))}`;
 
 /** A white icon button in Scratch's menu-bar style. */
 export const BarButton = ({ className, ...props }: ComponentProps<'button'>) => (
@@ -30,9 +36,12 @@ export const BarButton = ({ className, ...props }: ComponentProps<'button'>) => 
   />
 );
 
-export const ChatTopBar = ({ fontSize, onFontSize, showTools, onShowTools, onForgetKey, onFold }: ChatTopBarProps) => (
+export const ChatTopBar = ({ fontSize, onFontSize, showTools, onShowTools, endsAt, onFold }: ChatTopBarProps) => (
   <div className="flex h-12 flex-none items-center gap-0.5 bg-primary pr-1.5 pl-3 text-primary-foreground">
-    <span className="mr-auto pr-2 text-sm font-bold whitespace-nowrap">KI-Helfer</span>
+    <span className="pr-2 text-sm font-bold whitespace-nowrap">KI-Helfer</span>
+    <span className="mr-auto min-w-0 truncate pr-2 text-xs opacity-85" data-testid="code-ends">
+      {endsAt && endsAtText(endsAt)}
+    </span>
     <BarButton
       aria-label="Schrift kleiner"
       title="Schrift kleiner"
@@ -57,11 +66,6 @@ export const ChatTopBar = ({ fontSize, onFontSize, showTools, onShowTools, onFor
         onClick={() => onShowTools(!showTools)}
       >
         <Wrench />
-      </BarButton>
-    )}
-    {onForgetKey && (
-      <BarButton aria-label="Schlüssel vergessen" title="Schlüssel vergessen" onClick={onForgetKey}>
-        <LogOut />
       </BarButton>
     )}
     <span className="mx-1 h-5 w-px bg-white/30" aria-hidden />

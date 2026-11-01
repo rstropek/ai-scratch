@@ -4,7 +4,7 @@
 import { generateText } from 'ai';
 import type { Context } from 'hono';
 import { type ChatMessage, SESSION_HEADER } from '../shared/chat-types.ts';
-import { accessCodeOf } from './access.ts';
+import { type AppEnv, accessCodeOf } from './access.ts';
 import type { ChatDeps } from './chat.ts';
 import { requestModel } from './model.ts';
 import { textOnly, turnNumber, withoutGuarded } from './model-input.ts';
@@ -41,19 +41,21 @@ const isMessages = (value: unknown): value is ChatMessage[] =>
 
 export const createCompactHandler =
   (deps: ChatDeps) =>
-  async (c: Context): Promise<Response> => {
+  async (c: Context<AppEnv>): Promise<Response> => {
     const body: unknown = await c.req.json().catch(() => undefined);
     const messages = (body as { messages?: unknown } | undefined)?.messages;
     if (!isMessages(messages)) return c.json({ error: 'Ungültige Anfrage' }, 400);
     const text = transcript(messages);
     if (!text) return c.json({ error: 'Es gibt noch nichts zum Zusammenfassen.' }, 400);
 
-    const { model, refusal: keyRefusal } = requestModel(c, deps, {
+    const prepared = await requestModel(c, deps, {
       accessCode: accessCodeOf(c),
       session: c.req.header(SESSION_HEADER),
       turn: turnNumber(messages),
       purpose: 'compact',
     });
+    if (!prepared.ok) return c.json({ error: prepared.error }, prepared.status);
+    const { model, refusal: keyRefusal } = prepared;
     try {
       const result = await generateText({
         model,

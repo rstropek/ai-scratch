@@ -1,27 +1,12 @@
 import { describe, expect, test } from 'vitest';
+import { testConfig } from '../../test/support/config.ts';
 import type { LockerContents } from '../shared/locker.ts';
 import { createApp } from './app.ts';
 import type { Config } from './config.ts';
 import { gamesOf, LOCKER_DOWN, SB3_TYPE, TOO_BIG, WRONG_LOCKER_CODE } from './locker.ts';
 import type { LogSink } from './wire-log.ts';
 
-const config: Config = {
-  port: 0,
-  anthropicApiKey: 'test-key',
-  anthropicWorkspaceId: undefined,
-  model: 'claude-haiku-5-5',
-  openRouterUrl: 'https://openrouter.test/api/v1',
-  openRouterModel: 'anthropic/claude-haiku-5.5',
-  effort: 'high',
-  instructions: undefined,
-  jevApiKey: 'jev-key',
-  jevModel: 'jev-1.13.0',
-  accessCodes: new Set(['schule1']),
-  logDir: undefined,
-  distDir: 'does-not-exist',
-  version: 'test',
-  lockerUrl: 'https://locker.test/',
-};
+const config: Config = { ...testConfig, version: 'test', lockerUrl: 'https://locker.test/' };
 const sink: LogSink = { storePrefix: () => 'h', append: () => {}, appendGuard: () => {} };
 
 const CODE = 'K7QM4XRT';
@@ -193,11 +178,11 @@ describe('locker routes', () => {
     expect(await res.json()).toEqual({ error: WRONG_LOCKER_CODE });
   });
 
-  test('without the school code the Locker routes stay closed', async () => {
+  test('the Locker routes work without an access code', async () => {
     const { app, requests } = setup();
     const res = await app.request('/api/locker', { headers: { 'X-Locker-Code': CODE } });
-    expect(res.status).toBe(401);
-    expect(requests).toHaveLength(0);
+    expect(res.status).not.toBe(401);
+    expect(requests.length).toBeGreaterThan(0);
   });
 
   test("the Locker's own German refusal reaches the kid, and the held space is given back", async () => {

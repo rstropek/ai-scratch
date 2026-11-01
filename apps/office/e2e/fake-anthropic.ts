@@ -6,6 +6,12 @@
 //   anything else works
 // It also stands in for a federation: App Service's identity endpoint (the office's IDENTITY_ENDPOINT) hands out a
 // fake Entra token, and the token exchange swaps it for an Anthropic token unless the rule starts with fdrl_bad.
+// And for OpenRouter under /api/v1 (the office's OPENROUTER_URL): GET /key answers by the key's prefix,
+//   sk-or-v1-bad…       unknown key (401)
+//   sk-or-v1-nolimit…   no limit (limit_remaining null)
+//   sk-or-v1-big…       $100 left
+//   anything else       $5 left
+// and GET /models lists Haiku with FAKE_HAIKU_PRICE (dollars per token, as strings).
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 
 export const FAKE_ANTHROPIC_PORT = 3121;
@@ -23,6 +29,22 @@ const FAKE_ENTRA_TOKEN = [{ alg: 'none' }, { aud: FAKE_IDENTITY.audience, oid: '
   .map((part) => Buffer.from(JSON.stringify(part)).toString('base64url'))
   .join('.');
 const FAKE_ANTHROPIC_TOKEN = 'sk-ant-oat01-e2e-federated';
+
+/** the office's OPENROUTER_URL */
+export const FAKE_OPENROUTER_URL = `http://localhost:${FAKE_ANTHROPIC_PORT}/api/v1`;
+
+/** what GET /models says Haiku costs, in dollars per million tokens (the office multiplies OpenRouter's per token) */
+export const FAKE_HAIKU_PRICE = { input: 0.2, output: 1, cacheWrite: 0.25, cacheRead: 0.02 };
+
+const openRouterKey = (key: string) => {
+  if (key.startsWith('sk-or-v1-bad')) return undefined;
+  if (key.startsWith('sk-or-v1-nolimit')) return { limit: null, limit_remaining: null, usage: 0 };
+  return key.startsWith('sk-or-v1-big')
+    ? { limit: 100, limit_remaining: 100, usage: 0 }
+    : { limit: 5, limit_remaining: 5, usage: 0 };
+};
+
+const perToken = (perMillion: number) => (perMillion / 1e6).toFixed(12);
 
 const bodyOf = async (req: IncomingMessage): Promise<string> => {
   const chunks: Buffer[] = [];
@@ -53,6 +75,27 @@ if (import.meta.main) {
         resource: FAKE_IDENTITY.audience,
         token_type: 'Bearer',
         client_id: FAKE_IDENTITY.clientId,
+      });
+    }
+    if (req.method === 'GET' && url.pathname === '/api/v1/key') {
+      const data = openRouterKey((req.headers.authorization ?? '').replace(/^Bearer /, ''));
+      if (!data) return send(res, 401, { error: { code: 401, message: 'User not found.' } });
+      return send(res, 200, { data: { label: 'sk-or-v1-e2e...', ...data } });
+    }
+    if (req.method === 'GET' && url.pathname === '/api/v1/models') {
+      const p = FAKE_HAIKU_PRICE;
+      return send(res, 200, {
+        data: [
+          {
+            id: 'anthropic/claude-haiku-5.5',
+            pricing: {
+              prompt: perToken(p.input),
+              completion: perToken(p.output),
+              input_cache_write: perToken(p.cacheWrite),
+              input_cache_read: perToken(p.cacheRead),
+            },
+          },
+        ],
       });
     }
     if (req.method === 'POST' && url.pathname === '/v1/oauth/token') {

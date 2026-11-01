@@ -10,7 +10,8 @@
   "workspaces": [
     "apps/app",
     "apps/office",
-    "packages/db"
+    "packages/db",
+    "packages/anthropic"
   ],
   "scripts": {
     "dev": "npm run dev -w apps/app",

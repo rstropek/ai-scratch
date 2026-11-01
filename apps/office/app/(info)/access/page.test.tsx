@@ -1,13 +1,7 @@
+import { DEFAULT_LIMITS, OWN_KEY_MAX_REMAINING_USD } from '@ai-scratch/db/limits';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { access } from '../../../content/access.tsx';
-import {
-  BUDGET_ACCOUNT_EUR_MONTH,
-  BUDGET_TOTAL_EUR_MONTH,
-  CODE_BUDGET_EUR,
-  CODE_MAX_HOURS,
-  OWN_KEY_MAX_REMAINING_USD,
-} from '../../../lib/rules.ts';
 import AccessPage from './page.tsx';
 
 const t = access.tour;
@@ -57,14 +51,14 @@ describe('the access page', () => {
     expect(currentTitle()).toBe(t.steps[0]?.title);
   });
 
-  it('shows the limits from lib/rules.ts', () => {
+  it('shows the default limits in dollars', () => {
     render(<AccessPage />);
     const table = screen.getByRole('region', { name: access.limits.title });
     for (const value of [
-      `${CODE_MAX_HOURS} Stunden`,
-      `${CODE_BUDGET_EUR} €`,
-      `${BUDGET_ACCOUNT_EUR_MONTH} €`,
-      `${BUDGET_TOTAL_EUR_MONTH} €`,
+      `${DEFAULT_LIMITS.codeMaxHours} Stunden`,
+      `${DEFAULT_LIMITS.codeBudgetUsd} US-Dollar`,
+      `${DEFAULT_LIMITS.accountUsdMonth} US-Dollar`,
+      `${DEFAULT_LIMITS.totalUsdMonth} US-Dollar`,
       `${OWN_KEY_MAX_REMAINING_USD} US-Dollar`,
     ])
       expect(table).toHaveTextContent(value);

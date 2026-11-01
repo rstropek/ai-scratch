@@ -48,8 +48,8 @@ truth for settings and roles.
 ## Release flow
 
 - Every push to `main`: all CI tests ([deploy.yml](../.github/workflows/deploy.yml), `docs/testing.md`). Then
-  per app, only when the push changes it (kids' app: `apps/app/**`; office: `apps/office/**` or `packages/db/**`;
-  both: a shared root file such as the lock file, `.npmrc`, `tsconfig.base.json`): build the image (tagged with
+  per app, only when the push changes it (kids' app: `apps/app/**`; office: `apps/office/**`; both: `packages/**`
+  or a shared root file such as the lock file, `.npmrc`, `tsconfig.base.json`): build the image (tagged with
   the commit), run it in **production**, wait until production's `/healthz` reports that commit. Docs-only
   pushes touch neither. A change to `deploy.yml` itself deploys both.
 - **Rollback:** point the app at an older image, `az webapp config set -g 2026-digitalferien -n <app>
@@ -63,7 +63,7 @@ truth for settings and roles.
 - **The app pulls from ACR only with `acrUseManagedIdentityCreds`** set; without it the container doesn't start
   (the container log shows `ImagePullUnauthorizedFailure`). `provision.sh` and every deploy set it.
 - **Key Vault references resolve only when the app starts.** After `provision.sh` uploads new secrets
-  (keys, access codes), restart the app. An unresolved reference arrives as the literal
+  (keys), restart the app. An unresolved reference arrives as the literal
   `@Microsoft.KeyVault(…)` string; [config.ts](../apps/app/src/server/config.ts) refuses to start with a clear message
   instead of using it as a key.
 - **GitHub's OIDC subject** for this repo uses the immutable format with owner and repo ids
@@ -96,6 +96,15 @@ truth for settings and roles.
 - **A changed provision.sh runs before the push that needs it.** CI only deploys the image; app settings come
   from provision.sh alone, and `/healthz` doesn't read them, so the deploy stays green. Hit on 2026-10-31:
   iteration 2 went out without its four settings, and `/register` answered 500 until provision.sh ran.
+- **The kids' app uses the same database** with its own role (`ai-scratch`) and the same two identities: the
+  system-assigned one for the database and the vault, `id-ai-scratch-anthropic` for federation. Its
+  provision.sh creates the role and grants it only what it needs ([budgets.md](budgets.md#the-kids-apps-database-role)),
+  so it runs **after the office has migrated**, and again after a migration adds what the kids' app reads.
+- **The rollout of iteration 3 has an order** (codes from the database): a pool entry in the office (else no
+  code has a budget), the office's deploy (migrations), the kids' app's provision.sh (role, grants, settings;
+  it also deletes `ACCESS_CODES` and `ANTHROPIC_API_KEY`), then the kids' app's deploy. One push deploys both apps
+  at once, so push the office first, or run provision.sh between the office's deploy and the kids' app's: the old
+  kids' image stops at start without `ACCESS_CODES`, the new one without the database settings.
 - **GitHub's deploy identity** needs Website Contributor on each web app; provision.sh grants it for the office.
 - **The first admin account** comes from `npm run seed:admin -w apps/office` on Rainer's machine with
   `PGHOST`, `PGDATABASE` and `PGUSER` (his UPN) set and `DATABASE_URL=` empty (the office's `.env` would win):

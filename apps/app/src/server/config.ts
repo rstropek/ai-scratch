@@ -1,15 +1,32 @@
 // Server configuration, read once from the environment (.env in development).
 import fs from 'node:fs';
-import { normalizeCode } from '../shared/access.ts';
+import { type FederationEnv, loadFederationEnv } from '@ai-scratch/anthropic';
+import { type Limits, loadLimits, normalizeCode, parseMasterKey } from '@ai-scratch/db';
 import { LOCKER_SITE } from '../shared/locker.ts';
 
 export interface Config {
   port: number;
-  anthropicApiKey: string;
-  /** the product owner's key is identity-linked and needs this header on every request */
+  /** the codes from the office, the pool, the usage (docs/budgets.md); off: only TEST_CODES work */
+  database: boolean;
+  /** opens the sealed keys of the pool and of adults' own OpenRouter keys; set with the database */
+  keyEncryptionKey: Buffer | undefined;
+  /** the budgets' limits, the same env vars as the office's */
+  limits: Limits;
+  /** codes from the environment for dev, tests and the game harness: no database, paid with ANTHROPIC_API_KEY. Never on Azure */
+  testCodes: Set<string>;
+  /** the test codes' key */
+  anthropicApiKey: string | undefined;
+  /** the test codes' key is identity-linked and needs this header on every request */
   anthropicWorkspaceId: string | undefined;
+  /** where federated pool entries exchange our Azure identity's token */
+  anthropicBaseUrl: string;
+  /** our Azure identity, for federated pool entries; undefined: they are skipped */
+  federation: FederationEnv | undefined;
+  /** the 80 % warnings to the admins go through Resend; without a key they are only logged */
+  resendApiKey: string | undefined;
+  mailFrom: string;
   model: string;
-  /** OpenRouter's API, for parents' own keys (model.ts) */
+  /** OpenRouter's API, for adults' own keys (model.ts) */
   openRouterUrl: string;
   /** the same model under OpenRouter's name */
   openRouterModel: string;
@@ -21,8 +38,6 @@ export interface Config {
   jevApiKey: string;
   /** pinned: the guard thresholds are tuned against this version */
   jevModel: string;
-  /** normalized (lowercase), so kids can type them in any case */
-  accessCodes: Set<string>;
   /** where calls and guard screenings are stored; unset (production) stores nothing */
   logDir: string | undefined;
   /** built client + precompressed Scratch bundle (npm run build) */
@@ -51,12 +66,26 @@ const required = (env: NodeJS.ProcessEnv, name: string): string => {
   return value;
 };
 
+/** the same rule as @ai-scratch/db's poolConfig: a URL, or an Azure server with an Entra login */
+const hasDatabase = (env: NodeJS.ProcessEnv) => Boolean(env.DATABASE_URL?.trim() || env.PGHOST?.trim());
+
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): Config => {
-  const accessCodes = new Set(required(env, 'ACCESS_CODES').split(',').map(normalizeCode).filter(Boolean));
+  const testCodes = new Set((env.TEST_CODES ?? '').split(',').map(normalizeCode).filter(Boolean));
+  const database = hasDatabase(env);
+  if (!database && testCodes.size === 0)
+    throw new Error("Set DATABASE_URL (or PGHOST, PGDATABASE, PGUSER) for the office's codes, or TEST_CODES");
   return {
     port: Number(env.PORT ?? 3000),
-    anthropicApiKey: required(env, 'ANTHROPIC_API_KEY'),
+    database,
+    keyEncryptionKey: database ? parseMasterKey(env) : undefined,
+    limits: loadLimits(env),
+    testCodes,
+    anthropicApiKey: testCodes.size > 0 ? required(env, 'ANTHROPIC_API_KEY') : undefined,
     anthropicWorkspaceId: env.ANTHROPIC_WORKSPACE_ID?.trim() || undefined,
+    anthropicBaseUrl: env.ANTHROPIC_BASE_URL?.trim() || 'https://api.anthropic.com',
+    federation: loadFederationEnv(env),
+    resendApiKey: env.RESEND_API_KEY?.trim() || undefined,
+    mailFrom: env.MAIL_FROM?.trim() || 'AI-Scratch <office@mail.ai-scratch.dev>',
     model: env.MODEL?.trim() || 'claude-haiku-5-5',
     openRouterUrl: env.OPENROUTER_URL?.trim() || 'https://openrouter.ai/api/v1',
     openRouterModel: env.OPENROUTER_MODEL?.trim() || 'anthropic/claude-haiku-5.5',
@@ -64,7 +93,6 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): Config => {
     instructions: env.INSTRUCTIONS_FILE?.trim() ? fs.readFileSync(env.INSTRUCTIONS_FILE.trim(), 'utf8') : undefined,
     jevApiKey: required(env, 'JEV_API_KEY'),
     jevModel: env.JEV_MODEL?.trim() || 'jev-1.13.0',
-    accessCodes,
     logDir: env.LOG_DIR?.trim() || undefined,
     distDir: env.DIST_DIR?.trim() || 'dist',
     version: env.APP_VERSION?.trim() || 'dev',

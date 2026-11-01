@@ -7,16 +7,17 @@ codes, hearts, the guard or the output limits.
 
 1. **Adults in the room.** The kids are always supervised. Every other layer is deliberately lean because of
    this (Rainer's stance); don't add hardening the event doesn't need.
-2. **Access code** per school, or a parent's own **OpenRouter key**: without one the chat is locked, Scratch
-   still works.
+2. **Access code** from the office, with its own time window and budget ([budgets.md](budgets.md)): without one
+   the chat is locked; Scratch and the Locker still work.
 3. **Hearts:** 3 messages, one refills every 20 s. A question from the "frage KI" block costs one too
    ([ki-block.md](ki-block.md)).
 4. **Gedächtnis:** the 80k context limit ([conversation.md](conversation.md)).
 5. **Kids-protection guard (Jev):** screens every new kid message, and every text of the "frage KI" block,
    before Claude sees it.
 6. **Output limits:** visible text per answer and model calls per turn.
-7. **Budget:** 200 €/month on the Anthropic key. The emergency stop is disabling the key. Key users pay
-   OpenRouter themselves, up to their key's limit.
+7. **Budgets:** per code, per account, per pool entry and overall per month ([budgets.md](budgets.md)). The
+   emergency stop is pausing the pool's entries in the office. Codes on an adult's own OpenRouter key spend that
+   key, up to its limit.
 
 ## Client shows, server enforces
 
@@ -31,8 +32,9 @@ codes, hearts, the guard or the output limits.
   just refills them; ARR affinity keeps a kid on one instance, and losing affinity only refills hearts. That
   is good enough, by Rainer's choice; no shared store.
 - A request without `X-Session-Id` falls back to the access code as the key, so it shares one bucket with the
-  whole school. The client always sends the header; keep it that way.
-- `admin_` codes skip hearts (for testing), nothing else: the guard still screens them.
+  whole class. The client always sends the header; keep it that way.
+- `admin_` test codes skip hearts (for testing), nothing else: the guard still screens them. Codes from the
+  office always have hearts.
 
 ## Output limits
 
@@ -81,46 +83,33 @@ changing questions or thresholds (it calls the real Jev, so it is not part of `n
 
 ## Access codes
 
-- One code per school, case-insensitive, from `ACCESS_CODES`. They keep strangers out (and grouped the event's
-  research log by school); they are not security (no login hardening, by decision).
+- **Generated in the office** (`TIGER-APFEL-48`: two of ~200 German nouns and two digits, about 4 million codes),
+  never chosen. Kids type them in any case, with spaces instead of dashes (`normalizeCode`, the same rule in the
+  browser and in `packages/db`). Hard enough to guess for codes that live at most 4 h with $5 each; there is no
+  limit on wrong tries, by decision (a lockout would let a kid lock out the class). Unknown codes are counted
+  in `/api/stats`.
 - A kid types the code into the chat panel or gets it via `?code=` in the link. The link's code is removed from
   the address bar right away, so kids don't pass it on, and the browser remembers it (localStorage).
-- A 401 on any `/api` call sends the chat back to the gate.
-- New codes: edit `.env`, re-run `scripts/azure/provision.sh`, restart the app
-  ([deployment.md](deployment.md)).
+- A 401 on any `/api` call (a deleted code) sends the chat back to the gate. Other refusals (not valid yet,
+  expired, a budget used up) are German texts for the kid, shown in the chat, at the gate and by the "frage KI"
+  block; the gate keeps the code in the field.
+- The chat's top bar shows the code's end time ("Code gilt bis 10:50"), never its budget. A code's "frage KI"
+  switch is checked by `/api/ask`.
+- **The Locker needs no code:** its routes are registered before the code check ([locker.md](locker.md)).
+- Test codes from `TEST_CODES` for dev and tests only ([budgets.md](budgets.md#who-pays)).
 
-## Parents' own OpenRouter key
+## Codes on an own OpenRouter key
 
-For users outside the schools: a parent creates an OpenRouter key with a small spending limit, so the app can
-never spend more than that. The gate makes the kid choose actively ("Zugangscode" or "eigener Schlüssel");
-the key path is for the parents: key, a summary of the terms, the full terms
-([TermsDialog.tsx](../apps/app/src/client/chat/TermsDialog.tsx)) and a consent box.
+Adults add a budget-limited OpenRouter key in the office and create codes from it; the kids' app never sees a
+typed key any more.
 
-- **One header:** the key travels in `X-Access-Code` like a code and is told apart by its `sk-or-` prefix
-  ([shared/access.ts](../apps/app/src/shared/access.ts)). Keys are case-sensitive: never normalize them. A key in a
-  `?code=` link is dropped; parents enter it themselves.
-- **The server checks it with OpenRouter** (`GET /key` for the key's limit, `GET /credits` for the account's
-  balance, [access.ts](../apps/app/src/server/access.ts)): unknown → 401, **no limit → refused** (403, Rainer's
-  decision: the terms promise a budget-limited key), under 5 cents left on the key or the account → 402,
-  OpenRouter unreachable → 503. A key that passed is not asked about again for 5 minutes, a refused one for
-  15 s. A failed `/credits` doesn't refuse anyone: the model's 402 is the backstop.
-- **Only the routes that call the model check the budget** (chat, "Zusammenfassen", "frage KI" and the gate's
-  check). Every other `/api` route needs only a key OpenRouter knows: the Locker still saves a game when the
-  money is used up or OpenRouter is down. `/api/stats` is for school codes only (anyone can make a key).
 - **Model calls** go through OpenRouter's Anthropic-compatible Messages API with the same SDK and options
   ([model.ts](../apps/app/src/server/model.ts)): base URL, the key as Bearer token, model `anthropic/claude-haiku-5.5`,
   no workspace header. Prompt caching and signed thinking work (tested 2026-10-27 with a full game; OpenRouter
   routed to "Claude Platform on AWS"). OpenRouter charges Anthropic's list prices.
 - **A spent budget mid-session** (OpenRouter 402, or 403 with an `error.metadata.limit_source`; a moderation
-  403 has none) becomes a German message in the chat, in "Zusammenfassen" and in the "frage KI" block. The
-  key is then refused for a minute before any heart, screening or model call, because `GET /key` may still
-  pass it (a balance too small for a turn). A revoked key (401) sends the kid back to the gate.
-- **Two sets of texts:** the server's refusals are for the kid ("du"); the gate reads only their `reason` and
-  shows its own texts for the parents ("Sie", [App.tsx](../apps/app/src/client/App.tsx)).
-- **Hearts stay** for key users (Rainer's decision); the remaining budget is shown nowhere.
-- **The key is never stored or logged on the server:** log records and hearts see `openrouter` instead of the
-  key; the call log stores request bodies, never headers. The browser remembers it (localStorage) with the
-  version of the accepted terms; new terms (`TERMS_VERSION` in [client/access.ts](../apps/app/src/client/access.ts))
-  ask the parents again. „Schlüssel vergessen“ in the chat's top bar forgets both.
-- The Jev guard still runs on Rainer's TypeSafe key for key users. Their model calls are not counted in
-  `/api/stats` (Rainer's decision): the stats watch the Anthropic budget.
+  403 has none; a 402 for requests in flight is temporary) becomes a German message in the chat, in
+  "Zusammenfassen" and in the "frage KI" block, and the key is refused for a minute before any heart, screening
+  or model call. A revoked key (401) gets its own message.
+- **Hearts stay** for these codes (Rainer's decision); the remaining budget is shown to adults in the office only.
+- The key is never logged or put into a log record: log records name the code.

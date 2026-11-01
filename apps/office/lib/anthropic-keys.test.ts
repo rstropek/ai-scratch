@@ -64,7 +64,7 @@ const input = (overrides: Partial<KeyInput> = {}): KeyInput => ({
   donor: 'CoderDojo Linz',
   key: newKey(),
   workspaceId: '',
-  capEurMonth: '50',
+  capMonth: '50',
   priority: '10',
   active: true,
   ...overrides,
@@ -98,7 +98,7 @@ const federationInput = (overrides: Partial<FederationInput> = {}): FederationIn
   federationRuleId: RULE,
   serviceAccountId: SERVICE_ACCOUNT,
   workspaceId: WORKSPACE,
-  capEurMonth: '200',
+  capMonth: '200',
   priority: '100',
   active: true,
   ...overrides,
@@ -119,7 +119,7 @@ describe('validateKey', () => {
         donor: ' ',
         key: 'sk-ant-admin01-abcdefghijkl',
         workspaceId: 'ws_1',
-        capEurMonth: '0',
+        capMonth: '0',
         priority: '1.5',
         active: true,
       },
@@ -131,7 +131,7 @@ describe('validateKey', () => {
         donor: v.donor(100),
         key: v.adminKey,
         workspaceId: v.workspaceId,
-        capEurMonth: v.cap(10_000),
+        capMonth: v.cap(10_000),
         priority: v.priority(1000),
       },
     });
@@ -144,7 +144,7 @@ describe('validateKey', () => {
 
   it('lets an edit leave the key empty and trims the rest', () => {
     const result = validateKey(
-      input({ key: '', donor: '  Rainer ', workspaceId: ' wrkspc_01XhRSQabcdefMhtb ', capEurMonth: ' 25 ' }),
+      input({ key: '', donor: '  Rainer ', workspaceId: ' wrkspc_01XhRSQabcdefMhtb ', capMonth: ' 25 ' }),
       { keyRequired: false },
     );
     expect(result).toEqual({
@@ -153,7 +153,7 @@ describe('validateKey', () => {
         donor: 'Rainer',
         key: undefined,
         workspaceId: 'wrkspc_01XhRSQabcdefMhtb',
-        capEurMonth: 25,
+        capMonth: 25,
         priority: 10,
         active: true,
       },
@@ -174,7 +174,7 @@ describe('addKey', () => {
       kind: 'key',
       keyHint: `…${key.slice(-4)}`,
       donor: 'CoderDojo Linz',
-      capEurMonth: 50,
+      capMonth: 50,
       createdBy: ADMIN,
     });
   });
@@ -227,13 +227,24 @@ describe('updateKey', () => {
       deps,
       ADMIN,
       id,
-      input({ key: '', donor: 'Rainer', capEurMonth: '20', priority: '1', active: false }),
+      input({ key: '', donor: 'Rainer', capMonth: '20', priority: '1', active: false }),
     );
     expect(result).toEqual({ ok: true, id });
     expect(checked).toEqual([]);
     const row = await stored(id);
-    expect(row).toMatchObject({ donor: 'Rainer', capEurMonth: 20, priority: 1, active: false, updatedBy: ADMIN });
+    expect(row).toMatchObject({ donor: 'Rainer', capMonth: 20, priority: 1, active: false, updatedBy: ADMIN });
     expect(await opened(id)).toBe(key);
+  });
+
+  it("clears the kids' app's refusal when the admin saves the entry", async () => {
+    const { id } = await add();
+    await db
+      .update(schema.anthropicKey)
+      .set({ refusedAt: new Date(), refusedReason: 'billing' })
+      .where(eq(schema.anthropicKey.id, id));
+    expect(await getKey(db, id)).toMatchObject({ refusedReason: 'billing' });
+    expect(await updateKey(deps, ADMIN, id, input({ key: '' }))).toEqual({ ok: true, id });
+    expect(await stored(id)).toMatchObject({ refusedAt: null, refusedReason: null });
   });
 
   it('checks the stored key again when its workspace changes', async () => {
@@ -325,7 +336,7 @@ describe('validateFederation', () => {
         federationRuleId: RULE,
         serviceAccountId: null,
         workspaceId: null,
-        capEurMonth: 200,
+        capMonth: 200,
         priority: 100,
         active: true,
       },
@@ -402,11 +413,21 @@ describe('updateFederation', () => {
       deps,
       ADMIN,
       id,
-      federationInput({ donor: 'Rainer S.', capEurMonth: '50', active: false }),
+      federationInput({ donor: 'Rainer S.', capMonth: '50', active: false }),
     );
     expect(result).toEqual({ ok: true, id });
     expect(checked).toEqual([]);
-    expect(await stored(id)).toMatchObject({ donor: 'Rainer S.', capEurMonth: 50, active: false, updatedBy: ADMIN });
+    expect(await stored(id)).toMatchObject({ donor: 'Rainer S.', capMonth: 50, active: false, updatedBy: ADMIN });
+  });
+
+  it("clears the kids' app's refusal when the admin saves the federation", async () => {
+    const id = await add();
+    await db
+      .update(schema.anthropicKey)
+      .set({ refusedAt: new Date(), refusedReason: 'no' })
+      .where(eq(schema.anthropicKey.id, id));
+    expect(await updateFederation(deps, ADMIN, id, federationInput())).toEqual({ ok: true, id });
+    expect(await stored(id)).toMatchObject({ refusedAt: null, refusedReason: null });
   });
 
   it('checks again when an ID changes, and keeps the old IDs when Anthropic refuses', async () => {

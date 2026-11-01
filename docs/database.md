@@ -43,6 +43,11 @@ by the kids' app later. Setup: [deployment.md](deployment.md#office-and-database
 
 - **Code takes `Database`** (`PgDatabase` over the schema), not a driver's type: the apps use node-postgres,
   unit tests PGlite.
+- **Uniqueness an index can't express takes advisory locks** (`apps/office/lib/codes.ts`): a code is unique only
+  among codes that haven't expired, and an owner's monthly count must hold with two tabs. The insert's transaction
+  takes `pg_advisory_xact_lock(1, hashtext(code))`, then `pg_advisory_xact_lock(2, hashtext(owner))` (always in
+  this order, so two creates never wait crosswise), checks, counts and inserts; the locks end with the
+  transaction. PGlite runs transactions one after another, so unit tests can't show the race, only the checks.
 - **Unit tests run on PGlite** (`@ai-scratch/db/testing`: in-memory Postgres in WebAssembly, real migrations, no
   Docker). e2e tests use the real server: `docker compose up -d db` locally, a service container in CI.
 - `@azure/identity` stays out of the office's bundle (`serverExternalPackages`): MSAL requires modules

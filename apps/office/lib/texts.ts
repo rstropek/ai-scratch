@@ -19,10 +19,26 @@ const formatDateTime = (date: Date) =>
   date.toLocaleString('de-AT', { timeZone: 'Europe/Vienna', dateStyle: 'medium', timeStyle: 'short' });
 const formatDate = (date: Date) => date.toLocaleDateString('de-AT', { timeZone: 'Europe/Vienna', dateStyle: 'medium' });
 const formatTime = (date: Date) => date.toLocaleTimeString('de-AT', { timeZone: 'Europe/Vienna', timeStyle: 'short' });
+/** dollars as providers bill them, no conversion: `$ 1,20` */
+const formatUsd = (amount: number) => amount.toLocaleString('de-AT', { style: 'currency', currency: 'USD' });
+const formatMonth = (date: Date) =>
+  date.toLocaleDateString('de-AT', { timeZone: 'Europe/Vienna', month: 'long', year: 'numeric' });
+/** a code's window: the start with its date, the end as a time (codes last hours), with its date when it differs */
+const formatWindow = (start: Date, end: Date) =>
+  `${formatDateTime(start)} – ${formatDate(start) === formatDate(end) ? formatTime(end) : formatDateTime(end)}`;
+/** what is left of a limit, never below zero */
+const left = (limit: number, spent: number) => Math.max(0, limit - spent);
 
 export const texts = {
   appName: 'AI-Scratch Office',
-  format: { dateTime: formatDateTime, date: formatDate, time: formatTime },
+  format: {
+    dateTime: formatDateTime,
+    date: formatDate,
+    time: formatTime,
+    usd: formatUsd,
+    month: formatMonth,
+    window: formatWindow,
+  },
   login: {
     title: 'Anmelden',
     subtitle: 'Für Lehrkräfte und Eltern mit Konto.',
@@ -61,6 +77,9 @@ export const texts = {
     signIn: 'Anmelden',
     admin: 'Konten',
     keys: 'API-Schlüssel',
+    codes: 'Alle Codes',
+    prices: 'Preise',
+    openrouterKeys: 'OpenRouter-Schlüssel',
     home: 'Start',
     nav: 'Bereiche',
   },
@@ -228,6 +247,182 @@ export const texts = {
       apply: 'Antrag ausfüllen',
     },
     sent: 'Ihr Antrag ist bei uns. Wir antworten per E-Mail.',
+    newCode: 'Neuer Code',
+    created: (code: string) => `Code ${code} erstellt. Geben Sie ihn den Kindern, wenn die Stunde beginnt.`,
+    codeDeleted: 'Code gelöscht.',
+    budget: {
+      title: (month: string) => `Budget im ${month}`,
+      free: 'Gratis-Budget: KI-Kosten',
+      freeValue: (spent: number, limit: number) =>
+        `${formatUsd(spent)} von ${formatUsd(limit)} verbraucht, ${formatUsd(left(limit, spent))} übrig`,
+      freeCodes: 'Codes aus dem Gratis-Budget',
+      freeCodesValue: (created: number, limit: number) =>
+        `${created} von ${limit} erstellt, ${left(limit, created)} übrig`,
+      ownKey: (label: string, hint: string) => `OpenRouter: ${label} ${hint}`,
+      ownKeyValue: (remaining: string, spent: number) =>
+        `${remaining}; diesen Monat ${formatUsd(spent)} über AI-Scratch`,
+      noOwnKeys: 'Noch keine eigenen OpenRouter-Schlüssel.',
+      manageKeys: 'OpenRouter-Schlüssel verwalten',
+      none: 'Sie haben weder das Gratis-Budget noch einen eigenen OpenRouter-Schlüssel. Fügen Sie einen Schlüssel hinzu, um Codes zu erstellen.',
+      adminTitle: (month: string) => `Alle Konten im ${month}`,
+      total: 'Gratis-Budget aller Konten',
+      totalValue: (spent: number, limit: number) =>
+        `${formatUsd(spent)} von ${formatUsd(limit)} verbraucht, ${formatUsd(left(limit, spent))} übrig`,
+      ownKeysTotal: 'Über eigene OpenRouter-Schlüssel',
+      ownKeysTotalValue: (spent: number) => formatUsd(spent),
+      running: 'Laufende Codes',
+      pool: (donor: string, hint: string) => `Pool: ${donor} ${hint}`,
+      poolValue: (spent: number, cap: number) => `${formatUsd(spent)} von ${formatUsd(cap)} verbraucht`,
+      poolPaused: 'pausiert',
+      poolRefused: (reason: string | null) => `von Anthropic abgelehnt${reason ? `: ${reason}` : ''}`,
+      noPool: 'Noch keine Zugänge im Pool: Codes aus dem Gratis-Budget funktionieren nicht.',
+    },
+    codesTitle: 'Ihre Codes',
+    noCodes: 'Noch keine Codes.',
+  },
+  /** a key's remaining budget at OpenRouter, read while a page loads */
+  remaining: {
+    usd: (amount: number) => `bei OpenRouter noch ${formatUsd(amount)} übrig`,
+    noLimit: 'ohne Limit bei OpenRouter: kein Code möglich',
+    unreachable: 'OpenRouter nicht erreichbar',
+    invalid: 'OpenRouter kennt den Schlüssel nicht mehr',
+  },
+  codes: {
+    newTitle: 'Neuer Code',
+    newIntro:
+      'Kinder tippen den Code in AI-Scratch ein und nutzen damit den KI-Helfer, solange der Code gilt und sein Budget reicht.',
+    back: 'Zur Startseite',
+    noSourceTitle: 'Noch keine Quelle für Codes',
+    noSource:
+      'Codes brauchen das Gratis-Budget oder einen eigenen OpenRouter-Schlüssel. Fügen Sie einen Schlüssel hinzu; das Gratis-Budget schalten die Administrator:innen von AI-Scratch frei.',
+    addKey: 'OpenRouter-Schlüssel hinzufügen',
+    code: 'Code',
+    codeHint: 'So tippen ihn die Kinder ein; Groß- und Kleinschreibung ist egal.',
+    propose: 'Neuer Vorschlag',
+    source: 'Wer die KI bezahlt',
+    sourceFree: 'Gratis-Budget',
+    sourceKey: (label: string, hint: string) => `Eigener OpenRouter-Schlüssel: ${label} ${hint}`,
+    startsAt: 'Beginn (optional)',
+    startsAtHint: (days: number) =>
+      `Leer lassen, damit der Code sofort gilt. Höchstens ${days} Tage im Voraus, Wiener Zeit.`,
+    hours: 'Dauer',
+    hoursLabel: (hours: number) => (hours === 1 ? '1 Stunde' : `${hours} Stunden`),
+    comment: 'Kommentar (optional)',
+    commentHint: 'Zum Wiederfinden, z. B. „4b, Digitale Grundbildung“. Bitte keine Namen von Kindern.',
+    askEnabled: 'Der Block „frage KI“ funktioniert mit diesem Code',
+    submit: 'Code erstellen',
+    budgetNote: (usd: number) =>
+      `Jeder Code kann höchstens ${formatUsd(usd)} KI-Kosten verursachen. Danach antwortet der KI-Helfer nicht mehr.`,
+    columns: {
+      code: 'Code',
+      window: 'Gilt',
+      state: 'Status',
+      source: 'Quelle',
+      owner: 'Erstellt von',
+      spent: 'Verbraucht',
+      action: 'Aktion',
+    },
+    state: { planned: 'Geplant', running: 'Läuft', expired: 'Abgelaufen' },
+    sourceShort: { free: 'Gratis-Budget', openrouter: (label: string) => `OpenRouter: ${label}` },
+    askOff: '„frage KI“ aus',
+    spent: (spent: number, budget: number) => `${formatUsd(spent)} von ${formatUsd(budget)}`,
+    spentLeft: (spent: number, budget: number) => `${formatUsd(left(budget, spent))} übrig`,
+    delete: 'Löschen',
+    deleteTitle: 'Code löschen?',
+    deleteText: (code: string) =>
+      `${code} funktioniert danach nicht mehr, auch wenn Kinder gerade damit arbeiten (spätestens nach einer Minute). Das lässt sich nicht rückgängig machen.`,
+    cancel: 'Abbrechen',
+    deleteFailed: { title: 'Löschen hat nicht geklappt.', text: 'Bitte versuchen Sie es noch einmal.' },
+    footer: (count: number) => `${count} ${count === 1 ? 'Code' : 'Codes'}, späterer Beginn zuerst`,
+    refusals: {
+      'no-free-budget': {
+        title: 'Das Gratis-Budget ist für Ihr Konto nicht freigeschaltet.',
+        text: 'Wählen Sie einen eigenen OpenRouter-Schlüssel.',
+      },
+      'free-codes-used': {
+        title: 'Diesen Monat sind alle Codes aus dem Gratis-Budget erstellt.',
+        text: (limit: number) =>
+          `Pro Monat gibt es ${limit} Codes aus dem Gratis-Budget. Löschen Sie einen Code, den Sie nicht mehr brauchen, oder nehmen Sie einen eigenen OpenRouter-Schlüssel.`,
+      },
+      'key-invalid': {
+        title: 'OpenRouter kennt diesen Schlüssel nicht mehr.',
+        text: 'Vielleicht wurde er bei OpenRouter gelöscht. Fügen Sie einen neuen hinzu.',
+      },
+      'key-unreachable': {
+        title: 'OpenRouter war nicht erreichbar.',
+        text: 'Wir konnten das Limit des Schlüssels nicht prüfen. Bitte versuchen Sie es gleich noch einmal.',
+      },
+      'key-no-limit': {
+        title: 'Dieser Schlüssel hat bei OpenRouter kein Limit.',
+        text: (max: number) =>
+          `Setzen Sie bei OpenRouter ein Ausgabelimit für den Schlüssel, so dass höchstens ${formatUsd(max)} übrig sind, und versuchen Sie es dann noch einmal.`,
+      },
+      'key-too-much': {
+        title: 'Über diesen Schlüssel ist noch zu viel offen.',
+        text: (remaining: number, max: number) =>
+          `Bei OpenRouter sind noch ${formatUsd(remaining)} übrig; für einen Code dürfen es höchstens ${formatUsd(max)} sein. Senken Sie das Limit des Schlüssels bei OpenRouter und versuchen Sie es dann noch einmal.`,
+      },
+      taken: {
+        title: 'Diesen Code gibt es gerade schon.',
+        text: 'Wir haben einen neuen vorgeschlagen. Prüfen Sie ihn und erstellen Sie den Code noch einmal.',
+      },
+    },
+    validation: {
+      source: 'Bitte wählen Sie, wer die KI bezahlt.',
+      startsAt: 'Bitte geben Sie Datum und Uhrzeit an, z. B. 03.11.2026, 10:00.',
+      startsAtPast: 'Der Beginn liegt in der Vergangenheit. Lassen Sie das Feld leer, damit der Code sofort gilt.',
+      startsAtFar: (days: number) => `Ein Code darf höchstens ${days} Tage im Voraus beginnen.`,
+      hours: (max: number) => `Bitte wählen Sie eine Dauer von höchstens ${max} Stunden.`,
+      comment: (max: number) => `Bitte schreiben Sie höchstens ${max} Zeichen.`,
+    },
+    error: { title: 'Erstellen hat nicht geklappt.', text: 'Bitte versuchen Sie es noch einmal.' },
+  },
+  openrouterKeys: {
+    title: 'Eigene OpenRouter-Schlüssel',
+    description: (max: number) =>
+      `Mit einem eigenen Schlüssel von OpenRouter (openrouter.ai) erstellen Sie Codes ohne Gratis-Budget; die KI-Kosten zahlen Sie direkt an OpenRouter. Ein Code lässt sich nur aus einem Schlüssel mit Ausgabelimit erstellen, über den höchstens noch ${formatUsd(max)} offen sind.`,
+    addTitle: 'Schlüssel hinzufügen',
+    label: 'Name',
+    labelHint: 'Damit Sie Ihre Schlüssel unterscheiden, z. B. „Schule“ oder „Zuhause“.',
+    key: 'OpenRouter-Schlüssel',
+    keyHint: 'Beginnt mit sk-or-. Er wird verschlüsselt gespeichert und nie wieder angezeigt; Kinder sehen ihn nie.',
+    add: 'Prüfen und hinzufügen',
+    checkNote: 'Beim Hinzufügen fragen wir OpenRouter nur, ob es den Schlüssel kennt; das kostet nichts.',
+    listTitle: 'Ihre Schlüssel',
+    empty: 'Noch keine Schlüssel.',
+    columns: { label: 'Name', remaining: 'Bei OpenRouter', codes: 'Codes', added: 'Hinzugefügt', action: 'Aktion' },
+    codeCount: (count: number) => (count === 1 ? '1 Code' : `${count} Codes`),
+    added: 'Geprüft und hinzugefügt.',
+    deleted: 'Schlüssel gelöscht.',
+    delete: 'Löschen',
+    deleteTitle: 'Schlüssel löschen?',
+    deleteText: (label: string, hint: string) =>
+      `${label} ${hint} wird bei uns gelöscht. Bei OpenRouter bleibt er gültig: Löschen Sie ihn dort, wenn Sie ihn nicht mehr brauchen.`,
+    deleteCodes: (codes: string[]) =>
+      codes.length === 1
+        ? `Mit ihm wird auch der Code ${codes[0]} gelöscht.`
+        : `Mit ihm werden auch diese ${codes.length} Codes gelöscht: ${codes.join(', ')}.`,
+    cancel: 'Abbrechen',
+    check: {
+      invalid: {
+        title: 'OpenRouter kennt diesen Schlüssel nicht.',
+        text: 'Er ist falsch, abgelaufen oder gelöscht. Nichts wurde gespeichert.',
+      },
+      unreachable: {
+        title: 'OpenRouter war nicht erreichbar.',
+        text: 'Der Schlüssel konnte nicht geprüft werden, nichts wurde gespeichert. Bitte versuchen Sie es gleich noch einmal.',
+      },
+    },
+    validation: {
+      label: (max: number) => `Bitte geben Sie dem Schlüssel einen Namen (höchstens ${max} Zeichen).`,
+      key: 'Das ist kein OpenRouter-Schlüssel. Er beginnt mit sk-or- und hat keine Leerzeichen.',
+      duplicate: 'Diesen Schlüssel haben Sie schon hinzugefügt.',
+    },
+    error: {
+      title: 'Speichern hat nicht geklappt.',
+      text: 'Bitte versuchen Sie es noch einmal. Den Schlüssel geben Sie bitte noch einmal ein.',
+    },
+    deleteFailed: { title: 'Löschen hat nicht geklappt.', text: 'Bitte versuchen Sie es noch einmal.' },
   },
   forgot: {
     title: 'Passwort vergessen',
@@ -381,6 +576,7 @@ export const texts = {
         key: 'Zugang',
         workspace: 'Workspace',
         cap: 'Limit pro Monat',
+        spent: 'Diesen Monat',
         priority: 'Priorität',
         status: 'Status',
         action: 'Aktion',
@@ -389,7 +585,10 @@ export const texts = {
       active: 'Aktiv',
       paused: 'Pausiert',
       edit: 'Bearbeiten',
-      cap: (eur: number) => `${eur.toLocaleString('de-AT')} €`,
+      monthSpend: (spent: number, cap: number) => `${formatUsd(spent)} von ${formatUsd(cap)}`,
+      refused: 'Abgelehnt',
+      refusedAt: (at: Date, reason: string | null) =>
+        `Anthropic hat ihn am ${formatDateTime(at)} abgelehnt${reason ? `: ${reason}` : ''}. Speichern Sie ihn nach der Klärung, damit der Pool ihn wieder nutzt.`,
       changed: (at: Date) => `Geändert am ${formatDateTime(at)}`,
       form: {
         donor: 'Spender*in',
@@ -413,8 +612,8 @@ export const texts = {
           'Als wer die Aufrufe laufen. Beginnt mit svac_. Leer lassen, wenn die Regel den Service Account selbst festlegt.',
         federationWorkspaceIdHint:
           'Der Workspace, über den abgerechnet wird, z. B. wrkspc_01…. Leer: der einzige Workspace der Regel.',
-        capEurMonth: 'Limit pro Monat (Euro)',
-        capEurMonthHint:
+        capMonth: 'Limit pro Monat (US-Dollar)',
+        capMonthHint:
           'So viel gibt der Pool über diesen Zugang pro Kalendermonat höchstens aus. Setzen Sie zusätzlich ein Spend Limit in der Anthropic Console.',
         priority: 'Priorität',
         priorityHint: 'Höhere Zahlen kommen zuerst dran. Bei gleicher Priorität der ältere Zugang.',
@@ -464,7 +663,7 @@ export const texts = {
         federationRuleId: 'Eine Regel-ID beginnt mit fdrl_, zum Beispiel fdrl_01XiXjNwgFMpW5PXMZ6W6ogq.',
         serviceAccountId: 'Eine Service-Account-ID beginnt mit svac_, zum Beispiel svac_01Gi6Kw95sBeRDFT5iVLcc4X.',
         workspaceId: 'Eine Workspace-ID beginnt mit wrkspc_, zum Beispiel wrkspc_01JwQvzr7rXLA5AGx3HKfFUJ.',
-        cap: (max: number) => `Bitte eine ganze Zahl von 1 bis ${max.toLocaleString('de-AT')}.`,
+        cap: (max: number) => `Bitte eine ganze Zahl von 1 bis ${max.toLocaleString('de-AT')} (Dollar).`,
         priority: (max: number) => `Bitte eine ganze Zahl von 0 bis ${max}.`,
       },
       delete: 'Zugang löschen',
@@ -485,6 +684,41 @@ export const texts = {
         text: 'Bitte versuchen Sie es noch einmal. Einen neuen Schlüssel geben Sie bitte noch einmal ein.',
       },
       deleteFailed: { title: 'Löschen hat nicht geklappt.', text: 'Bitte versuchen Sie es noch einmal.' },
+    },
+    codes: {
+      title: 'Alle Codes',
+      description: 'Die Codes aller Konten, mit dem, was jeder schon verbraucht hat. Löschen geht für jeden Code.',
+      filterLabel: 'Filter',
+      filters: { running: 'Laufend', planned: 'Geplant', expired: 'Abgelaufen' },
+      empty: 'Keine Codes in dieser Ansicht.',
+    },
+    prices: {
+      title: 'Preise',
+      description:
+        'Was das Modell (Claude Haiku) kostet, in US-Dollar pro Million Tokens. Alle Budgets rechnen Tokens mal diesen Preis, auch rückwirkend für den ganzen Monat. AI-Scratch nutzt einen gespeicherten Preis spätestens nach einer Minute.',
+      input: 'Eingabe',
+      output: 'Ausgabe',
+      cacheWrite: 'Cache schreiben (5 Minuten)',
+      cacheRead: 'Cache lesen',
+      hint: 'US-Dollar pro Million Tokens',
+      updated: (at: Date, by: string | null) =>
+        `Zuletzt gespeichert am ${formatDateTime(at)}${by ? ` von ${by}` : ''}.`,
+      fetch: 'Von OpenRouter holen',
+      save: 'Speichern',
+      fetched: {
+        title: 'Die aktuellen Preise von OpenRouter stehen im Formular.',
+        text: 'Prüfen Sie sie und speichern Sie dann.',
+      },
+      saved: 'Preise gespeichert.',
+      fetchFailed: {
+        unreachable: { title: 'OpenRouter war nicht erreichbar.', text: 'Bitte versuchen Sie es gleich noch einmal.' },
+        missing: {
+          title: 'OpenRouter nennt keine vollständigen Preise für das Modell.',
+          text: 'Bitte tragen Sie die Preise von Anthropic selbst ein.',
+        },
+      },
+      validation: (max: number) => `Bitte eine Zahl größer als 0 und höchstens ${max}, z. B. 0,125.`,
+      error: { title: 'Speichern hat nicht geklappt.', text: 'Bitte versuchen Sie es noch einmal.' },
     },
   },
   footer: {

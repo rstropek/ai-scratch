@@ -32,7 +32,7 @@ const keyInputOf = (form: FormData): KeyInput => ({
   donor: text(form, 'donor'),
   key: text(form, 'key'),
   workspaceId: text(form, 'workspaceId'),
-  capEurMonth: text(form, 'capEurMonth'),
+  capMonth: text(form, 'capMonth'),
   priority: text(form, 'priority'),
   active: form.get('active') === 'on',
 });
@@ -43,7 +43,7 @@ const federationInputOf = (form: FormData): FederationInput => ({
   federationRuleId: text(form, 'federationRuleId'),
   serviceAccountId: text(form, 'serviceAccountId'),
   workspaceId: text(form, 'workspaceId'),
-  capEurMonth: text(form, 'capEurMonth'),
+  capMonth: text(form, 'capMonth'),
   priority: text(form, 'priority'),
   active: form.get('active') === 'on',
 });
@@ -83,7 +83,7 @@ export async function saveKey(id: string | undefined, _previous: KeyFormState, f
   // every action checks the role itself: the page's check doesn't protect the endpoint
   const { session, allowed } = await requireAdmin();
   if (!allowed) return { banner: { title: texts.admin.forbiddenTitle } };
-  const values = { ...echo(form, 'donor', 'workspaceId', 'capEurMonth', 'priority'), ...activeValue(form) };
+  const values = { ...echo(form, 'donor', 'workspaceId', 'capMonth', 'priority'), ...activeValue(form) };
   const input = keyInputOf(form);
   return answer(id, values, () =>
     id ? updateKey(keyDeps(), session.user.id, id, input) : addKey(keyDeps(), session.user.id, input),
@@ -106,7 +106,7 @@ export async function saveFederation(
       'federationRuleId',
       'serviceAccountId',
       'workspaceId',
-      'capEurMonth',
+      'capMonth',
       'priority',
     ),
     ...activeValue(form),

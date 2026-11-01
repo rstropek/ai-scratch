@@ -45,9 +45,9 @@ same code, hearts and guard, and a plain JSON answer ([ki-block.md](ki-block.md)
 
 ## Identity
 
-- **Access code:** one per school, sent as `X-Access-Code` on every `/api` call. It grouped the research log
-  by school; it is not security. Instead of a code, the header can carry a parent's own OpenRouter key; the
-  model calls then go through OpenRouter on that key ([limits-and-safety.md](limits-and-safety.md#parents-own-openrouter-key)).
+- **Access code:** created in the office by a teacher or parent, sent as `X-Access-Code` on every `/api` call
+  but the Locker's. It decides who pays for the model calls (the donated pool or the adult's own OpenRouter key)
+  and which budgets apply ([budgets.md](budgets.md)); it is not a login.
 - **Session:** `crypto.randomUUID()` per page load, sent as `X-Session-Id` (no cookie). A reload starts a
   new session: fresh hearts, empty chat. Hearts are keyed by it.
 

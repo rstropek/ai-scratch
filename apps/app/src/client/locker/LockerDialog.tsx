@@ -2,7 +2,7 @@
 // Scratch's own prompt ("Neue Variable"): purple header, blue overlay, Abbrechen / OK, so kids meet a
 // dialog they know. The kid types the code from their Locker sticker once per tab, then names the game
 // (saving under an existing name replaces it) or picks one to load.
-import { Check, CloudOff, ExternalLink, Inbox, Info, KeyRound, LoaderCircle, TriangleAlert, X } from 'lucide-react';
+import { Check, CloudOff, ExternalLink, Inbox, Info, LoaderCircle, TriangleAlert, X } from 'lucide-react';
 import {
   type ComponentProps,
   type FormEvent,
@@ -30,7 +30,6 @@ import {
   type LockerApi,
   LockerCallError,
   type LockerProject,
-  NEED_ACCESS_CODE,
   openLockerPage,
   savedLabel,
   storedLockerCode,
@@ -47,7 +46,6 @@ const SAVE_FAILED = 'Das Speichern hat nicht geklappt. Versuch es bitte nochmal.
 const LOCKER_DOWN = 'Der Locker antwortet gerade nicht. Versuch es gleich nochmal.';
 
 type View =
-  | { kind: 'nocode' }
   | { kind: 'code'; error?: string }
   | { kind: 'opening' }
   | { kind: 'down' }
@@ -59,8 +57,7 @@ type View =
 
 export interface LockerDialogProps {
   action: LockerAction;
-  /** without it the kid has no school code yet */
-  api: LockerApi | undefined;
+  api: LockerApi;
   project: LockerProject;
   /** the KI-Helfer is changing the project: loading waits */
   aiBusy: boolean;
@@ -153,15 +150,12 @@ const fieldClass =
 export const LockerDialog = ({ action, api, project, aiBusy, onClose }: LockerDialogProps) => {
   const dialog = useRef<HTMLDialogElement>(null);
   const ids = useId();
-  // opening the Locker's page needs no school code: it doesn't go through our server
   const [view, setView] = useState<View>(() =>
     action === 'open'
       ? { kind: storedLockerCode() ? 'link' : 'code' }
-      : !api
-        ? { kind: 'nocode' }
-        : storedLockerCode()
-          ? { kind: 'opening' }
-          : { kind: 'code' },
+      : storedLockerCode()
+        ? { kind: 'opening' }
+        : { kind: 'code' },
   );
   const [code, setCode] = useState(() => storedLockerCode() ?? '');
   const [games, setGames] = useState<LockerGame[]>([]);
@@ -181,10 +175,7 @@ export const LockerDialog = ({ action, api, project, aiBusy, onClose }: LockerDi
   }, [view.kind]);
 
   const fail = (e: unknown, fallback: string): string => {
-    if (e instanceof LockerCallError) {
-      if (e.kind === 'access') setView({ kind: 'nocode' });
-      return e.message;
-    }
+    if (e instanceof LockerCallError) return e.message;
     console.error('locker', e);
     return fallback;
   };
@@ -192,7 +183,6 @@ export const LockerDialog = ({ action, api, project, aiBusy, onClose }: LockerDi
   /** Opens the Locker with `lockerCode`: lists its games, then shows the save or load view. */
   const open = useCallback(
     async (lockerCode: string, typed: boolean) => {
-      if (!api) return;
       setError(undefined);
       if (typed) setBusy(true);
       else setView({ kind: 'opening' });
@@ -206,8 +196,7 @@ export const LockerDialog = ({ action, api, project, aiBusy, onClose }: LockerDi
       } catch (e) {
         if (!(e instanceof LockerCallError)) console.error('locker', e);
         const message = e instanceof LockerCallError ? e.message : LOCKER_DOWN;
-        if (e instanceof LockerCallError && e.kind === 'access') setView({ kind: 'nocode' });
-        else if (e instanceof LockerCallError && e.kind === 'not-found') {
+        if (e instanceof LockerCallError && e.kind === 'not-found') {
           forgetLockerCode();
           setView({ kind: 'code', error: message });
         } else setView(typed ? { kind: 'code', error: message } : { kind: 'down' });
@@ -224,8 +213,8 @@ export const LockerDialog = ({ action, api, project, aiBusy, onClose }: LockerDi
     if (started.current) return;
     started.current = true;
     const stored = storedLockerCode();
-    if (api && stored && action !== 'open') void open(stored, false);
-  }, [api, open, action]);
+    if (stored && action !== 'open') void open(stored, false);
+  }, [open, action]);
 
   const otherCode = () => {
     forgetLockerCode();
@@ -237,7 +226,7 @@ export const LockerDialog = ({ action, api, project, aiBusy, onClose }: LockerDi
   const match = view.kind === 'save' ? findGame(games, name) : undefined;
 
   const save = async () => {
-    if (!api || !name.trim() || busy) return;
+    if (!name.trim() || busy) return;
     setBusy(true);
     setError(undefined);
     try {
@@ -254,7 +243,7 @@ export const LockerDialog = ({ action, api, project, aiBusy, onClose }: LockerDi
 
   const chosen = games.find((g) => g.fileId === selected);
   const load = async () => {
-    if (!api || !chosen || busy || aiBusy) return;
+    if (!chosen || busy || aiBusy) return;
     setBusy(true);
     setError(undefined);
     try {
@@ -305,19 +294,6 @@ export const LockerDialog = ({ action, api, project, aiBusy, onClose }: LockerDi
 
   const body = (): ReactNode => {
     switch (view.kind) {
-      case 'nocode':
-        return (
-          <>
-            <Message icon={<KeyRound />} tone="muted" title="Zuerst den Zugangscode">
-              {NEED_ACCESS_CODE}
-            </Message>
-            <Buttons center>
-              <Button primary onClick={onClose} data-autofocus>
-                OK
-              </Button>
-            </Buttons>
-          </>
-        );
       case 'link':
         return (
           <>

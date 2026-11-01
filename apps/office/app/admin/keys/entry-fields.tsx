@@ -5,7 +5,7 @@ import { Checkbox } from '../../../components/ui/checkbox.tsx';
 import { TextField } from '../../../components/ui/text-field.tsx';
 import type { KeyRow } from '../../../lib/anthropic-keys.ts';
 import { answerOf } from '../../../lib/form-state.ts';
-import { DONOR_MAX, KEY_CAP_MAX_EUR, KEY_PRIORITY_MAX } from '../../../lib/rules.ts';
+import { DONOR_MAX, KEY_CAP_MAX_USD, KEY_PRIORITY_MAX } from '../../../lib/rules.ts';
 import { texts } from '../../../lib/texts.ts';
 import type { KeyFormState } from './actions.ts';
 
@@ -52,16 +52,16 @@ export function PoolFields({ state, stored }: { state: KeyFormState; stored?: Ke
     <>
       <div className="grid gap-5 sm:grid-cols-2">
         <TextField
-          label={f.capEurMonth}
-          hint={f.capEurMonthHint}
-          name="capEurMonth"
+          label={f.capMonth}
+          hint={f.capMonthHint}
+          name="capMonth"
           inputMode="numeric"
           type="number"
           min={1}
-          max={KEY_CAP_MAX_EUR}
+          max={KEY_CAP_MAX_USD}
           required
-          defaultValue={value('capEurMonth', stored ? String(stored.capEurMonth) : '')}
-          error={errors.capEurMonth}
+          defaultValue={value('capMonth', stored ? String(stored.capMonth) : '')}
+          error={errors.capMonth}
         />
         <TextField
           label={f.priority}

@@ -1,4 +1,6 @@
 // The office's settings from the environment (.env in development); the database's are read by @ai-scratch/db.
+import { type FederationEnv, loadFederationEnv } from '@ai-scratch/anthropic';
+import { type Limits, loadLimits } from '@ai-scratch/db/limits';
 import { ADMIN_EMAIL } from './admin-seed.ts';
 
 type Env = Record<string, string | undefined>;
@@ -32,29 +34,17 @@ export interface ServicesEnv {
   adminNotifyEmail: string;
   /** undefined when federation isn't set up here: federated pool entries can't be checked then */
   federation?: FederationEnv;
+  /** OpenRouter's API, for adults' own keys and the model price (the e2e tests' fake in tests) */
+  openrouterUrl: string;
+  /** the budgets' limits (docs/budgets.md) */
+  limits: Limits;
 }
-
-/** where the office's Azure identity token for Anthropic's federation comes from (entra-token.ts) */
-export interface FederationEnv {
-  /** the app registration the token is issued for, `api://<APP_ID>` */
-  audience: string;
-  /** the user-assigned managed identity's client ID (Azure); without it, your `az login` (local debugging) */
-  clientId?: string;
-  /** the Azure CLI's tenant, when your default one is another */
-  tenantId?: string;
-}
-
-const loadFederationEnv = (env: Env): FederationEnv | undefined => {
-  const audience = env.ANTHROPIC_FEDERATION_AUDIENCE?.trim();
-  if (!audience) return undefined;
-  const clientId = env.ANTHROPIC_FEDERATION_CLIENT_ID?.trim();
-  const tenantId = env.ANTHROPIC_FEDERATION_TENANT_ID?.trim();
-  return { audience, ...(clientId && { clientId }), ...(tenantId && { tenantId }) };
-};
 
 const DEFAULT_FROM = 'AI-Scratch <office@mail.ai-scratch.dev>';
 
-/** Mail, Turnstile, Jev and federation, read when the first request needs them (scripts never do). */
+const DEFAULT_OPENROUTER_URL = 'https://openrouter.ai/api/v1';
+
+/** Mail, Turnstile, Jev, federation, OpenRouter and the limits, read when the first request needs them (scripts never do). */
 export const loadServicesEnv = (env: Env = process.env): ServicesEnv => {
   const from = env.MAIL_FROM?.trim() || DEFAULT_FROM;
   const outboxDir = env.MAIL_OUTBOX_DIR?.trim();
@@ -67,5 +57,7 @@ export const loadServicesEnv = (env: Env = process.env): ServicesEnv => {
         : { apiKey: required(env, 'JEV_API_KEY'), model: env.JEV_MODEL?.trim() || 'jev-1.13.0' },
     adminNotifyEmail: env.ADMIN_NOTIFY_EMAIL?.trim() || ADMIN_EMAIL,
     federation: loadFederationEnv(env),
+    openrouterUrl: (env.OPENROUTER_URL?.trim() || DEFAULT_OPENROUTER_URL).replace(/\/+$/, ''),
+    limits: loadLimits(env),
   };
 };

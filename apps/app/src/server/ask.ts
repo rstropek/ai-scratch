@@ -8,7 +8,7 @@ import type { Context } from 'hono';
 import { SESSION_HEADER } from '../shared/chat-types.ts';
 import { isAdminCode } from '../shared/energy.ts';
 import { ASK_FAILED, type AskResponse } from '../shared/ki-block.ts';
-import { accessCodeOf } from './access.ts';
+import { type AppEnv, ASK_OFF, accessCodeOf } from './access.ts';
 import { type ChatDeps, heartsEmpty, screenAndRecord } from './chat.ts';
 import { BLOCK_SCREENING, FIXED_ANSWERS } from './guard.ts';
 import { requestModel } from './model.ts';
@@ -51,8 +51,10 @@ export const askContent = (text: string) => {
 
 export const createAskHandler =
   (deps: ChatDeps) =>
-  async (c: Context): Promise<Response> => {
+  async (c: Context<AppEnv>): Promise<Response> => {
     const { stats, hearts } = deps;
+    const access = c.get('access');
+    if (access.kind === 'code' && !access.grant.askEnabled) return c.json({ error: ASK_OFF }, 403);
     const body: unknown = await c.req.json().catch(() => undefined);
     const question = (body as { question?: unknown } | undefined)?.question;
     if (typeof question !== 'string' || !question.trim()) return c.json({ error: 'Ungültige Anfrage' }, 400);
@@ -75,7 +77,9 @@ export const createAskHandler =
     const category = await screenAndRecord(text, undefined, ctx, deps, BLOCK_SCREENING);
     if (category) return c.json({ answer: FIXED_ANSWERS[category], guard: category } satisfies AskResponse);
 
-    const { model, refusal: keyRefusal } = requestModel(c, deps, ctx);
+    const prepared = await requestModel(c, deps, ctx);
+    if (!prepared.ok) return c.json({ error: prepared.error }, prepared.status);
+    const { model, refusal: keyRefusal } = prepared;
     try {
       const result = await generateText({
         model,

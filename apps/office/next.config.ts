@@ -7,8 +7,8 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(import.meta.dirname, '../..'),
   // the server migrates on start (instrumentation.ts) and finds the migrations at the same relative place
   outputFileTracingIncludes: { '/*': ['../../packages/db/drizzle/**/*'] },
-  // @ai-scratch/db ships TypeScript source
-  transpilePackages: ['@ai-scratch/db'],
+  // the workspace packages ship TypeScript source
+  transpilePackages: ['@ai-scratch/db', '@ai-scratch/anthropic'],
   // loaded from node_modules, not bundled: MSAL inside it requires modules dynamically
   serverExternalPackages: ['@azure/identity'],
   turbopack: {

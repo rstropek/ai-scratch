@@ -14,6 +14,7 @@ import {
   MAX_GAME_NAME,
   normalizeLockerCode,
 } from '../shared/locker.ts';
+import type { AppEnv } from './access.ts';
 import type { Config } from './config.ts';
 import type { Stats } from './stats.ts';
 
@@ -92,7 +93,7 @@ export interface LockerDeps {
   fetch?: typeof fetch;
 }
 
-export const addLockerRoutes = (app: Hono, { config, stats, fetch: baseFetch = fetch }: LockerDeps): void => {
+export const addLockerRoutes = (app: Hono<AppEnv>, { config, stats, fetch: baseFetch = fetch }: LockerDeps): void => {
   const base = config.lockerUrl.replace(/\/+$/, '');
 
   const call = async (code: string, path: string, init: RequestInit & { json?: unknown } = {}): Promise<Response> => {

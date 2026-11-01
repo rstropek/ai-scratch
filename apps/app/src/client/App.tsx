@@ -1,24 +1,14 @@
 // Layout: chat on the left, the unmodified Scratch editor in a same-origin iframe on the right
 // (the iframe isolates Scratch's global CSS from Tailwind and lets the editor mount exactly once).
 // The chat is resizable (splitter) and foldable into a slim rail; it stays mounted while folded,
-// so a running turn keeps going. Until a school's access code or a parent's OpenRouter key is in, the chat
-// shows the access gate.
+// so a running turn keeps going. Until an access code is in, the chat shows the access gate.
 import { MessageCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { isOpenRouterKey, type KeyProblem } from '../shared/access.ts';
+import type { AccessInfo } from '../shared/access.ts';
 import type { LockerAction } from '../shared/locker.ts';
 import { createProjectBackups } from '../shared/scratch/project-backup.ts';
-import {
-  acceptTerms,
-  type CodeCheck,
-  checkCode,
-  forgetCode,
-  storeCode,
-  storedCode,
-  takeLinkCode,
-  termsAccepted,
-} from './access.ts';
-import { AccessGate, type GatePath } from './chat/AccessGate.tsx';
+import { type CodeCheck, checkCode, forgetCode, storeCode, storedCode, takeLinkCode } from './access.ts';
+import { AccessGate } from './chat/AccessGate.tsx';
 import { ChatPanel } from './chat/ChatPanel.tsx';
 import { OFFLINE } from './chat/errors.ts';
 import { Splitter } from './components/Splitter.tsx';
@@ -34,78 +24,47 @@ import { CHAT_WIDTH, maxChatWidth, useUiPrefs } from './ui-prefs.ts';
 const sessionId = crypto.randomUUID();
 /** KI-Energie for this page load, used by the chat and the "frage KI" block */
 const hearts = createHeartsStore();
+/** the Locker works without an access code */
+const lockerApi = createLockerApi();
 
-// read once per page load: the link's code wins over the remembered one. A remembered key needs the
-// parents' consent to the current terms; without it the gate asks them again, with the key filled in.
+// read once per page load: the link's code wins over the remembered one
 const linkCode = takeLinkCode();
-const remembered = storedCode();
-const rememberedKeyNeedsTerms = remembered !== undefined && isOpenRouterKey(remembered) && !termsAccepted();
-const startCode = linkCode ?? (rememberedKeyNeedsTerms ? undefined : remembered);
+const startCode = linkCode ?? storedCode();
 
 type CodeSource = 'link' | 'stored' | 'typed';
 type Access =
-  | { state: 'open'; code: string }
+  | { state: 'open'; code: string; info: AccessInfo }
   | { state: 'checking'; code: string }
-  | { state: 'gate'; error?: string; code?: string; path?: GatePath; agreed?: boolean };
+  | { state: 'gate'; error?: string; code?: string };
 
 const WRONG: Record<CodeSource, string> = {
-  typed: 'Dieser Code stimmt nicht. Schau genau nach oder frag deine Lehrerin oder deinen Lehrer.',
-  link: 'Der Code im Link stimmt nicht. Gib den Code ein, den du von deiner Lehrerin oder deinem Lehrer bekommen hast.',
-  stored: 'Dein Code gilt nicht mehr. Frag deine Lehrerin oder deinen Lehrer nach dem richtigen Code.',
+  typed: 'Dieser Code stimmt nicht. Schau genau nach oder frag die Erwachsenen, die ihn dir gegeben haben.',
+  link: 'Der Code im Link stimmt nicht. Gib den Code ein, den du bekommen hast.',
+  stored: 'Dein Code gilt nicht mehr. Frag die Erwachsenen, die ihn dir gegeben haben, nach einem neuen.',
 };
 
-/**
- * For the parents, who enter the key. The server's refusals carry texts for the kid (chat, "frage KI"); the
- * gate reads only their reason. `unknown`: a typed key OpenRouter doesn't know.
- */
-const KEY_ERROR: Record<KeyProblem | 'stored', string> = {
-  unknown:
-    'OpenRouter kennt diesen Schlüssel nicht. Prüfen Sie, ob er vollständig kopiert ist (er beginnt mit sk-or-), oder legen Sie einen neuen an.',
-  stored: 'Der gespeicherte OpenRouter-Schlüssel gilt nicht mehr. Tragen Sie bitte einen gültigen ein.',
-  'no-limit':
-    'Dieser Schlüssel hat kein Ausgabelimit. Stellen Sie bei OpenRouter unter „Keys“ ein Limit ein (zum Beispiel 5 $) und versuchen Sie es nochmal.',
-  empty:
-    'Das Guthaben ist aufgebraucht: entweder das Limit dieses Schlüssels oder das Guthaben Ihres OpenRouter-Kontos. Erhöhen Sie es bei OpenRouter und versuchen Sie es nochmal.',
-  down: 'OpenRouter antwortet gerade nicht. Versuchen Sie es in einer Minute nochmal.',
-};
+const errorText = (check: Exclude<CodeCheck, { result: 'ok' }>, source: CodeSource): string =>
+  check.result === 'offline' ? OFFLINE : check.result === 'refused' ? check.error : WRONG[source];
 
-const errorText = (result: Exclude<CodeCheck, 'ok'>, source: CodeSource, key: boolean): string => {
-  if (result === 'offline') return OFFLINE;
-  if (!key) return WRONG[source];
-  if (result === 'wrong') return KEY_ERROR[source === 'typed' ? 'unknown' : 'stored'];
-  return KEY_ERROR[result];
-};
-
-/** The access code or key: checked once on start (link or remembered), then whenever one is typed in. */
+/** The access code: checked once on start (link or remembered), then whenever one is typed in. */
 const useAccess = () => {
   const [access, setAccess] = useState<Access>(() =>
-    startCode
-      ? { state: 'checking', code: startCode }
-      : rememberedKeyNeedsTerms
-        ? { state: 'gate', code: remembered, path: 'key' }
-        : { state: 'gate' },
+    startCode ? { state: 'checking', code: startCode } : { state: 'gate' },
   );
-  const openCode = useRef<string>(undefined);
   const unlock = useCallback(async (code: string, source: CodeSource) => {
-    const key = isOpenRouterKey(code);
     setAccess({ state: 'checking', code });
-    const result = await checkCode(code);
-    if (result === 'ok') {
+    const check = await checkCode(code);
+    if (check.result === 'ok') {
       storeCode(code);
-      // the gate only sends a key with the box ticked
-      if (key) acceptTerms();
-      openCode.current = code;
-      setAccess({ state: 'open', code });
+      setAccess({ state: 'open', code, info: check.info });
       return;
     }
-    // a remembered code stays remembered when only the connection failed (also when the kid retries it)
-    if (result === 'wrong' && code === storedCode()) forgetCode();
+    // a remembered code stays remembered unless the server doesn't know it (also when the kid retries it)
+    if (check.result === 'wrong' && code === storedCode()) forgetCode();
     setAccess({
       state: 'gate',
-      error: errorText(result, source, key),
-      code: result === 'wrong' && source !== 'typed' ? undefined : code,
-      path: key ? 'key' : 'school',
-      agreed: key && (source === 'typed' || termsAccepted()),
+      error: errorText(check, source),
+      code: check.result === 'wrong' && source !== 'typed' ? undefined : code,
     });
   }, []);
   const started = useRef(false);
@@ -115,19 +74,12 @@ const useAccess = () => {
     started.current = true;
     void unlock(startCode, linkCode ? 'link' : 'stored');
   }, [unlock]);
-  /** the server refused the code later on (removed from its list), or OpenRouter the key */
+  /** the server no longer knows the code (deleted in the office) */
   const deny = useCallback(() => {
-    const key = isOpenRouterKey(openCode.current ?? '');
     forgetCode();
-    setAccess({ state: 'gate', error: key ? KEY_ERROR.stored : WRONG.stored, path: key ? 'key' : 'school' });
+    setAccess({ state: 'gate', error: WRONG.stored });
   }, []);
-  /** "Schlüssel vergessen": a key on a shared computer */
-  const forgetKey = useCallback(() => {
-    forgetCode();
-    openCode.current = undefined;
-    setAccess({ state: 'gate' });
-  }, []);
-  return { access, unlock, deny, forgetKey };
+  return { access, unlock, deny };
 };
 
 const useViewportWidth = () => {
@@ -171,7 +123,7 @@ export const App = () => {
   const backups = useMemo(() => (bridge ? createProjectBackups(bridge.vm) : undefined), [bridge]);
   const [prefs, updatePrefs] = useUiPrefs();
   const [busy, setBusy] = useState(false);
-  const { access, unlock, deny, forgetKey } = useAccess();
+  const { access, unlock, deny } = useAccess();
   const [dragging, setDragging] = useState(false);
   const [lockerAction, setLockerAction] = useState<LockerAction>();
   const [projectLoads, setProjectLoads] = useState(0);
@@ -192,10 +144,6 @@ export const App = () => {
   const lockerProject = useMemo(
     () => (bridge ? createLockerProject(bridge, () => setProjectLoads((n) => n + 1)) : undefined),
     [bridge],
-  );
-  const lockerApi = useMemo(
-    () => (openCode ? createLockerApi({ accessCode: openCode, onAccessDenied: deny }) : undefined),
-    [openCode, deny],
   );
   useEffect(() => {
     if (!bridge) return;
@@ -233,7 +181,7 @@ export const App = () => {
             onFold={() => updatePrefs({ folded: true })}
             onBusyChange={setBusy}
             onAccessDenied={deny}
-            onForgetKey={isOpenRouterKey(access.code) ? forgetKey : undefined}
+            endsAt={access.info.endsAt ?? undefined}
             projectLoads={projectLoads}
           />
         ) : (
@@ -243,8 +191,6 @@ export const App = () => {
             checking={access.state === 'checking'}
             error={access.state === 'gate' ? access.error : undefined}
             initialCode={access.code}
-            initialPath={access.state === 'gate' ? access.path : undefined}
-            initialAgreed={access.state === 'checking' || (access.state === 'gate' && access.agreed)}
             onCode={(code) => void unlock(code, 'typed')}
             fontSize={prefs.fontSize}
             onFontSize={(fontSize) => updatePrefs({ fontSize })}

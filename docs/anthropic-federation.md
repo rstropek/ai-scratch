@@ -50,7 +50,8 @@ env vars, validation): <https://platform.claude.com/docs/en/manage-claude/wif-re
 - **Settings:** `ANTHROPIC_FEDERATION_AUDIENCE` (`api://<APP_ID>`) switches federation on; without it every
   federated entry is refused with "kein Token". `ANTHROPIC_FEDERATION_CLIENT_ID` picks the managed identity (Azure);
   without it the Azure CLI's login is used (local debugging), in `ANTHROPIC_FEDERATION_TENANT_ID` if your default
-  tenant is another. `lib/entra-token.ts`; both credentials cache the token.
+  tenant is another. `createEntraTokenProvider` in `packages/anthropic` (shared with the kids' app); both credentials
+  cache the token.
 - **Every check builds a new client,** so it exchanges once per save. The kids' app should keep one client per
   entry instead: the SDK re-exchanges only shortly before the Anthropic token runs out.
 - **e2e:** the fake Anthropic plays App Service's identity endpoint (`IDENTITY_ENDPOINT`, `IDENTITY_HEADER`) and

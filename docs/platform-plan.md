@@ -2,9 +2,10 @@
 
 Status: **iteration 2 of the office implemented** (registration of parents and teachers, email confirmation,
 teachers' applications for the free budget screened by Jev, the admin's account list, decisions and free-budget
-switch, password reset), **and the admin's Anthropic key pool** (`/admin/keys`); next:
+switch, password reset), **the admin's Anthropic key pool** (`/admin/keys`), and
 [iteration 3](#iteration-3-codes-own-openrouter-keys-the-kids-app-on-the-database) (codes, own OpenRouter keys, the
-kids' app on the database), detailed and partly decided, not built yet. The outcome of the architecture discussion
+kids' app on the database; code done 2026-11-01, not deployed: the rollout has an order,
+[deployment.md](deployment.md#office-and-database); how it works: [budgets.md](budgets.md)). The outcome of the architecture discussion
 of 2026-10-31. Each point is marked **decided** (Rainer agreed), **proposed** (Claude's suggestion, not confirmed yet) or **open**.
 
 ## Why
@@ -556,7 +557,8 @@ cost or a German "versuch es nochmal" instead.
 - `/api/stats` only for test codes.
 - **Thinking blocks across entries** ([open](#anthropic-key-pool)): when all sessions move to the next entry, their
   history holds thinking signed by the old one. Tested with two organisations; if Anthropic refuses it, the server
-  drops thinking blocks of earlier entries.
+  drops thinking blocks of earlier entries. **Open:** not tested yet (2026-11-01): it needs entries of two
+  organisations in the pool; nothing drops thinking blocks so far.
 
 **Proposed: the 80 % warning:**
 

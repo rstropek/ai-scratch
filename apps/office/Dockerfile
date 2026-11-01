@@ -6,9 +6,11 @@ COPY package.json package-lock.json .npmrc ./
 COPY apps/app/package.json ./apps/app/
 COPY apps/office/package.json ./apps/office/
 COPY packages/db/package.json ./packages/db/
+COPY packages/anthropic/package.json ./packages/anthropic/
 RUN npm ci -w apps/office --ignore-scripts --no-audit --no-fund
 COPY tsconfig.base.json ./
 COPY packages/db ./packages/db
+COPY packages/anthropic ./packages/anthropic
 COPY apps/office ./apps/office
 RUN npm run build -w apps/office
 

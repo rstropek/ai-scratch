@@ -30,6 +30,16 @@ describe('ChatTopBar', () => {
     expect(onShowTools).toHaveBeenCalledWith(false);
   });
 
+  test('shows when the code stops working (Vienna time), never the budget; nothing for test codes', () => {
+    renderBar({ endsAt: '2026-11-10T09:50:00.000Z' });
+    expect(screen.getByTestId('code-ends')).toHaveTextContent('Code gilt bis 10:50');
+  });
+
+  test('without an end time the bar shows none', () => {
+    renderBar();
+    expect(screen.getByTestId('code-ends')).toBeEmptyDOMElement();
+  });
+
   test('fold calls back', () => {
     const { onFold } = renderBar();
     fireEvent.click(screen.getByRole('button', { name: 'Chat einklappen' }));

@@ -1,26 +1,23 @@
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import type { LockerGame } from '../../shared/locker.ts';
 import { OFFLINE } from '../chat/errors.ts';
-import { createLockerApi, LockerCallError, NEED_ACCESS_CODE, savedLabel } from './locker.ts';
+import { createLockerApi, LockerCallError, savedLabel } from './locker.ts';
 
 const GAME: LockerGame = { projectId: 'p1', fileId: 'f1', name: 'Hai-Alarm', savedAt: '', size: 1 };
 
 const setup = (answer: () => Response | Promise<Response>) => {
   const calls: { url: string; init: RequestInit }[] = [];
-  const onAccessDenied = vi.fn();
   const api = createLockerApi({
-    accessCode: 'schule1',
-    onAccessDenied,
     fetch: async (url, init = {}) => {
       calls.push({ url: String(url), init });
       return answer();
     },
   });
-  return { api, calls, onAccessDenied };
+  return { api, calls };
 };
 
 describe('createLockerApi', () => {
-  test('sends both codes as headers and the name in the query', async () => {
+  test('sends the Locker code as a header (no access code: the Locker works without) and the name in the query', async () => {
     const { api, calls } = setup(() => Response.json({ games: [GAME] }));
     const sb3 = new Blob(['x']);
     expect(await api.save('K7QM4XRT', 'Ja & Nein', sb3, GAME)).toEqual([GAME]);
@@ -28,7 +25,7 @@ describe('createLockerApi', () => {
     expect(calls[0]?.init).toMatchObject({
       method: 'POST',
       body: sb3,
-      headers: { 'X-Access-Code': 'schule1', 'X-Locker-Code': 'K7QM4XRT' },
+      headers: { 'X-Locker-Code': 'K7QM4XRT' },
     });
     await api.save('K7QM4XRT', 'Neu', sb3);
     expect(calls[1]?.url).toBe('/api/locker/games?name=Neu');
@@ -40,15 +37,12 @@ describe('createLockerApi', () => {
     expect(calls[0]?.url).toBe('/api/locker/games/p1/f1');
   });
 
-  test("errors carry the server's German text; 401 means the school code is gone", async () => {
+  test("errors carry the server's German text", async () => {
     const wrong = setup(() => Response.json({ error: 'Mit diesem Code geht kein Locker auf.' }, { status: 404 }));
     await expect(wrong.api.list('K7QM4XRT')).rejects.toMatchObject({
       kind: 'not-found',
       message: 'Mit diesem Code geht kein Locker auf.',
     });
-    const denied = setup(() => Response.json({ error: 'Falscher Zugangscode' }, { status: 401 }));
-    await expect(denied.api.list('K7QM4XRT')).rejects.toMatchObject({ kind: 'access', message: NEED_ACCESS_CODE });
-    expect(denied.onAccessDenied).toHaveBeenCalled();
     const offline = setup(() => Promise.reject(new TypeError('Failed to fetch')));
     await expect(offline.api.list('K7QM4XRT')).rejects.toEqual(new LockerCallError(OFFLINE, 'other'));
   });

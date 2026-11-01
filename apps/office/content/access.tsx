@@ -1,27 +1,19 @@
 // The public page /access, German: how access codes, donated keys and own keys work, who creates what, which
 // limits apply and why it is secure. It describes the system as designed in docs/platform-plan.md (Rainer,
-// 2026-11-01: the target, no status markers); when a decision there changes, change this text with it. The numbers
-// come from lib/rules.ts.
+// 2026-11-01: the target, no status markers); when a decision there changes, change this text with it. The limits
+// are the env vars' defaults from @ai-scratch/db/limits (a static page reads no environment).
 
+import { DEFAULT_LIMITS, OWN_KEY_MAX_REMAINING_USD } from '@ai-scratch/db/limits';
 import type { MapEdgeId, MapNodeId, MapNodeText } from '../components/access-map.tsx';
 import type { ChipTone } from '../components/ui/chip.tsx';
 import { FlowList } from '../components/ui/flow-list.tsx';
 import { Prose } from '../components/ui/prose.tsx';
 import { TextLink } from '../components/ui/text-link.tsx';
-import {
-  BUDGET_ACCOUNT_EUR_MONTH,
-  BUDGET_TOTAL_EUR_MONTH,
-  CODE_BUDGET_EUR,
-  CODE_MAX_HOURS,
-  FREE_CODES_PER_ACCOUNT_MONTH,
-  LINK_VALID_MINUTES,
-  OWN_KEY_MAX_REMAINING_USD,
-  REGISTRATIONS_PER_EMAIL_HOUR,
-  REGISTRATIONS_PER_IP_HOUR,
-} from '../lib/rules.ts';
+import { LINK_VALID_MINUTES, REGISTRATIONS_PER_EMAIL_HOUR, REGISTRATIONS_PER_IP_HOUR } from '../lib/rules.ts';
 import { SOURCE_URL } from '../lib/site.ts';
 
-const eur = (amount: number) => `${amount} €`;
+const { accountUsdMonth, codeBudgetUsd, codeMaxHours, freeCodesPerAccountMonth, totalUsdMonth } = DEFAULT_LIMITS;
+
 const usd = (amount: number) => `${amount} US-Dollar`;
 const hours = (count: number) => `${count} Stunden`;
 
@@ -54,7 +46,7 @@ const nodes: Record<MapNodeId, MapNodeText> = {
   free: { title: 'Gratis-Budget', sub: 'pro Konto freigeschaltet' },
   adult: { title: 'Erwachsene', sub: 'Lehrkräfte und Eltern' },
   openrouter: { title: 'OpenRouter', sub: 'eigener Schlüssel' },
-  code: { title: 'Zugangscode', sub: 'TIGER-4821', mono: true },
+  code: { title: 'Zugangscode', sub: 'TIGER-APFEL-48', mono: true },
   kid: { title: 'Kind', sub: 'ohne Konto' },
   server: { title: 'Prüfung', sub: 'auf dem Server' },
   claude: { title: 'KI-Helfer', sub: 'Claude von Anthropic' },
@@ -103,9 +95,9 @@ const steps: readonly TourStep[] = [
       'Lehrkräfte können dabei das Gratis-Budget beantragen, das der Pool bezahlt. Sie nennen ihre Schule und wofür sie AI-Scratch nutzen wollen. Eine KI sortiert offensichtlich ungültige Anträge aus, die Entscheidung treffen die Administrator:innen von AI-Scratch. Eltern können das Gratis-Budget nicht beantragen; die Administrator:innen können es aber für jedes Konto freischalten.',
     ],
     limits: [
-      `${FREE_CODES_PER_ACCOUNT_MONTH} Codes pro Konto und Monat`,
-      `${eur(BUDGET_ACCOUNT_EUR_MONTH)} KI-Kosten pro Konto und Monat`,
-      `${eur(BUDGET_TOTAL_EUR_MONTH)} im Monat für alle Konten zusammen`,
+      `${freeCodesPerAccountMonth} Codes pro Konto und Monat`,
+      `${usd(accountUsdMonth)} KI-Kosten pro Konto und Monat`,
+      `${usd(totalUsdMonth)} im Monat für alle Konten zusammen`,
     ],
     safety: [
       'Codes erstellen nur registrierte Erwachsene. Das Gratis-Budget gibt es nur mit Freigabe der Administrator:innen, und sie können es jederzeit wieder entziehen.',
@@ -119,7 +111,7 @@ const steps: readonly TourStep[] = [
     actor: actors.adult,
     body: [
       'Ohne Gratis-Budget funktioniert AI-Scratch mit einem eigenen API-Schlüssel von OpenRouter (openrouter.ai). Die KI-Kosten zahlen Sie dann direkt an OpenRouter, nicht an uns.',
-      'Bei OpenRouter legen Sie fest, wie viel über den Schlüssel höchstens ausgegeben werden kann. Am besten legen Sie dort einen eigenen Schlüssel nur für AI-Scratch an.',
+      'Bei OpenRouter legen Sie fest, wie viel über den Schlüssel höchstens ausgegeben werden kann. Am besten legen Sie dort einen eigenen Schlüssel nur für AI-Scratch an. Den Schlüssel tragen Sie im Office ein, nie im Lernspiel.',
     ],
     limits: [
       'Codes lassen sich nur aus Schlüsseln mit Ausgabelimit erstellen.',
@@ -136,10 +128,10 @@ const steps: readonly TourStep[] = [
     title: 'Der Zugangscode',
     actor: actors.adult,
     body: [
-      'Für eine Unterrichtsstunde oder einen Workshop erstellen Sie im Office einen Zugangscode, aus dem Gratis-Budget oder aus Ihrem eigenen Schlüssel. Das Office schlägt einen vor, etwa TIGER-4821; Sie können auch einen eigenen wählen.',
+      'Für eine Unterrichtsstunde oder einen Workshop erstellen Sie im Office einen Zugangscode, aus dem Gratis-Budget oder aus Ihrem eigenen Schlüssel. Das Office würfelt ihn aus zwei Wörtern und zwei Ziffern, etwa TIGER-APFEL-48; gefällt er Ihnen nicht, würfeln Sie neu. Eigene Codes gibt es nicht: So lassen sie sich kaum erraten.',
       'Der Code gilt in einem Zeitfenster, das auch später beginnen kann. Ein Kommentar hilft beim Wiederfinden („1A Digitale Grundbildung“); Namen von Kindern gehören nicht hinein. Den „frage KI“-Block, mit dem Kinder die KI aus ihren eigenen Programmen fragen, können Sie pro Code ausschalten.',
     ],
-    limits: [`höchstens ${hours(CODE_MAX_HOURS)} gültig`, `höchstens ${eur(CODE_BUDGET_EUR)} KI-Kosten`],
+    limits: [`höchstens ${hours(codeMaxHours)} gültig`, `höchstens ${usd(codeBudgetUsd)} KI-Kosten`],
     safety: ['Der Code ist alles, was Kinder bekommen: kein Schlüssel, kein Passwort, kein Konto.'],
     nodes: ['adult', 'code'],
     edges: ['adult-code', 'free-code', 'openrouter-code'],
@@ -150,7 +142,7 @@ const steps: readonly TourStep[] = [
     actor: actors.kid,
     body: [
       'Die Kinder öffnen ai-scratch.dev und tippen den Code in den Chat neben dem Scratch-Editor. Sie brauchen kein Konto und geben nichts über sich an.',
-      'Scratch funktioniert auch ohne Code; der Code schaltet nur den KI-Helfer frei.',
+      'Scratch funktioniert auch ohne Code, ebenso das Speichern und Laden im CoderDojo Locker; der Code schaltet nur den KI-Helfer frei. Bis wann er gilt, sehen die Kinder im Chat.',
     ],
     limits: ['Nachrichten sind gebremst: Ein Kind kann nur wenige schnell hintereinander schicken.'],
     safety: ['Nach seinem Zeitfenster funktioniert der Code nicht mehr, auch wenn ihn jemand weitergegeben hat.'],
@@ -182,7 +174,7 @@ const steps: readonly TourStep[] = [
     title: 'Antwort und Abrechnung',
     actor: actors.server,
     body: [
-      'Der Server schickt die Nachricht an Claude und die Antwort zurück an das Kind. Eine Sitzung bleibt dabei bei ihrem Schlüssel; ist er aufgebraucht, nimmt der Server sofort den nächsten.',
+      'Der Server schickt die Nachricht an Claude und die Antwort zurück an das Kind. Alle Sitzungen nutzen denselben Schlüssel aus dem Pool, bis sein Monatslimit erreicht ist; dann nimmt der Server den nächsten.',
       'Nach jeder Antwort bucht er die tatsächlichen Kosten auf den Code, bei Codes aus dem Gratis-Budget auch auf das Konto, den Schlüssel und den Monat. Ist ein Budget aufgebraucht, stoppen alle Codes, die daran hängen, auch mitten in der Stunde. Mit dem neuen Monat beginnen die Monatsbudgets wieder bei null.',
     ],
     limits: [
@@ -191,7 +183,7 @@ const steps: readonly TourStep[] = [
     ],
     safety: [
       'Über ein Budget hinaus gehen höchstens die Anfragen, die gerade laufen.',
-      'Ist kein Schlüssel mit Guthaben mehr da, erfahren es die Administrator:innen sofort per E-Mail.',
+      'Sind 80 % des Monatsbudgets oder des Limits eines Schlüssels verbraucht, bekommen die Administrator:innen eine E-Mail.',
     ],
     nodes: ['server', 'claude'],
     edges: ['server-claude'],
@@ -251,11 +243,11 @@ export const access = {
     title: 'Welche Grenzen gelten?',
     columns: { limit: 'Grenze', value: 'Wert', appliesTo: 'gilt für' },
     rows: [
-      { limit: 'Zeitfenster eines Codes', value: `höchstens ${hours(CODE_MAX_HOURS)}`, appliesTo: 'alle Codes' },
-      { limit: 'KI-Kosten eines Codes', value: `höchstens ${eur(CODE_BUDGET_EUR)}`, appliesTo: 'alle Codes' },
-      { limit: 'Codes pro Konto', value: `${FREE_CODES_PER_ACCOUNT_MONTH} im Monat`, appliesTo: 'Gratis-Budget' },
-      { limit: 'KI-Kosten pro Konto', value: `${eur(BUDGET_ACCOUNT_EUR_MONTH)} im Monat`, appliesTo: 'Gratis-Budget' },
-      { limit: 'KI-Kosten aller Konten', value: `${eur(BUDGET_TOTAL_EUR_MONTH)} im Monat`, appliesTo: 'Gratis-Budget' },
+      { limit: 'Zeitfenster eines Codes', value: `höchstens ${hours(codeMaxHours)}`, appliesTo: 'alle Codes' },
+      { limit: 'KI-Kosten eines Codes', value: `höchstens ${usd(codeBudgetUsd)}`, appliesTo: 'alle Codes' },
+      { limit: 'Codes pro Konto', value: `${freeCodesPerAccountMonth} im Monat`, appliesTo: 'Gratis-Budget' },
+      { limit: 'KI-Kosten pro Konto', value: `${usd(accountUsdMonth)} im Monat`, appliesTo: 'Gratis-Budget' },
+      { limit: 'KI-Kosten aller Konten', value: `${usd(totalUsdMonth)} im Monat`, appliesTo: 'Gratis-Budget' },
       {
         limit: 'Gespendeter Schlüssel',
         value: 'ein eigenes Limit pro Monat, dazu das Ausgabelimit bei Anthropic',
@@ -279,8 +271,8 @@ export function WhySecure() {
     <ul>
       <li>
         <strong>Kinder bekommen nie einen Schlüssel.</strong> Sie bekommen nur einen Code, der nach höchstens{' '}
-        {hours(CODE_MAX_HOURS)} abläuft und höchstens {eur(CODE_BUDGET_EUR)} kosten kann. Ein weitergegebener Code ist
-        damit wenig wert.
+        {hours(codeMaxHours)} abläuft und höchstens {usd(codeBudgetUsd)} kosten kann. Ein weitergegebener Code ist damit
+        wenig wert.
       </li>
       <li>
         <strong>Jede Geldquelle hat mehrere Grenzen.</strong> Der Code, das Konto, der Monat und jeder Schlüssel haben

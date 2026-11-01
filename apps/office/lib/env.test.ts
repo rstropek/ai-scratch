@@ -1,3 +1,4 @@
+import { DEFAULT_LIMITS } from '@ai-scratch/db/limits';
 import { describe, expect, it } from 'vitest';
 import { loadEnv, loadServicesEnv } from './env.ts';
 
@@ -33,6 +34,16 @@ describe('loadServicesEnv', () => {
       turnstile: { siteKey: 'site', secretKey: 'secret' },
       jev: { apiKey: 'jev', model: 'jev-1.13.0' },
       adminNotifyEmail: 'rainer@software-architects.at',
+      openrouterUrl: 'https://openrouter.ai/api/v1',
+      limits: DEFAULT_LIMITS,
+    });
+  });
+
+  it('reads OpenRouter and the limits when they are set', () => {
+    const env = { ...base, OPENROUTER_URL: 'http://localhost:3121/api/v1/', CODE_BUDGET_USD: '2.5' };
+    expect(loadServicesEnv(env)).toMatchObject({
+      openrouterUrl: 'http://localhost:3121/api/v1',
+      limits: { ...DEFAULT_LIMITS, codeBudgetUsd: 2.5 },
     });
   });
 

@@ -109,8 +109,8 @@ jobs:
           echo "$files"
           shared='package\.json$|package-lock\.json$|\.npmrc$|tsconfig\.base\.json$|\.github/workflows/deploy\.yml$'
           changed() { grep -qE "^($1|$shared)" <<< "$files" && echo true || echo false; }
-          echo "app=$(changed 'apps/app/')" >> "$GITHUB_OUTPUT"
-          echo "office=$(changed 'apps/office/|packages/db/')" >> "$GITHUB_OUTPUT"
+          echo "app=$(changed 'apps/app/|packages/')" >> "$GITHUB_OUTPUT"
+          echo "office=$(changed 'apps/office/|packages/')" >> "$GITHUB_OUTPUT"
 
   deploy:
     needs: [test, e2e, games, changes]

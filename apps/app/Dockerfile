@@ -7,12 +7,14 @@ WORKDIR /repo
 COPY package.json package-lock.json .npmrc ./
 COPY apps/office/package.json ./apps/office/
 COPY packages/db/package.json ./packages/db/
+COPY packages/anthropic/package.json ./packages/anthropic/
 COPY apps/app/package.json ./apps/app/
 COPY apps/app/scripts ./apps/app/scripts
 RUN npm ci -w apps/app --no-audit --no-fund
 COPY apps/app/slides/package.json apps/app/slides/package-lock.json ./apps/app/slides/
 RUN npm ci --prefix apps/app/slides --no-audit --no-fund
 COPY tsconfig.base.json ./
+COPY packages ./packages
 COPY apps/app ./apps/app
 # the deck first (into dist/slides), so the app's build precompresses it with the rest of dist/
 RUN npm run build --prefix apps/app/slides && npm run build -w apps/app
@@ -23,6 +25,7 @@ WORKDIR /repo
 COPY package.json package-lock.json .npmrc ./
 COPY apps/office/package.json ./apps/office/
 COPY packages/db/package.json ./packages/db/
+COPY packages/anthropic/package.json ./packages/anthropic/
 COPY apps/app/package.json ./apps/app/
 RUN npm ci -w apps/app --omit=dev --ignore-scripts --no-audit --no-fund
 
@@ -31,6 +34,12 @@ ARG APP_VERSION=dev
 ENV NODE_ENV=production APP_VERSION=$APP_VERSION PORT=3000
 WORKDIR /app
 COPY --from=deps /repo/node_modules ./node_modules
+# the workspace packages, TypeScript source run by Node like the server: node_modules/@ai-scratch/* link to
+# ../../packages/*, outside node_modules (Node strips types only there)
+COPY packages/db/package.json ./packages/db/
+COPY packages/db/src ./packages/db/src
+COPY packages/anthropic/package.json ./packages/anthropic/
+COPY packages/anthropic/src ./packages/anthropic/src
 COPY apps/app/package.json ./
 COPY apps/app/src/server ./src/server
 COPY apps/app/src/shared ./src/shared
