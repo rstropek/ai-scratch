@@ -3,6 +3,7 @@
 import { CODE_COMMENT_MAX, CODE_START_MAX_DAYS } from '@ai-scratch/db/limits';
 import { RefreshCw } from 'lucide-react';
 import { useActionState, useState, useTransition } from 'react';
+import { CopyButton } from '../../../components/copy-button.tsx';
 import { Banner } from '../../../components/ui/banner.tsx';
 import { Button } from '../../../components/ui/button.tsx';
 import { Checkbox } from '../../../components/ui/checkbox.tsx';
@@ -58,6 +59,7 @@ export function CodeForm({
           <output aria-live="polite" className="font-bold font-mono text-2xl">
             {code.toUpperCase()}
           </output>
+          <CopyButton value={code.toUpperCase()} label={c.copy(code.toUpperCase())} />
           <Button
             variant="secondary"
             size="sm"

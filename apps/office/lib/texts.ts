@@ -28,6 +28,17 @@ const formatWindow = (start: Date, end: Date) =>
   `${formatDateTime(start)} – ${formatDate(start) === formatDate(end) ? formatTime(end) : formatDateTime(end)}`;
 /** what is left of a limit, never below zero */
 const left = (limit: number, spent: number) => Math.max(0, limit - spent);
+/** the end of every mail to adults: who sends it and where answers go (Reply-To, MAIL_REPLY_TO) */
+const mailSignature = [
+  '',
+  'Viele Grüße',
+  'AI-Scratch',
+  '',
+  '--',
+  'AI-Scratch: Scratch mit KI-Assistent für Kinder von 10 bis 14 Jahren',
+  'https://ai-scratch.dev',
+  'Fragen? Antworten Sie einfach auf diese E-Mail.',
+];
 
 export const texts = {
   appName: 'AI-Scratch Office',
@@ -151,7 +162,7 @@ export const texts = {
     sent: (email: string) =>
       `Wir haben eine E-Mail an ${email} geschickt. Der Link darin gilt ${LINK_VALID_MINUTES} Minuten.`,
     sentHint:
-      'Keine E-Mail da? Manche Schulen halten E-Mails von neuen Absendern ein paar Minuten zurück. Schauen Sie auch im Spam-Ordner nach.',
+      'Keine E-Mail da? Manche Schulen halten E-Mails von neuen Absendern zurück. Schauen Sie im Spam-Ordner nach und, wenn Ihre Schule Microsoft 365 nutzt, in der Quarantäne (security.microsoft.com/quarantine). Finden Sie sie dort nicht, kann Ihre Schul-IT sie freigeben.',
   },
   confirm: {
     title: 'Konto anlegen',
@@ -299,6 +310,7 @@ export const texts = {
     code: 'Code',
     codeHint: 'So tippen ihn die Kinder ein; Groß- und Kleinschreibung ist egal.',
     propose: 'Neuer Vorschlag',
+    copy: (code: string) => `Code ${code} kopieren`,
     source: 'Wer die KI bezahlt',
     sourceFree: 'Gratis-Budget',
     sourceKey: (label: string, hint: string) => `Eigener OpenRouter-Schlüssel: ${label} ${hint}`,
@@ -727,19 +739,22 @@ export const texts = {
     access: 'So funktioniert der Zugang',
     source: 'Quellcode',
   },
+  /** the copy button's outcome, shown for a moment */
+  copy: { copied: 'Kopiert', failed: 'Kopieren hat nicht geklappt' },
   mail: {
     confirm: (url: string) => ({
-      subject: 'Bitte bestätigen Sie Ihre E-Mail-Adresse',
+      subject: 'Ihre Registrierung bei AI-Scratch',
       text: [
         'Guten Tag,',
         '',
-        'Sie haben sich bei AI-Scratch registriert. Öffnen Sie diesen Link, um Ihre E-Mail-Adresse zu bestätigen und Ihr Passwort festzulegen:',
+        'Sie haben sich gerade bei AI-Scratch registriert. AI-Scratch ist der Scratch-Editor mit einem KI-Assistenten für Kinder von 10 bis 14 Jahren. Lehrkräfte und Eltern erstellen im Office die Zugangscodes dafür.',
+        '',
+        'Mit diesem Link schließen Sie Ihre Registrierung ab:',
         '',
         url,
         '',
         `Der Link gilt ${LINK_VALID_MINUTES} Minuten. Wenn Sie sich nicht registriert haben, ignorieren Sie diese E-Mail einfach; dann legen wir kein Konto an.`,
-        '',
-        'AI-Scratch',
+        ...mailSignature,
       ].join('\n'),
     }),
     exists: (baseURL: string) => ({
@@ -753,8 +768,7 @@ export const texts = {
         `Passwort vergessen: ${baseURL}/forgot-password`,
         '',
         'Wenn Sie das nicht waren, ignorieren Sie diese E-Mail einfach. An Ihrem Konto ändert sich nichts.',
-        '',
-        'AI-Scratch',
+        ...mailSignature,
       ].join('\n'),
     }),
     resetPassword: (url: string) => ({
@@ -767,8 +781,7 @@ export const texts = {
         url,
         '',
         'Der Link gilt eine Stunde und nur einmal. Wenn Sie kein neues Passwort angefordert haben, ignorieren Sie diese E-Mail einfach.',
-        '',
-        'AI-Scratch',
+        ...mailSignature,
       ].join('\n'),
     }),
     newApplication: (p: {
@@ -808,7 +821,7 @@ export const texts = {
         `Anmelden: ${baseURL}/login`,
         '',
         'Viel Freude mit AI-Scratch!',
-        'AI-Scratch',
+        ...mailSignature,
       ].join('\n'),
     }),
     rejected: (name: string, baseURL: string) => ({
@@ -821,8 +834,7 @@ export const texts = {
         'Sie können AI-Scratch aber weiter nutzen, mit eigenen OpenRouter-Schlüsseln.',
         '',
         `Anmelden: ${baseURL}/login`,
-        '',
-        'AI-Scratch',
+        ...mailSignature,
       ].join('\n'),
     }),
   },

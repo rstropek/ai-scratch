@@ -26,7 +26,8 @@ export const loadEnv = (env: Env = process.env): OfficeEnv => {
 };
 
 export interface ServicesEnv {
-  mail: { from: string; resendApiKey: string } | { from: string; outboxDir: string };
+  /** replyTo: where answers to the office's mails go (the sender has no mailbox) */
+  mail: { from: string; replyTo: string } & ({ resendApiKey: string } | { outboxDir: string });
   turnstile: { siteKey: string; secretKey: string };
   /** undefined only with JEV_DISABLED=1 (local development, e2e tests) */
   jev?: { apiKey: string; model: string };
@@ -47,9 +48,10 @@ const DEFAULT_OPENROUTER_URL = 'https://openrouter.ai/api/v1';
 /** Mail, Turnstile, Jev, federation, OpenRouter and the limits, read when the first request needs them (scripts never do). */
 export const loadServicesEnv = (env: Env = process.env): ServicesEnv => {
   const from = env.MAIL_FROM?.trim() || DEFAULT_FROM;
+  const replyTo = env.MAIL_REPLY_TO?.trim() || ADMIN_EMAIL;
   const outboxDir = env.MAIL_OUTBOX_DIR?.trim();
   return {
-    mail: outboxDir ? { from, outboxDir } : { from, resendApiKey: required(env, 'RESEND_API_KEY') },
+    mail: outboxDir ? { from, replyTo, outboxDir } : { from, replyTo, resendApiKey: required(env, 'RESEND_API_KEY') },
     turnstile: { siteKey: required(env, 'TURNSTILE_SITE_KEY'), secretKey: required(env, 'TURNSTILE_SECRET_KEY') },
     jev:
       env.JEV_DISABLED?.trim() === '1'

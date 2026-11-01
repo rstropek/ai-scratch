@@ -3,6 +3,7 @@ import type { CodeListPage } from '../app/codes/actions.ts';
 import { DeleteCodeForm } from '../app/codes/delete-code-form.tsx';
 import { type CodeRow, type CodeState, codeState } from '../lib/codes.ts';
 import { texts } from '../lib/texts.ts';
+import { CopyButton } from './copy-button.tsx';
 import { Chip, type ChipTone } from './ui/chip.tsx';
 import { Cell, type Column, Table, TableFooter } from './ui/table.tsx';
 
@@ -41,7 +42,10 @@ export function CodesTable({
           return (
             <tr key={row.id}>
               <Cell sub={row.comment || undefined}>
-                <span className="whitespace-nowrap font-bold font-mono">{code}</span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="whitespace-nowrap font-bold font-mono">{code}</span>
+                  <CopyButton value={code} label={c.copy(code)} />
+                </span>
               </Cell>
               <Cell sub={row.askEnabled ? undefined : c.askOff}>{texts.format.window(row.startsAt, row.endsAt)}</Cell>
               <Cell>

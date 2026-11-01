@@ -49,7 +49,7 @@ export const getMailer = (): Mailer => {
     s.mailer =
       'outboxDir' in mail
         ? createOutboxMailer(mail.outboxDir)
-        : createResendMailer({ apiKey: mail.resendApiKey, from: mail.from });
+        : createResendMailer({ apiKey: mail.resendApiKey, from: mail.from, replyTo: mail.replyTo });
   }
   return s.mailer;
 };

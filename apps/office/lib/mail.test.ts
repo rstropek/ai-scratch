@@ -8,9 +8,14 @@ import { createTurnstileVerifier, SITEVERIFY_URL } from './turnstile.ts';
 const mail = { to: 'a@schule.at', subject: 'Betreff', text: 'Text' };
 
 describe('the Resend mailer', () => {
-  it('posts the mail with the key', async () => {
+  it('posts the mail with the key and the reply address', async () => {
     const fetch = vi.fn(async () => new Response('{"id":"1"}'));
-    await createResendMailer({ apiKey: 're_key', from: 'AI-Scratch <o@mail.ai-scratch.dev>', fetch })(mail);
+    await createResendMailer({
+      apiKey: 're_key',
+      from: 'AI-Scratch <o@mail.ai-scratch.dev>',
+      replyTo: 'rainer@software-architects.at',
+      fetch,
+    })(mail);
     expect(fetch).toHaveBeenCalledWith(
       RESEND_URL,
       expect.objectContaining({
@@ -18,6 +23,7 @@ describe('the Resend mailer', () => {
         body: JSON.stringify({
           from: 'AI-Scratch <o@mail.ai-scratch.dev>',
           to: ['a@schule.at'],
+          reply_to: 'rainer@software-architects.at',
           subject: 'Betreff',
           text: 'Text',
         }),
@@ -27,7 +33,7 @@ describe('the Resend mailer', () => {
 
   it('throws when Resend refuses', async () => {
     const fetch = async () => new Response('{"message":"invalid from"}', { status: 422 });
-    await expect(createResendMailer({ apiKey: 'k', from: 'f', fetch })(mail)).rejects.toThrow(/422/);
+    await expect(createResendMailer({ apiKey: 'k', from: 'f', replyTo: 'r', fetch })(mail)).rejects.toThrow(/422/);
   });
 });
 

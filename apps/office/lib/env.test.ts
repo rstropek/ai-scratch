@@ -30,7 +30,11 @@ describe('loadServicesEnv', () => {
 
   it('reads Resend, Turnstile and Jev with their defaults', () => {
     expect(loadServicesEnv(base)).toEqual({
-      mail: { from: 'AI-Scratch <office@mail.ai-scratch.dev>', resendApiKey: 're' },
+      mail: {
+        from: 'AI-Scratch <office@mail.ai-scratch.dev>',
+        replyTo: 'rainer@software-architects.at',
+        resendApiKey: 're',
+      },
       turnstile: { siteKey: 'site', secretKey: 'secret' },
       jev: { apiKey: 'jev', model: 'jev-1.13.0' },
       adminNotifyEmail: 'rainer@software-architects.at',

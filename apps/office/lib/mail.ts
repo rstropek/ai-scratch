@@ -14,12 +14,22 @@ export type Mailer = (mail: Mail) => Promise<void>;
 export const RESEND_URL = 'https://api.resend.com/emails';
 
 export const createResendMailer =
-  ({ apiKey, from, fetch: baseFetch = fetch }: { apiKey: string; from: string; fetch?: typeof fetch }): Mailer =>
+  ({
+    apiKey,
+    from,
+    replyTo,
+    fetch: baseFetch = fetch,
+  }: {
+    apiKey: string;
+    from: string;
+    replyTo: string;
+    fetch?: typeof fetch;
+  }): Mailer =>
   async ({ to, subject, text }) => {
     const res = await baseFetch(RESEND_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({ from, to: [to], subject, text }),
+      body: JSON.stringify({ from, to: [to], reply_to: replyTo, subject, text }),
       signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) throw new Error(`Resend answered ${res.status}: ${(await res.text()).slice(0, 300)}`);

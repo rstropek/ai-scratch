@@ -56,6 +56,10 @@ reject, mail to the applicant. The admin can also switch the budget on (mail) or
 - **Mails are plain text.** In development and e2e, `MAIL_OUTBOX_DIR` writes them as JSON files instead of
   sending (`lib/mail.ts`); e2e tests read the links from there. A failed mail to the admin or applicant never
   undoes the application or the decision; the admin page says when the applicant's mail didn't go out.
+- **Microsoft 365 quarantines our mails as spam** (`CAT:SPM`, 2026-11-01) although SPF, DKIM and DMARC pass:
+  the domain is new. Hence the fuller texts, a signature with the website, Reply-To (`MAIL_REPLY_TO`, default
+  Rainer) since `office@` has no mailbox, and the quarantine hint on the "sent" page. Resend's "Delivered" only
+  means the school's server took it; a school can hide quarantined mail from the recipient (message trace).
 - **The decision redirects** (`?decided=…`): the form disappears with the open application, so its own state
   can't carry the result.
 - **Admin pages check the role in every server action** too; the page's check doesn't protect the action.
