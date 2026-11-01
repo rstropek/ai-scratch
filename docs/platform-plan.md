@@ -2,9 +2,10 @@
 
 Status: **iteration 2 of the office implemented** (registration of parents and teachers, email confirmation,
 teachers' applications for the free budget screened by Jev, the admin's account list, decisions and free-budget
-switch, password reset), **and the admin's Anthropic key pool** (`/admin/keys`); access codes, budgets and the
-kids' app using the pool come next. The outcome of the architecture discussion of 2026-10-31. Each point is
-marked **decided** (Rainer agreed), **proposed** (Claude's suggestion, not confirmed yet) or **open**.
+switch, password reset), **and the admin's Anthropic key pool** (`/admin/keys`); next:
+[iteration 3](#iteration-3-codes-own-openrouter-keys-the-kids-app-on-the-database) (codes, own OpenRouter keys, the
+kids' app on the database), detailed and partly decided, not built yet. The outcome of the architecture discussion
+of 2026-10-31. Each point is marked **decided** (Rainer agreed), **proposed** (Claude's suggestion, not confirmed yet) or **open**.
 
 ## Why
 
@@ -88,10 +89,7 @@ Postgres                Azure Database for PostgreSQL Flexible Server, Burstable
 - **Proposed:** both apps connect: the office for everything, the kids' app to check codes and add spend.
 - **Decided:** **Drizzle** as the ORM, in both apps. Data access uses Drizzle's built-in mechanisms (query
   builder, relational queries, `drizzle-kit` migrations); hand-written SQL is allowed, but the exception.
-- **Proposed data shape:**
-  - `codes` (teacher, time window, budget, comment, "frage KI" switch, spend). Unique among codes that haven't
-    expired: checked in the insert's transaction, because a partial index can't use `now()`.
-  - Monthly counters (overall, per teacher, per key): `INSERT … ON CONFLICT DO UPDATE SET eur = eur + …`.
+- The data shape of codes, keys and usage: [iteration 3](#iteration-3-codes-own-openrouter-keys-the-kids-app-on-the-database).
 
 ## Auth: better-auth
 
@@ -125,8 +123,9 @@ Decided by Rainer on 2026-10-31; it replaces the earlier teacher-only applicatio
 **Two kinds of adults, and one flag:**
 
 - **Parents** (and other adults) and **teachers** register as what they are; nobody confirms a teacher's status.
-- **Everyone** enters budget-limited OpenRouter keys (at most $25 left when a code is created, see
-  [own OpenRouter keys](#own-openrouter-keys-teachers-and-parents)) and creates codes once they have a valid key.
+- **Everyone** can enter budget-limited OpenRouter keys (at most $25 left when a code is created, see
+  [own OpenRouter keys](#own-openrouter-keys-teachers-and-parents)) and creates codes once they have a valid key
+  or the free budget.
 - **The free budget** (donated keys) is a separate flag per account, the one thing you confirm (decided,
   Rainer 2026-10-31):
   - teachers ask for it with a checkbox at registration, **only there**, and send one application;
@@ -206,29 +205,30 @@ Decided by Rainer on 2026-10-31; it replaces the earlier teacher-only applicatio
 
 1. **A code from the free budget** (donated keys; teachers' normal case).
 2. **A code backed by an adult's own OpenRouter key** (a teacher's or a parent's).
-3. **A parent's OpenRouter key typed straight into the kids' app** (as today): for non-teachers who let their
-   kids try it occasionally or once. **Proposed:** this goes away once parent accounts exist. Parents then
-   have a single way in with a single set of terms, the key never reaches a kid's device, and the kid only
-   sees a code that runs out.
+3. ~~A parent's OpenRouter key typed straight into the kids' app~~ (the event's way): removed in iteration 3.
+   Parents have a single way in with a single set of terms, the key never reaches a kid's device, and the kid
+   only sees a code that runs out.
 
 Every way needs an adult: kids can't get access on their own. The per-school codes of the event go away.
-**Open:** whether `admin_` test codes stay (via env).
+**Decided (Rainer, 2026-11-01):** way 3 goes with [iteration 3](#iteration-3-codes-own-openrouter-keys-the-kids-app-on-the-database); `admin_` test codes become env test codes for dev and tests only.
 
 ## Access codes
 
 - **Decided:**
-  - Generated automatically; the teacher can choose their own instead.
+  - Generated automatically. **Decided (Rainer, 2026-11-01): only generated codes**, adults can't choose their
+    own (replaces "the teacher can choose their own instead").
   - A comment per code (example: "1A Digitale Grundbildung am 31.10.2026").
   - The validity window can start in the future and lasts at most 4 h.
   - The "frage KI" block can be switched off per code.
 - **Proposed:**
-  - Generated format: a kid-friendly German word + 4 digits (`TIGER-4821`), no offensive words.
+  - Generated format: two kid-friendly German nouns + 2 digits (`TIGER-APFEL-48`), no offensive words; unique
+    among codes that haven't expired.
   - Not case-sensitive.
-  - A teacher's own code: at least 6 characters (letters, digits, dash), unique among codes that haven't
-    expired, reusable after expiry.
   - Comment up to 200 characters, visible only to the teacher and you, with the hint "keine Namen von Kindern".
-  - Failed code attempts limited per IP.
-- **Open:** whether "frage KI" is on or off by default for a new code (parents' keys: always on).
+  - No limit on failed code attempts (Rainer, 2026-11-01: a limit per IP lets one kid lock out a class behind
+    the school's NAT); the codes are hard enough to guess
+    ([iteration 3](#iteration-3-codes-own-openrouter-keys-the-kids-app-on-the-database)).
+- **Decided (Rainer, 2026-11-01):** "frage KI" is on for a new code.
 
 ## Budgets
 
@@ -236,62 +236,61 @@ Every way needs an adult: kids can't get access on their own. The per-school cod
 
   | Variable | Value |
   |---|---|
-  | `BUDGET_TOTAL_EUR_MONTH` | 100 |
-  | `BUDGET_ACCOUNT_EUR_MONTH` | 10 |
+  | `BUDGET_TOTAL_USD_MONTH` | 100 |
+  | `BUDGET_ACCOUNT_USD_MONTH` | 10 |
   | `FREE_CODES_PER_ACCOUNT_MONTH` | 5 |
-  | `CODE_BUDGET_EUR` | 5 |
+  | `CODE_BUDGET_USD` | 5 |
   | `CODE_MAX_HOURS` | 4 |
 
   Changing them needs a restart, so do it outside school hours.
 - **Decided:** **only actual spend counts**, nothing is reserved, and the overall budget may be overbooked.
-- **Decided:** codes backed by an own OpenRouter key have only the per-code limits (`CODE_BUDGET_EUR`,
+- **Decided:** codes backed by an own OpenRouter key have only the per-code limits (`CODE_BUDGET_USD`,
   `CODE_MAX_HOURS`). That holds for parents' codes too (Rainer, 2026-10-31: change it if someone complains).
-- **Proposed:** checks before every model call:
+- **Proposed:** checks before every model call (how they are computed and cached:
+  [iteration 3](#iteration-3-codes-own-openrouter-keys-the-kids-app-on-the-database)):
 
-  | Check | Donated keys | Own OpenRouter key (teacher or parent) | Parent's key typed into the kids' app (today) |
+  | Check | Free budget (adult) | Free budget (admin) | Own OpenRouter key |
   |---|---|---|---|
-  | Code inside its time window | ✓ | ✓ | – |
-  | Code spend < `CODE_BUDGET_EUR` | ✓ | ✓ | – |
-  | The account's free budget still switched on (switching it off stops its running codes) | ✓ | – | – |
-  | The account's free-budget spend this month < `BUDGET_ACCOUNT_EUR_MONTH` | ✓ | – | – |
-  | Overall spend this month < `BUDGET_TOTAL_EUR_MONTH` | ✓ | – | – |
-  | A key in the pool has budget left | ✓ | – | – |
-  | Key limit at OpenRouter | – | ✓ (OpenRouter enforces it) | ✓ (as today) |
+  | Code exists, not deleted, inside its time window | ✓ | ✓ | ✓ |
+  | The code's owner exists and isn't banned | ✓ | ✓ | ✓ |
+  | Code spend (all months) < `CODE_BUDGET_USD` | ✓ | ✓ | ✓ |
+  | The owner's free budget still switched on (switching it off stops its running codes) | ✓ | – | – |
+  | The owner's free-budget spend this month < `BUDGET_ACCOUNT_USD_MONTH` | ✓ | – | – |
+  | Overall free-budget spend this month < `BUDGET_TOTAL_USD_MONTH` | ✓ | ✓ | – |
+  | A pool entry under 97.5 % of its cap, not refused | ✓ | ✓ | – |
+  | The key exists; its limit at OpenRouter (OpenRouter enforces it) | – | – | ✓ |
 
-- **Proposed:**
-  - After each call, the actual cost goes atomically onto the code and the monthly counters.
-  - Creating a code with donated keys needs: the free budget switched on for the account, the account under its
-    monthly budget and code count, and the overall budget not used up.
-- **Proposed:**
-  - Months are calendar months, Vienna time; a code's spend counts toward the month it was created in.
-  - Providers bill in dollars, converted at a fixed `USD_PER_EUR`.
-  - Emails to you at 80 % of the overall budget and when a key runs out.
+  "Admin" is the owner's role at the time of the call: a former admin's codes get the adult's checks.
+- **Decided (Rainer, 2026-11-01): everything in US dollars**, as providers bill: budgets, pool caps, display. No
+  currency conversion. Months are calendar months, Vienna time.
+- **Not in any budget:** the Jev guard's calls (TypeSafe, every kid message and "frage KI" text, every source,
+  own keys included), paid by Rainer's TypeSafe key.
 - **Consequence of overbooking:** when the overall or an account's budget runs out, every running code under
-  it stops, even mid-lesson. Kids get a German message. The overshoot is at most the calls already in flight.
+  it stops, even mid-lesson. Kids get a German message. The overshoot is what all instances spend before their
+  next refresh (at most a minute), plus calls in flight.
 
 ## Anthropic key pool
 
 - **Decided:** several Anthropic keys (Rainer's credits, friends' donations). When one key's budget is used up,
   the system switches to the next.
 - **Decided (Rainer, 2026-10-31):** every donated key has a cap per calendar month (Vienna time), configurable
-  per key (`capEurMonth`).
+  per key (`capMonth`, in dollars from iteration 3).
 - **Decided (Rainer, 2026-10-31, replaces the Key Vault JSON):** the admin maintains the keys on an admin-only
   page in the office. **Done (2026-10-31)**, details and traps in `docs/key-pool.md`:
   - Table `anthropic_key`: donor, the key sealed with AES-256-GCM (`KEY_ENCRYPTION_KEY` in Key Vault, for both
-    apps), its last four characters, an optional workspace ID, `capEurMonth`, priority, active/paused.
+    apps), its last four characters, an optional workspace ID, `capMonth`, priority, active/paused.
   - Add, edit (also replace the key), pause, delete. A new key, or a new workspace, is checked with one tiny
     Anthropic call before it is saved; the key is never shown again.
   - **No remaining budget from Anthropic** (Rainer: "without budget"): Anthropic has no endpoint for a key's
-    balance, only cost and usage reports with an Admin API key. `capEurMonth` is our own cap.
+    balance, only cost and usage reports with an Admin API key. `capMonth` is our own cap.
   - **The workspace ID** is needed only by keys not bound to a workspace (personal and service account keys).
 - **Proposed:**
-  - A session sticks to its key (prompt caching), otherwise the active key with the highest priority that
-    has budget left. Keys are used up one at a time, not in rotation.
-  - A key counts as used up when its monthly spend reaches its cap, or when Anthropic refuses it (billing,
-    spend limit, invalid key). The same call is then retried on the next key at once; that's safe because
-    those errors arrive before anything streams.
+  - Every call uses the active entry with the highest priority that is usable: under 97.5 % of its cap and not
+    refused. Entries are used up one at a time, not in rotation, so all sessions share one entry (prompt caching)
+    until it is used up. No retry within a call
+    ([iteration 3](#iteration-3-codes-own-openrouter-keys-the-kids-app-on-the-database)).
   - Donors should also set a spend limit in the Anthropic Console as a second safety net.
-  - With no key left, kids get a German message and you get an email.
+  - With no entry left, kids get a German message; the dashboard shows it.
 - **Open:** whether Anthropic accepts signed thinking blocks from another organisation's key when a session
   switches mid-turn. If not, the server drops old thinking blocks on a switch.
 
@@ -420,6 +419,171 @@ Every way needs an adult: kids can't get access on their own. The per-school cod
 
   The website's "Starten" button opens `ai-scratch.dev/?aufgabe=<id>`.
 
+## Iteration 3: codes, own OpenRouter keys, the kids' app on the database
+
+Rainer, 2026-11-01: next after the key pool. Merges "codes, the kids' app on the pool, budgets" and "own
+OpenRouter keys" ([order](#order-proposed) 2 and 3) into one iteration. **Straightforward code matters more than
+covering every edge** (Rainer, 2026-11-01): where a rare case would need much code, the plan accepts a small
+cost or a German "versuch es nochmal" instead.
+
+**Decided (Rainer, 2026-11-01):**
+
+- Adults create access codes once they have the free budget or a valid own OpenRouter key; the limits of
+  [budgets](#budgets) apply. They see their codes with what is left of each.
+- **Admins** use the free budget without switching it on, with the per-code limits only (`CODE_BUDGET_USD`,
+  `CODE_MAX_HOURS`) and the overall budget; no account budget, no code count. They see every code with what is
+  left.
+- Adults delete their codes at any time, admins any code.
+- **The kids' app takes codes from the database.** The OpenRouter key typed into the kids' app goes away (way 3 of
+  [kids' ways](#kids-ways-into-the-chat)), and with it the school codes of `ACCESS_CODES`.
+- **Usage is stored** per code, by source (free budget or own OpenRouter key) and per pool entry.
+- "frage KI" is **on** for a new code.
+- **Env test codes stay for dev and tests only** (`TEST_CODES` with `ANTHROPIC_API_KEY`, no hearts, like `admin_`
+  codes today): the game harness and the kids' app's e2e need no Postgres. Never set on Azure.
+- **The kid sees the code's end time** ("Code gilt bis 10:50" in the chat's top bar), never its budget.
+- **US dollars everywhere** (budgets, pool caps, display), as providers bill: no currency conversion. The pool
+  cap is `capMonth`; the env vars keep `USD` in their names.
+- **The Locker works without a code**, always.
+- **The admin maintains the model price** (only Haiku for now) on an admin page, with a button that fetches the
+  current Haiku price from OpenRouter.
+- **A warning email to all admins when 80 % of a budget is reached**, this iteration.
+- **Budget numbers, no charts,** for adults and admins (basic, also for testing; enhanced later).
+- **Generated codes only:** adults can't choose their own (replaces the earlier decision). With them goes the
+  protection of the code entry: no proof of work, no challenge, no signed token; the codes are hard enough to
+  guess (below).
+- **Federation stays** in the kids' app.
+
+**Proposed: data** (`packages/db`):
+
+- `openrouter_key`: owner, label, the key sealed with the key box (row id as associated data), its last four
+  characters, a fingerprint unique per owner. Deleting it deletes its codes too (`ON DELETE CASCADE`).
+- `access_code`: the code (stored lowercase, shown uppercase), owner, source (`free` / `openrouter` with the key),
+  start and end, "frage KI", comment, created. **Deleting is a real delete.** Unique among codes that haven't
+  expired: checked in the insert's transaction under an advisory lock on the code, and on the owner, so two tabs
+  can't both create the fifth code.
+- **Codes:** two German nouns kids know and two digits (`TIGER-APFEL-48`), from a list of about 200 words checked
+  by hand: about 4 million codes. Guessing one of 100 active codes takes about 40,000 tries for a $5 code that
+  ends within 4 h; failed lookups are counted (`/api/stats`, the log), so that shows.
+- `usage`: one row per code, Vienna month and pool entry (none for OpenRouter): calls and tokens by kind (input,
+  output, cache write, cache read), **no cost**, no model (only Haiku; a second model adds the column).
+  `INSERT … ON CONFLICT DO UPDATE` after each call, its unique index `NULLS NOT DISTINCT` (else an own-key call
+  never matches its row). Every sum (code, account, pool entry, month, source) comes from this one table.
+  - **No foreign keys:** the row carries the code's owner and source itself, so deleting a code, an own key, a
+    pool entry or an account never lowers a month's sums.
+  - **A cut call counts as `max_tokens` output** (the kid's "Stopp", a closed tab, the output guard): it has no
+    final usage event. At Haiku's price that is under a cent per cut call, a harmless overcount, and no estimate.
+  - **A failed write is logged,** nothing more.
+- `model_price`: one row, dollars per million tokens for input, output, cache write (5 min) and cache read, who
+  set it and when. The migration creates it with today's Haiku price; the form refuses 0. **Cost is always
+  tokens × the current price**, so a corrected price corrects the whole month, and a real price change re-values
+  the month's earlier calls too (accepted: Haiku's price rarely changes).
+- `anthropic_key` gets `refusedAt` and `refusedReason`, written by the kids' app when Anthropic refuses the entry
+  (billing, spend limit, invalid key): every instance then skips it, the dashboard shows it. Saving the entry in
+  the office (after a successful check) clears it. Pool entries are deleted for real; a key deleted and added
+  again within a month starts with a fresh cap (the admin's own doing).
+- `capEurMonth` is renamed to `capMonth` (dollars) in one migration (Rainer, 2026-11-01: a deploy may break the
+  old container for a minute).
+- **Months** (changes "a code's spend counts toward the month it was created in"): spend counts in the month of
+  the call (Vienna; Anthropic bills in UTC, an hour or two apart, which the 97.5 % absorbs). **A code's own budget
+  counts over all months** (a code running over midnight on the 31st gets no fresh $5). **The code count goes by
+  the month a code is created**, over codes that still exist: deleting one gives a code back, never money (the
+  account's monthly budget still holds).
+- The limits from env live in `packages/db` and are read by both apps; `lib/rules.ts`'s values become their
+  defaults, and its `EUR` names become `USD` (`KEY_CAP_MAX_EUR` too).
+
+**Proposed: office:**
+
+- `/` becomes the adult's start page: the budget numbers, their codes, their OpenRouter keys, a "Neuer Code"
+  button. Admins get `/admin/codes` as well.
+- **Budget numbers:** plain figures (spent, limit, left) at the top of the start page, from the same sums the
+  kids' app checks:
+  - adults with the free budget: this month's spend and what is left of `BUDGET_ACCOUNT_USD_MONTH`, codes created
+    and left of `FREE_CODES_PER_ACCOUNT_MONTH`;
+  - adults with own keys: each key's `limit_remaining` from OpenRouter, and this month's spend through it;
+  - admins, in addition: the overall month against `BUDGET_TOTAL_USD_MONTH`, each pool entry's spend against its
+    `capMonth` (paused or refused shown), this month's OpenRouter spend, and the number of running codes.
+- `/openrouter-keys`: add a key (label and key; `GET /key` only checks that OpenRouter knows it), the list with
+  OpenRouter's current `limit_remaining`, read while the page loads ("nicht erreichbar" after 3 s), delete behind a
+  confirmation that names the codes deleted with it.
+- `/codes/new`:
+  - the source: the free budget (when switched on, or for admins) or one of the account's keys;
+  - the code is generated; "Neuer Vorschlag" draws another;
+  - start (date and time, now by default, at most 30 days ahead) and duration (at most 4 h, 1 h by default);
+  - comment (at most 200 characters, hint "keine Namen von Kindern"), "frage KI" (on).
+  - **Checks when it is created:** the free budget switched on and fewer than `FREE_CODES_PER_ACCOUNT_MONTH`
+    codes this month (admins: neither); an own key's `limit_remaining` set and at most $25. **No budget checks**
+    here: every call checks money anyway.
+- **The code list:** code, window, state (geplant, läuft, abgelaufen), source, comment, spent and left of
+  `CODE_BUDGET_USD`. Delete behind a confirmation.
+- `/admin/codes`: every code with its owner, filtered by running, planned, expired. `/admin/keys` shows each
+  entry's month spend against its cap and whether it is refused.
+- `/admin/prices`: the four prices; "Von OpenRouter holen" fills the form from OpenRouter's public model list
+  (`anthropic/claude-haiku-5.5`, prices per token), the admin checks and saves. Saving takes effect in the kids'
+  app within a minute.
+
+**Proposed: kids' app:**
+
+- **The gate asks only for a code.** The key choice, `TermsDialog`, the `sk-or-` handling and the key checker
+  go. A line for adults says where codes come from (office.ai-scratch.dev).
+- **One snapshot per instance, refreshed every 60 s** (Rainer's design): all codes that haven't expired, the
+  price, the pool, and every sum (each code over all months; per account, per pool entry and overall this month),
+  in a handful of queries. Checks then run in memory. A code that isn't in the snapshot is looked up directly, so
+  a code created a moment ago works at once.
+  - A pool entry is used while at most **97.5 %** of its cap is spent; the code's, the account's and the overall
+    budget stop at 100 %. The overshoot is what all instances spend within the minute, plus calls in flight;
+    Anthropic's spend limit and the refusal catch the rest. The margin assumes a few instances (today one, two
+    during a deploy).
+  - **A failed refresh stops the free budget's codes** until the next refresh succeeds (fail closed); own-key
+    codes go on with the last snapshot. A Postgres outage then leaves at most a minute's spend uncounted.
+  - Pausing an entry, deleting a code, banning an account, withdrawing the free budget or a new price take effect
+    within a minute.
+- **Per request:** the [checks](#budgets) against the snapshot. Chat, "Zusammenfassen" and "frage KI" need budget
+  left; "frage KI" also its switch. The Locker needs no code. `GET /api/access` answers with the end time and the
+  switch.
+- **A German message per refusal:** not valid yet ("ab 10:00 Uhr"), expired, the code's budget used up, free
+  budget withdrawn or the month used up, no pool entry left, the OpenRouter key empty. An unknown or deleted code
+  is a wrong code (back to the gate).
+- **Free budget, the pool client:** the active entry with the highest priority that is usable (under 97.5 %, not
+  refused). No sticky sessions: entries are used up one after another, so all sessions share one entry until it
+  is used up. **No retry within a call:** when Anthropic refuses an entry (401, 402, billing or permission 403,
+  credit 400), the kids' app marks it refused, the kid gets "Versuch es gleich nochmal", and the next request
+  takes the next entry. Federations: one `@anthropic-ai/sdk` credential provider per entry, kept for the
+  process, its token as Bearer for the AI SDK. The credential code (key or federation, Entra token) moves out of
+  the office into a shared package, so the office's check and the kids' app use one implementation.
+- **Own key:** decrypted from the database, the model through OpenRouter as today, OpenRouter's refusals as today.
+- **After each call** the usage row is written from the usage the call log already parses. A failed write never
+  fails the kid's call.
+- `/api/stats` only for test codes.
+- **Thinking blocks across entries** ([open](#anthropic-key-pool)): when all sessions move to the next entry, their
+  history holds thinking signed by the old one. Tested with two organisations; if Anthropic refuses it, the server
+  drops thinking blocks of earlier entries.
+
+**Proposed: the 80 % warning:**
+
+- Budgets watched: the overall month (`BUDGET_TOTAL_USD_MONTH`) and each pool entry's cap. No other emails: a
+  refused entry shows on the dashboard.
+- The kids' app notices it when it refreshes its snapshot and sends through Resend, to every user with the role
+  `admin`. **Once across all instances:** a row in `budget_warning` keyed by budget, month and the limit's value
+  (a raised cap warns again at its new 80 %); only the instance whose insert wins sends. A failed send is logged.
+
+**Proposed: Azure and rollout:**
+
+- The kids' app's managed identity gets its own Postgres role with only what it needs: read codes, own keys, the
+  pool, profiles, the price, `user`'s role, ban and email; read and write usage and budget warnings; write the
+  pool's `refusedAt`/`refusedReason`. Granted by provision.sh after the office has migrated. Its Key Vault list
+  already holds `RESEND_API_KEY` for the warnings.
+- The kids' app gets `KEY_ENCRYPTION_KEY`, `PG*`, the federation identity and its `ANTHROPIC_FEDERATION_*`
+  settings; `ANTHROPIC_API_KEY` and `ACCESS_CODES` leave its settings and Key Vault references.
+- **Order:** Rainer's Anthropic key into the pool, office deploy (migrations), the kids' app's provision.sh (role,
+  grants, settings), kids' app deploy. School codes and typed keys stop with that deploy.
+
+**Proposed: tests:** codes, sums, checks and pool choice on PGlite; the kids' app's server tests on PGlite with
+a fake Anthropic and OpenRouter; the office's e2e for keys and codes with a fake OpenRouter next to the fake
+Anthropic; the kids' app's e2e keep `TEST_CODES`.
+
+Docs and legal texts that change with it are updated in the same change: the kids' app's parents' terms go;
+`limits-and-safety.md`; `/access` and the terms (dollars, the Locker without a code, no codes of one's own).
+
 ## Order (proposed)
 
 1. **Iteration 1 of the office** (decided: Rainer, 2026-10-31; code done 2026-10-31): Postgres, an empty Next.js
@@ -435,7 +599,7 @@ Every way needs an adult: kids can't get access on their own. The per-school cod
 
 ## Still open
 
-- The real cost per kid and per class-hour, from the event logs in Blob, to check the 5 € per code.
+- The real cost per kid and per class-hour, from the event logs in Blob, to check the $5 per code.
 - The tech-stack discussion continues (Rainer, 2026-10-31).
-- The open points above: video page and slides, `admin_` codes, "frage KI" default, thinking blocks across
-  keys, Jev's data location, video hosting, legal texts.
+- The open points above: video page and slides, thinking blocks across keys, Jev's data location, video
+  hosting, legal texts.
