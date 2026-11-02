@@ -18,7 +18,10 @@ pageNumber: false
 <div class="cover">
   <h1>Willkommen bei <span class="hl">AI Scratch!</span></h1>
   <div class="cat"><Sticker src="/scratch/cat.svg" alt="Scratch-Katze" :width="330" :rotate="8" /></div>
-  <p class="credit print">Scratch-Figuren aus der Scratch-Bibliothek, Scratch Foundation, CC BY-SA 2.0. Scratch ist ein Projekt der Scratch Foundation.</p>
+  <div class="credit print">
+    <p><strong>AI Scratch ist eine private Initiative und kein Angebot der Scratch Foundation oder des MIT Media Lab.</strong> Es wird von ihnen weder unterstützt noch empfohlen. „Scratch“ ist eine Marke der Scratch Foundation.</p>
+    <p>Scratch-Figuren aus der Scratch-Bibliothek, Scratch Foundation, CC BY-SA 2.0.</p>
+  </div>
 </div>
 
 <style>
@@ -33,6 +36,9 @@ pageNumber: false
 .cover .hl { color: #ffd84d; }
 .cover .cat { grid-row: 1; grid-column: 2; align-self: center; justify-self: center; }
 .cover .credit { grid-column: 1 / 3; font-size: 16px; font-weight: 400; }
+.cover .credit p { margin: 0; }
+.cover .credit p + p { margin-top: 4px; }
+.cover .credit strong { font-weight: 600; }
 </style>
 
 <!--

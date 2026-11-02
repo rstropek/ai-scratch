@@ -86,7 +86,7 @@ components:
 > 1. **Four type sizes are fine:** display 76, the Haiku poem 62 (one-off), text 34, print 20.
 > 2. **The yellow cover highlight stays:** "AI Scratch!" in `cover-yellow`, cover only.
 > 3. **No peeling corners.**
-> 4. **The cover carries a small Scratch credit** at the bottom and no empty slots.
+> 4. **The cover carries a small Scratch credit** at the bottom and no empty slots. Above the credit, bold, the disclaimer the app's terms make: AI Scratch is a private initiative, no offering of the Scratch Foundation or the MIT Media Lab.
 
 ## Overview
 
