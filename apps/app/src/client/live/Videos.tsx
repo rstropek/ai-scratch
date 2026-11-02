@@ -1,12 +1,12 @@
 // The seven videos, one after the other: the day as a strip (each video as wide as it is long), one player,
-// and "Weiter" to the next. The Beamer-Ansicht puts strip, player and buttons on the whole screen, so the
-// projector shows nothing else.
+// and "Weiter" to the next; ?video=3 opens the third. The Beamer-Ansicht puts strip, player and buttons on the
+// whole screen, so the projector shows nothing else.
 import { Check, ChevronLeft, ChevronRight, Maximize, Minimize, Play } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { remember, remembered } from './remember.ts';
-import type { LiveVideo } from './video-list.ts';
+import { type LiveVideo, videoFromSearch } from './video-list.ts';
 
 export const minutes = (m: number) =>
   m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} min`;
@@ -20,7 +20,10 @@ const rememberedWatched = (): Set<string> => {
 };
 
 export const Videos = ({ videos }: { videos: LiveVideo[] }) => {
+  // a link's ?video=3 wins over the video this browser remembers
   const [current, setCurrent] = useState(() => {
+    const linked = videoFromSearch(location.search, videos.length);
+    if (linked !== undefined) return linked;
     const i = videos.findIndex((v) => v.descriptId === remembered('video'));
     return Math.max(i, 0);
   });
@@ -41,6 +44,10 @@ export const Videos = ({ videos }: { videos: LiveVideo[] }) => {
   const go = (i: number) => {
     setCurrent(i);
     remember('video', videos[i]?.descriptId);
+    // the address follows, so a reload or a copied link opens this video
+    const url = new URL(location.href);
+    url.searchParams.set('video', String(i + 1));
+    history.replaceState(null, '', url);
   };
   const goNext = () => {
     const seen = new Set(watched).add(video.descriptId);

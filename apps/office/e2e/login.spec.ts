@@ -49,3 +49,15 @@ test('the admin signs in, sees the start page, and signs out', async ({ page }) 
   await page.goto('/');
   await expect(page).toHaveURL(/\/login$/);
 });
+
+test('the start page links the material in the kids app, the KI video directly', async ({ page }) => {
+  await page.goto('/login');
+  await signIn(page, E2E_ADMIN.password);
+  const r = texts.home.resources;
+  const material = page.getByRole('region', { name: r.title });
+  const link = (title: string) => material.getByRole('link', { name: new RegExp(`^${title}`) });
+  await expect(link(r.slides.title)).toHaveAttribute('href', 'https://ai-scratch.dev/slides/');
+  await expect(link(r.videos.title)).toHaveAttribute('href', 'https://ai-scratch.dev/digiferien-2026-live');
+  await expect(link(r.kiVideo.title)).toHaveAttribute('href', 'https://ai-scratch.dev/digiferien-2026-live?video=3');
+  await expect(link(r.kiVideo.title)).toHaveAttribute('target', '_blank');
+});

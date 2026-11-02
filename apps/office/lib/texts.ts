@@ -290,6 +290,22 @@ export const texts = {
     },
     codesTitle: 'Ihre Codes',
     noCodes: 'Noch keine Codes.',
+    resources: {
+      title: 'Materialien für den Unterricht',
+      newTab: '(öffnet in neuem Tab)',
+      slides: {
+        title: 'Folien',
+        text: 'Die Folien zum Video-Tutorial, mit den vier Übungen. Zum Zeigen am Beamer.',
+      },
+      videos: {
+        title: 'Videos zum Workshop-Tag',
+        text: 'Sieben Videos, zusammen etwa 2,5 Stunden. Sie führen die Kinder Schritt für Schritt durch den Tag.',
+      },
+      kiVideo: {
+        title: 'Video 3: KI',
+        text: 'Das KI-Video aus der Reihe, 36 Minuten: erklärt den Kindern, was KI ist und wie sie mit ihr arbeiten.',
+      },
+    },
   },
   /** a key's remaining budget at OpenRouter, read while a page loads */
   remaining: {

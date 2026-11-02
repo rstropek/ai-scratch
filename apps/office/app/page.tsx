@@ -1,4 +1,5 @@
 import { displayCode, loadPrice } from '@ai-scratch/db';
+import { Cpu, MonitorPlay, Presentation } from 'lucide-react';
 import Link from 'next/link';
 import { AppShell } from '../components/app-shell.tsx';
 import { CodesTable } from '../components/codes-table.tsx';
@@ -6,6 +7,7 @@ import { Banner } from '../components/ui/banner.tsx';
 import { buttonClass } from '../components/ui/button.tsx';
 import { Chip } from '../components/ui/chip.tsx';
 import { DetailsList } from '../components/ui/details-list.tsx';
+import { LinkList } from '../components/ui/link-list.tsx';
 import { PageHeader } from '../components/ui/page-header.tsx';
 import { Panel } from '../components/ui/panel.tsx';
 import { Section } from '../components/ui/section.tsx';
@@ -28,6 +30,15 @@ import { texts } from '../lib/texts.ts';
 
 const t = texts.home;
 const b = t.budget;
+const r = t.resources;
+
+/** the kids' app, where the slides and the video page live; ?video=3 opens the video page at its third video */
+const KIDS_APP = 'https://ai-scratch.dev';
+const RESOURCES = [
+  { href: `${KIDS_APP}/slides/`, icon: Presentation, ...r.slides },
+  { href: `${KIDS_APP}/digiferien-2026-live`, icon: MonitorPlay, ...r.videos },
+  { href: `${KIDS_APP}/digiferien-2026-live?video=3`, icon: Cpu, ...r.kiVideo },
+];
 
 /** Where the free budget stands, with the next step; nothing for accounts that never asked for it. */
 function FreeBudgetPanel({ state }: { state: ApplicantState }) {
@@ -161,6 +172,11 @@ export default async function Home({ searchParams }: PageProps<'/'>) {
           ) : (
             <CodesTable rows={codes} codeBudgetUsd={limits.codeBudgetUsd} back="home" now={now} />
           )}
+        </Panel>
+      </Section>
+      <Section title={r.title}>
+        <Panel padded={false}>
+          <LinkList items={RESOURCES} newTab={r.newTab} />
         </Panel>
       </Section>
     </AppShell>

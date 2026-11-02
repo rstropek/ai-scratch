@@ -16,3 +16,14 @@ export const VIDEOS: LiveVideo[] = [
   { descriptId: 'OWktZYpIjKn', title: 'TypeScript', minutes: 12 },
   { descriptId: '8YFON3wFO7L', title: 'Abschluss', minutes: 2 },
 ];
+
+/**
+ * The video a link opens: `?video=3` is the third video, counted from 1 as the page shows them (the office links
+ * there). Anything else opens none, so the page falls back to the one this browser remembers.
+ */
+export const videoFromSearch = (search: string, count: number): number | undefined => {
+  const raw = new URLSearchParams(search).get('video');
+  if (raw === null || !/^\d+$/.test(raw)) return undefined;
+  const n = Number(raw);
+  return n >= 1 && n <= count ? n - 1 : undefined;
+};
